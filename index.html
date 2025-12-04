@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فروشگاه خدمات دیجیتال | SidkaShop</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="#">
+</head>
+<body>
+    <!-- هدر سایت -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <a href="#" class="logo">
+                    <i class="fas fa-store"></i>
+                    <span>SidkaShop</span>
+                </a>
+                
+                <ul class="nav-links">
+                    <li><a href="#home" class="active"><i class="fas fa-home"></i> خانه</a></li>
+                    <li><a href="#products"><i class="fas fa-box"></i> محصولات</a></li>
+                    <li><a href="#pricing"><i class="fas fa-tag"></i> لیست قیمت</a></li>
+                    <li><a href="#support"><i class="fas fa-headset"></i> پشتیبانی</a></li>
+                    <li><a href="#contact"><i class="fas fa-phone"></i> تماس</a></li>
+                    <li class="cart-icon">
+                        <a href="#cart" id="cart-toggle">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="cart-count">0</span>
+                        </a>
+                    </li>
+                    <li class="user-section">
+                        <a href="#login" id="login-btn"><i class="fas fa-user"></i> ورود</a>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a href="#profile"><i class="fas fa-user-circle"></i> پروفایل</a>
+                            <a href="#orders"><i class="fas fa-history"></i> سابقه خرید</a>
+                            <a href="#logout" id="logout-btn"><i class="fas fa-sign-out-alt"></i> خروج</a>
+                        </div>
+                    </li>
+                </ul>
+                
+                <button class="menu-toggle" id="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- صفحه اصلی -->
+    <main>
+        <!-- بخش معرفی -->
+        <section class="hero" id="home">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>فروشگاه خدمات دیجیتال</h1>
+                    <p class="subtitle">ارائه با کیفیت‌ترین خدمات دیجیتال با قیمت مناسب</p>
+                    <p>خرید پنل، اشتراک VPN، طراحی تامنیل و خدمات مرتبط با امنیت کامل و پشتیبانی 24 ساعته</p>
+                    <div class="hero-buttons">
+                        <a href="#products" class="btn btn-primary">مشاهده محصولات</a>
+                        <a href="#pricing" class="btn btn-secondary">لیست قیمت</a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <i class="fas fa-laptop-code"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- بخش محصولات -->
+        <section class="products" id="products">
+            <div class="container">
+                <h2 class="section-title">محصولات و خدمات</h2>
+                <p class="section-subtitle">خدمات دیجیتال با کیفیت بالا و قیمت مناسب</p>
+                
+                <div class="product-filters">
+                    <button class="filter-btn active" data-filter="all">همه</button>
+                    <button class="filter-btn" data-filter="panels">پنل‌ها</button>
+                    <button class="filter-btn" data-filter="subscriptions">اشتراک‌ها</button>
+                    <button class="filter-btn" data-filter="design">خدمات طراحی</button>
+                </div>
+                
+                <div class="products-grid" id="products-grid">
+                    <!-- محصولات از طریق JavaScript اضافه می‌شوند -->
+                </div>
+            </div>
+        </section>
+
+        <!-- بخش لیست قیمت -->
+        <section class="pricing" id="pricing">
+            <div class="container">
+                <h2 class="section-title">لیست قیمت خدمات</h2>
+                <p class="section-subtitle">قیمت‌های شفاف و بدون واسطه</p>
+                
+                <div class="pricing-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>نام خدمت</th>
+                                <th>توضیحات</th>
+                                <th>قیمت (تومان)</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pricing-table-body">
+                            <!-- ردیف‌های جدول از طریق JavaScript اضافه می‌شوند -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- بخش لینک‌ها -->
+        <section class="links" id="links">
+            <div class="container">
+                <h2 class="section-title">لینک‌های مرتبط</h2>
+                <p class="section-subtitle">کانال‌ها و ربات‌های خرید</p>
+                
+                <div class="links-grid">
+                    <div class="link-card">
+                        <h3><i class="fab fa-telegram"></i> جهت خرید</h3>
+                        <p>@AqooAmir</p>
+                        <a href="https://t.me/AqooAmir" target="_blank" class="btn btn-telegram">عضویت در کانال</a>
+                    </div>
+                    
+                    <div class="link-card">
+                        <h3><i class="fab fa-telegram"></i> خرید VPN</h3>
+                        <p>@SidkaVPNBot</p>
+                        <a href="https://t.me/SidkaVPNBot" target="_blank" class="btn btn-telegram">ورود به ربات</a>
+                    </div>
+                    
+                    <div class="link-card">
+                        <h3><i class="fab fa-telegram"></i> تست ویاکس</h3>
+                        <p>@ViaXPanel_Bot</p>
+                        <a href="https://t.me/ViaXPanel_Bot" target="_blank" class="btn btn-telegram">ورود به ربات</a>
+                    </div>
+                </div>
+                
+                <div class="channels-section">
+                    <h3>کانال‌های ما</h3>
+                    <div class="channels-grid">
+                        <div class="channel">
+                            <i class="fab fa-telegram"></i>
+                            <span>@SidkaShop</span>
+                        </div>
+                        <div class="channel">
+                            <i class="fab fa-telegram"></i>
+                            <span>@SidkaSelf</span>
+                        </div>
+                        <div class="channel">
+                            <i class="fab fa-telegram"></i>
+                            <span>@SidkaVPN</span>
+                        </div>
+                    </div>
+                    
+                    <h3>کانال‌های اعتماد</h3>
+                    <div class="channels-grid">
+                        <div class="channel">
+                            <i class="fab fa-telegram"></i>
+                            <span>@GG_shop_FF_Rezayat</span>
+                        </div>
+                        <div class="channel">
+                            <i class="fab fa-telegram"></i>
+                            <span>@LYRIC_MOD_Rezayat</span>
+                        </div>
+                        <div class="channel">
+                            <i class="fab fa-telegram"></i>
+                            <span>@SidkaShop_Rezayat</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- بخش پشتیبانی -->
+        <section class="support" id="support">
+            <div class="container">
+                <h2 class="section-title">پشتیبانی</h2>
+                <p class="section-subtitle">پشتیبانی 24 ساعته برای پاسخ به سوالات شما</p>
+                
+                <div class="support-content">
+                    <div class="support-info">
+                        <div class="support-item">
+                            <i class="fas fa-clock"></i>
+                            <h3>پشتیبانی 24/7</h3>
+                            <p>در تمام ساعات شبانه‌روز پاسخگوی شما هستیم</p>
+                        </div>
+                        <div class="support-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <h3>ضمانت کیفیت</h3>
+                            <p>تمام خدمات دارای ضمانت بازگشت وجه در صورت عدم رضایت</p>
+                        </div>
+                        <div class="support-item">
+                            <i class="fas fa-bolt"></i>
+                            <h3>تحویل سریع</h3>
+                            <p>تحویل خدمات در کمترین زمان ممکن پس از پرداخت</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- بخش تماس -->
+        <section class="contact" id="contact">
+            <div class="container">
+                <h2 class="section-title">تماس با ما</h2>
+                <p class="section-subtitle">راه‌های ارتباطی با پشتیبانی</p>
+                
+                <div class="contact-content">
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <h3>ایمیل</h3>
+                            <p>support@sidkashop.com</p>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fab fa-telegram"></i>
+                            <h3>تلگرام</h3>
+                            <p>@SidkaSupport</p>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-link"></i>
+                            <h3>سایت فعلی</h3>
+                            <a href="https://sidkashop.qzz.io" target="_blank">sidkashop.qzz.io</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- فوتر -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <a href="#" class="logo">
+                        <i class="fas fa-store"></i>
+                        <span>SidkaShop</span>
+                    </a>
+                    <p>فروشگاه خدمات دیجیتال با امنیت و کیفیت بالا</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h3>دسترسی سریع</h3>
+                    <ul>
+                        <li><a href="#home">خانه</a></li>
+                        <li><a href="#products">محصولات</a></li>
+                        <li><a href="#pricing">لیست قیمت</a></li>
+                        <li><a href="#support">پشتیبانی</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-copyright">
+                    <p>تمامی حقوق برای فروشگاه خدمات دیجیتال محفوظ است © ۱۴۰۳</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- سبد خرید -->
+    <div class="cart-overlay" id="cart-overlay"></div>
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3><i class="fas fa-shopping-cart"></i> سبد خرید</h3>
+            <button class="close-cart" id="close-cart">&times;</button>
+        </div>
+        
+        <div class="cart-items" id="cart-items">
+            <!-- آیتم‌های سبد خرید از طریق JavaScript اضافه می‌شوند -->
+            <div class="empty-cart" id="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <p>سبد خرید شما خالی است</p>
+            </div>
+        </div>
+        
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>مجموع:</span>
+                <span id="cart-total-price">۰ تومان</span>
+            </div>
+            <button class="btn btn-primary btn-checkout" id="checkout-btn">ادامه فرآیند خرید</button>
+        </div>
+    </div>
+
+    <!-- مودال ورود/عضویت -->
+    <div class="modal-overlay" id="login-overlay"></div>
+    <div class="modal" id="login-modal">
+        <div class="modal-header">
+            <h3>ورود / عضویت</h3>
+            <button class="close-modal" id="close-login">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="phone">شماره موبایل</label>
+                    <input type="text" id="phone" placeholder="09xxxxxxxxx">
+                </div>
+                <button class="btn btn-primary btn-login" id="submit-login">ورود / عضویت</button>
+                <p class="login-note">با ورود به سایت، <a href="#">قوانین و شرایط</a> را پذیرفته‌اید.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تکمیل خرید -->
+    <div class="modal-overlay" id="checkout-overlay"></div>
+    <div class="modal" id="checkout-modal">
+        <div class="modal-header">
+            <h3>تکمیل اطلاعات خرید</h3>
+            <button class="close-modal" id="close-checkout">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="checkout-form">
+                <div class="form-group">
+                    <label for="first-name">نام</label>
+                    <input type="text" id="first-name" placeholder="نام خود را وارد کنید">
+                </div>
+                <div class="form-group">
+                    <label for="last-name">نام خانوادگی</label>
+                    <input type="text" id="last-name" placeholder="نام خانوادگی خود را وارد کنید">
+                </div>
+                <div class="form-group">
+                    <label for="checkout-phone">شماره موبایل</label>
+                    <input type="text" id="checkout-phone" placeholder="09xxxxxxxxx">
+                </div>
+                <div class="order-summary">
+                    <h4>خلاصه سفارش</h4>
+                    <div id="order-summary-items">
+                        <!-- آیتم‌های سفارش از طریق JavaScript اضافه می‌شوند -->
+                    </div>
+                    <div class="order-total">
+                        <span>مجموع:</span>
+                        <span id="order-total-price">۰ تومان</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-confirm" id="confirm-order">تایید و پرداخت</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال سابقه خرید -->
+    <div class="modal-overlay" id="orders-overlay"></div>
+    <div class="modal modal-lg" id="orders-modal">
+        <div class="modal-header">
+            <h3>سابقه خرید</h3>
+            <button class="close-modal" id="close-orders">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="orders-list" id="orders-list">
+                <!-- سفارش‌ها از طریق JavaScript اضافه می‌شوند -->
+                <div class="empty-orders" id="empty-orders">
+                    <i class="fas fa-history"></i>
+                    <p>شما تاکنون خریدی انجام نداده‌اید</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال پروفایل -->
+    <div class="modal-overlay" id="profile-overlay"></div>
+    <div class="modal" id="profile-modal">
+        <div class="modal-header">
+            <h3>پروفایل کاربری</h3>
+            <button class="close-modal" id="close-profile">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-item">
+                        <span>نام:</span>
+                        <span id="profile-name">---</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>نام خانوادگی:</span>
+                        <span id="profile-lastname">---</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>شماره موبایل:</span>
+                        <span id="profile-phone">---</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>تعداد سفارشات:</span>
+                        <span id="profile-orders-count">۰</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- اسکریپت‌ها -->
+    <script src="script.js"></script>
+</body>
+</html>
