@@ -1,5 +1,4 @@
-// supabase-service.js - Complete Fixed Version
-// برای اتصال به Supabase
+// supabase-service.js - نسخه کامل برای Supabase
 
 // تنظیمات Supabase
 const SUPABASE_CONFIG = {
@@ -23,19 +22,16 @@ try {
     supabase = null;
 }
 
-// ==================== توابع اصلی ====================
+// ========== توابع اصلی ==========
 
 // 1. ورود/عضویت کاربر
 async function loginOrRegisterUser(phone, firstName = '', lastName = '', password = '') {
     try {
-        if (!supabase) {
-            return {
-                success: false,
-                error: 'اتصال به سرور برقرار نیست'
-            };
-        }
-        
         console.log('🔑 Attempting login/register for:', phone);
+        
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
         
         // بررسی وجود کاربر
         const { data: existingUser, error: fetchError } = await supabase
@@ -65,9 +61,7 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
                 first_name: firstName || 'کاربر',
                 last_name: lastName || '',
                 password: password || null,
-                is_admin: phone === '09021707830',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                is_admin: phone === '09021707830'
             };
             
             const { data, error } = await supabase
@@ -178,9 +172,7 @@ async function registerUser(phone, firstName, lastName, password) {
             first_name: firstName,
             last_name: lastName,
             password: password,
-            is_admin: phone === '09021707830',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            is_admin: phone === '09021707830'
         };
         
         const { data, error } = await supabase
@@ -214,118 +206,29 @@ async function getAllProducts() {
         
         console.log('📦 Fetching all products...');
         
-        const { data, error, count } = await supabase
+        const { data, error } = await supabase
             .from('products')
-            .select('*', { count: 'exact' })
+            .select('*')
             .eq('active', true)
             .order('id', { ascending: true });
         
         if (error) {
             console.error('❌ Supabase error:', error);
-            
-            // Fallback محصولات
-            const fallbackProducts = [
-                {
-                    id: 1,
-                    name: 'پنل اختصاصی',
-                    description: 'پنل کامل با کنترل کامل و پشتیبانی ۲۴ ساعته',
-                    price: 50000,
-                    category: 'panels',
-                    icon: 'fas fa-server',
-                    active: true
-                },
-                {
-                    id: 2,
-                    name: 'VPN یک ماهه',
-                    description: 'VPN پرسرعت با IP ثابت و بدون محدودیت ترافیک',
-                    price: 25000,
-                    category: 'subscriptions',
-                    icon: 'fas fa-shield-alt',
-                    active: true
-                },
-                {
-                    id: 3,
-                    name: 'طراحی تامنیل',
-                    description: 'طراحی حرفه‌ای تامنیل برای ویدیوهای شما',
-                    price: 30000,
-                    category: 'design',
-                    icon: 'fas fa-image',
-                    active: true
-                },
-                {
-                    id: 4,
-                    name: 'طراحی لوگو',
-                    description: 'طراحی لوگو اختصاصی برای برند شما',
-                    price: 80000,
-                    category: 'design',
-                    icon: 'fas fa-paint-brush',
-                    active: true
-                },
-                {
-                    id: 5,
-                    name: 'اشتراک شش ماهه',
-                    description: 'VPN شش ماهه با تخفیف ویژه',
-                    price: 120000,
-                    category: 'subscriptions',
-                    icon: 'fas fa-calendar-alt',
-                    active: true
-                }
-            ];
-            
-            return {
-                success: true,
-                products: fallbackProducts,
-                count: fallbackProducts.length,
-                isFallback: true
-            };
+            throw error;
         }
         
         console.log(`✅ Found ${data?.length || 0} products`);
         
         return {
             success: true,
-            products: data || [],
-            count: count || 0
+            products: data || []
         };
         
     } catch (error) {
         console.error('❌ Error getting products:', error);
-        
-        const fallbackProducts = [
-            {
-                id: 1,
-                name: 'پنل اختصاصی',
-                description: 'پنل کامل با کنترل کامل و پشتیبانی ۲۴ ساعته',
-                price: 50000,
-                category: 'panels',
-                icon: 'fas fa-server',
-                active: true
-            },
-            {
-                id: 2,
-                name: 'VPN یک ماهه',
-                description: 'VPN پرسرعت با IP ثابت و بدون محدودیت ترافیک',
-                price: 25000,
-                category: 'subscriptions',
-                icon: 'fas fa-shield-alt',
-                active: true
-            },
-            {
-                id: 3,
-                name: 'طراحی تامنیل',
-                description: 'طراحی حرفه‌ای تامنیل برای ویدیوهای شما',
-                price: 30000,
-                category: 'design',
-                icon: 'fas fa-image',
-                active: true
-            }
-        ];
-        
         return {
-            success: true,
-            products: fallbackProducts,
-            count: fallbackProducts.length,
-            isFallback: true
+            success: false,
+            error: 'خطا در دریافت محصولات'
         };
     }
 }
@@ -337,24 +240,29 @@ async function createNewOrder(orderData) {
             throw new Error('اتصال به سرور برقرار نیست');
         }
         
+        console.log('🛒 Creating order for user:', orderData.userId);
+        
         const order = {
             user_id: orderData.userId,
             total: orderData.total,
             status: 'در انتظار تأیید',
             customer_info: orderData.customerInfo,
             receipt_info: orderData.receipt,
-            items: orderData.items,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            items: orderData.items
         };
         
         const { data, error } = await supabase
             .from('orders')
             .insert([order])
-            .select()
+            .select(`
+                *,
+                users (phone, first_name, last_name)
+            `)
             .single();
         
         if (error) throw error;
+        
+        console.log('✅ Order created:', data.id);
         
         return {
             success: true,
@@ -366,7 +274,7 @@ async function createNewOrder(orderData) {
         console.error('❌ Error creating order:', error);
         return {
             success: false,
-            error: 'خطا در ثبت سفارش'
+            error: 'خطا در ثبت سفارش: ' + error.message
         };
     }
 }
@@ -394,8 +302,8 @@ async function getUserOrders(userId) {
     } catch (error) {
         console.error('❌ Error getting user orders:', error);
         return {
-            success: true,
-            orders: []
+            success: false,
+            error: 'خطا در دریافت سفارشات'
         };
     }
 }
@@ -425,8 +333,8 @@ async function getAllOrders() {
     } catch (error) {
         console.error('❌ Error getting all orders:', error);
         return {
-            success: true,
-            orders: []
+            success: false,
+            error: 'خطا در دریافت سفارشات'
         };
     }
 }
@@ -507,13 +415,13 @@ async function createNewTicket(ticketData) {
             throw new Error('اتصال به سرور برقرار نیست');
         }
         
+        console.log('🎫 Creating ticket:', ticketData.subject);
+        
         const ticket = {
             user_id: ticketData.userId,
             subject: ticketData.subject,
             message: ticketData.message,
-            status: 'جدید',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            status: 'جدید'
         };
         
         const { data, error } = await supabase
@@ -524,6 +432,8 @@ async function createNewTicket(ticketData) {
         
         if (error) throw error;
         
+        console.log('✅ Ticket created:', data.id);
+        
         return {
             success: true,
             ticket: data
@@ -533,7 +443,7 @@ async function createNewTicket(ticketData) {
         console.error('❌ Error creating ticket:', error);
         return {
             success: false,
-            error: 'خطا در ایجاد تیکت'
+            error: 'خطا در ایجاد تیکت: ' + error.message
         };
     }
 }
@@ -561,8 +471,8 @@ async function getUserTickets(userId) {
     } catch (error) {
         console.error('❌ Error getting user tickets:', error);
         return {
-            success: true,
-            tickets: []
+            success: false,
+            error: 'خطا در دریافت تیکت‌ها'
         };
     }
 }
@@ -592,8 +502,8 @@ async function getAllTickets() {
     } catch (error) {
         console.error('❌ Error getting all tickets:', error);
         return {
-            success: true,
-            tickets: []
+            success: false,
+            error: 'خطا در دریافت تیکت‌ها'
         };
     }
 }
@@ -608,8 +518,7 @@ async function addTicketReply(ticketId, replyData) {
         const reply = {
             ticket_id: ticketId,
             is_admin: replyData.isAdmin || false,
-            message: replyData.message,
-            created_at: new Date().toISOString()
+            message: replyData.message
         };
         
         const { data, error } = await supabase
@@ -624,8 +533,7 @@ async function addTicketReply(ticketId, replyData) {
         await supabase
             .from('tickets')
             .update({ 
-                status: 'در حال بررسی',
-                updated_at: new Date().toISOString()
+                status: 'در حال بررسی'
             })
             .eq('id', ticketId);
         
@@ -653,8 +561,7 @@ async function updateTicketStatus(ticketId, status) {
         const { data, error } = await supabase
             .from('tickets')
             .update({ 
-                status: status,
-                updated_at: new Date().toISOString()
+                status: status
             })
             .eq('id', ticketId)
             .select()
@@ -683,24 +590,23 @@ async function getAllUsers() {
             throw new Error('اتصال به سرور برقرار نیست');
         }
         
-        const { data, error, count } = await supabase
+        const { data, error } = await supabase
             .from('users')
-            .select('*', { count: 'exact' })
+            .select('*')
             .order('created_at', { ascending: false });
         
         if (error) throw error;
         
         return {
             success: true,
-            users: data || [],
-            count: count || 0
+            users: data || []
         };
         
     } catch (error) {
         console.error('❌ Error getting all users:', error);
         return {
-            success: true,
-            users: []
+            success: false,
+            error: 'خطا در دریافت کاربران'
         };
     }
 }
@@ -716,8 +622,7 @@ async function updateUserInfo(userId, firstName, lastName) {
             .from('users')
             .update({
                 first_name: firstName,
-                last_name: lastName,
-                updated_at: new Date().toISOString()
+                last_name: lastName
             })
             .eq('id', userId)
             .select()
@@ -747,28 +652,36 @@ async function getDashboardStats() {
         }
         
         // تعداد کاربران
-        const { count: usersCount } = await supabase
+        const { count: usersCount, error: usersError } = await supabase
             .from('users')
             .select('*', { count: 'exact', head: true });
         
+        if (usersError) throw usersError;
+        
         // تعداد سفارشات
-        const { count: ordersCount } = await supabase
+        const { count: ordersCount, error: ordersError } = await supabase
             .from('orders')
             .select('*', { count: 'exact', head: true });
         
-        // مجموع درآمد
-        const { data: orders } = await supabase
+        if (ordersError) throw ordersError;
+        
+        // مجموع درآمد (سفارشات تأیید شده)
+        const { data: orders, error: incomeError } = await supabase
             .from('orders')
             .select('total')
             .eq('status', 'تأیید شده');
         
+        if (incomeError) throw incomeError;
+        
         const totalIncome = orders ? orders.reduce((sum, order) => sum + (order.total || 0), 0) : 0;
         
         // تعداد تیکت‌های جدید
-        const { count: newTicketsCount } = await supabase
+        const { count: newTicketsCount, error: ticketsError } = await supabase
             .from('tickets')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'جدید');
+        
+        if (ticketsError) throw ticketsError;
         
         return {
             success: true,
@@ -783,45 +696,8 @@ async function getDashboardStats() {
     } catch (error) {
         console.error('❌ Error getting dashboard stats:', error);
         return {
-            success: true,
-            stats: {
-                users: 0,
-                orders: 0,
-                totalIncome: 0,
-                newTickets: 0
-            }
-        };
-    }
-}
-
-// 18. تست اتصال
-async function testConnection() {
-    try {
-        if (!supabase) {
-            return { 
-                success: false, 
-                error: 'Supabase client not initialized' 
-            };
-        }
-        
-        const { data, error } = await supabase
-            .from('users')
-            .select('count', { count: 'exact', head: true });
-        
-        if (error) throw error;
-        
-        return {
-            success: true,
-            connected: true,
-            message: 'Connected to Supabase successfully'
-        };
-        
-    } catch (error) {
-        console.error('❌ Connection test failed:', error);
-        return {
             success: false,
-            connected: false,
-            error: error.message
+            error: 'خطا در دریافت آمار'
         };
     }
 }
@@ -856,13 +732,23 @@ const supabaseFunctions = {
     updateUserInfo,
     
     // آمار
-    getDashboardStats,
-    
-    // تست
-    testConnection
+    getDashboardStats
 };
 
 // اضافه کردن به window
 window.supabaseFunctions = supabaseFunctions;
 
 console.log('✅ Supabase service loaded with', Object.keys(supabaseFunctions).length, 'functions');
+
+// تست اتصال
+async function testConnection() {
+    try {
+        const result = await getAllProducts();
+        console.log('Connection test:', result.success ? '✅ Connected' : '❌ Failed');
+    } catch (error) {
+        console.error('❌ Connection test failed:', error);
+    }
+}
+
+// اجرای تست
+testConnection();
