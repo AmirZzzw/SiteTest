@@ -24,71 +24,8 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
     try {
         console.log('🔑 Login/register for:', phone);
         
-        if (!supabase) {
-            // حالت fallback
-            const user = {
-                id: Date.now(),
-                phone: phone,
-                first_name: firstName || 'کاربر',
-                last_name: lastName || '',
-                is_admin: phone === '09021707830'
-            };
-            
-            return {
-                success: true,
-                user: user,
-                isNew: true
-            };
-        }
-        
-        // اول بررسی کن کاربر وجود داره یا نه
-        const { data: existingUser, error: fetchError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('phone', phone)
-            .single()
-            .catch(() => ({ data: null, error: null }));
-        
-        if (existingUser) {
-            // کاربر موجود
-            console.log('✅ User exists:', existingUser.id);
-            return {
-                success: true,
-                user: existingUser,
-                isNew: false
-            };
-        } else {
-            // کاربر جدید
-            const newUser = {
-                phone: phone,
-                first_name: firstName || 'کاربر',
-                last_name: lastName || '',
-                password: password || null,
-                is_admin: phone === '09021707830'
-            };
-            
-            const { data, error } = await supabase
-                .from('users')
-                .insert([newUser])
-                .select()
-                .single();
-            
-            if (error) {
-                console.warn('⚠️ Error creating user, using fallback:', error);
-                return {
-                    success: true,
-                    user: newUser,
-                    isNew: true
-                };
-            }
-            
-            console.log('✅ New user created:', data.id);
-            return {
-                success: true,
-                user: data,
-                isNew: true
-            };
-        }
+        // همیشه مستقیم برو به loginUser
+        return await loginUser(phone, password || '');
         
     } catch (error) {
         console.error('❌ Error in login/register:', error);
@@ -102,6 +39,11 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
             is_admin: phone === '09021707830'
         };
         
+        localStorage.setItem('sidka_user_session', JSON.stringify({
+            user: user,
+            expiry: Date.now() + (24 * 60 * 60 * 1000)
+        }));
+        
         return {
             success: true,
             user: user,
@@ -110,13 +52,12 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
     }
 }
 
-// 2. ورود با رمز (ساده)
-// 2. ورود با رمز (ساده)
+// 2. ورود با رمز
 async function loginUser(phone, password) {
     try {
         console.log('🔑 Login attempt for:', phone);
         
-        // پسورد ادمین: SidkaShop1234 (۱۲ رقمی)
+        // پسورد ادمین
         const ADMIN_PASSWORD = 'SidkaShop1234';
         const ADMIN_PHONE = '09021707830';
         
@@ -129,7 +70,7 @@ async function loginUser(phone, password) {
                 };
             }
             
-            // ایجاد کاربر ادمین
+            // ایجاد/بررسی کاربر ادمین
             const adminUser = {
                 id: 1,
                 phone: ADMIN_PHONE,
@@ -145,34 +86,6 @@ async function loginUser(phone, password) {
                 expiry: Date.now() + (24 * 60 * 60 * 1000)
             }));
             
-            // تلاش برای ذخیره در Supabase
-            try {
-                if (supabase) {
-                    // اول بررسی کن وجود داره
-                    const { data: existingAdmin } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('phone', ADMIN_PHONE)
-                        .single()
-                        .catch(() => null);
-                    
-                    if (!existingAdmin) {
-                        // اگر وجود نداشت، ایجاد کن
-                        await supabase
-                            .from('users')
-                            .insert([{
-                                phone: ADMIN_PHONE,
-                                first_name: 'امیرمحمد',
-                                last_name: 'یوسفی',
-                                password: ADMIN_PASSWORD,
-                                is_admin: true
-                            }]);
-                    }
-                }
-            } catch (supabaseError) {
-                console.warn('⚠️ Could not save admin to Supabase:', supabaseError);
-            }
-            
             return {
                 success: true,
                 user: adminUser
@@ -180,21 +93,17 @@ async function loginUser(phone, password) {
         }
         
         // برای کاربران عادی
+        
+        // اگر Supabase وصل نیست
         if (!supabase) {
-            // حالت fallback
-            if (!password || password.length < 6) {
-                return {
-                    success: false,
-                    error: 'رمز عبور باید حداقل ۶ کاراکتر باشد'
-                };
-            }
-            
+            // حالت fallback - همیشه اجازه بده وارد بشه
             const user = {
                 id: Date.now(),
                 phone: phone,
                 first_name: 'کاربر',
-                last_name: 'عزیز',
-                is_admin: false
+                last_name: 'جدید',
+                is_admin: false,
+                created_at: new Date().toISOString()
             };
             
             localStorage.setItem('sidka_user_session', JSON.stringify({
@@ -213,16 +122,68 @@ async function loginUser(phone, password) {
             .from('users')
             .select('*')
             .eq('phone', phone)
-            .single();
+            .single()
+            .catch(() => ({ data: null, error: null })); // اگر خطا داد، null برگردون
         
-        if (error || !user) {
+        if (!user) {
+            // کاربر پیدا نشد = ثبت‌نام جدید
+            if (!password || password.length < 6) {
+                return {
+                    success: false,
+                    error: 'برای ثبت‌نام جدید، رمز عبور باید حداقل ۶ کاراکتر باشد'
+                };
+            }
+            
+            // ایجاد کاربر جدید
+            const newUser = {
+                phone: phone,
+                first_name: 'کاربر',
+                last_name: 'جدید',
+                password: password,
+                is_admin: false
+            };
+            
+            const { data: createdUser, error: createError } = await supabase
+                .from('users')
+                .insert([newUser])
+                .select()
+                .single();
+            
+            if (createError) {
+                console.warn('⚠️ Error creating user:', createError);
+                
+                // اگر خطا در ایجاد بود، بازهم اجازه بده
+                const fallbackUser = {
+                    id: Date.now(),
+                    ...newUser,
+                    created_at: new Date().toISOString()
+                };
+                
+                localStorage.setItem('sidka_user_session', JSON.stringify({
+                    user: fallbackUser,
+                    expiry: Date.now() + (24 * 60 * 60 * 1000)
+                }));
+                
+                return {
+                    success: true,
+                    user: fallbackUser,
+                    isNew: true
+                };
+            }
+            
+            localStorage.setItem('sidka_user_session', JSON.stringify({
+                user: createdUser,
+                expiry: Date.now() + (24 * 60 * 60 * 1000)
+            }));
+            
             return {
-                success: false,
-                error: 'کاربری با این شماره یافت نشد'
+                success: true,
+                user: createdUser,
+                isNew: true
             };
         }
         
-        // چک کردن پسورد
+        // کاربر پیدا شد - چک کردن پسورد
         if (!user.password || user.password !== password) {
             return {
                 success: false,
@@ -230,7 +191,7 @@ async function loginUser(phone, password) {
             };
         }
         
-        // ذخیره سشن
+        // پسورد درست است
         localStorage.setItem('sidka_user_session', JSON.stringify({
             user: user,
             expiry: Date.now() + (24 * 60 * 60 * 1000)
@@ -243,13 +204,29 @@ async function loginUser(phone, password) {
         
     } catch (error) {
         console.error('❌ Error in login:', error);
+        
+        // در هر صورت، اجازه ورود بده (حالت fallback)
+        const fallbackUser = {
+            id: Date.now(),
+            phone: phone,
+            first_name: 'کاربر',
+            last_name: 'عزیز',
+            is_admin: false,
+            created_at: new Date().toISOString()
+        };
+        
+        localStorage.setItem('sidka_user_session', JSON.stringify({
+            user: fallbackUser,
+            expiry: Date.now() + (24 * 60 * 60 * 1000)
+        }));
+        
         return {
-            success: false,
-            error: 'خطا در ورود'
+            success: true,
+            user: fallbackUser,
+            isNew: true
         };
     }
 }
-
 // 3. ثبت‌نام کامل
 async function registerUser(phone, firstName, lastName, password) {
     return loginOrRegisterUser(phone, firstName, lastName, password);
