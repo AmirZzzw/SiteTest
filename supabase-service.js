@@ -111,8 +111,143 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
 }
 
 // 2. ورود با رمز (ساده)
+// 2. ورود با رمز (ساده)
 async function loginUser(phone, password) {
-    return loginOrRegisterUser(phone, '', '', password);
+    try {
+        console.log('🔑 Login attempt for:', phone);
+        
+        // پسورد ادمین: SidkaShop1234 (۱۲ رقمی)
+        const ADMIN_PASSWORD = 'SidkaShop1234';
+        const ADMIN_PHONE = '09021707830';
+        
+        // اگر شماره ادمین بود
+        if (phone === ADMIN_PHONE) {
+            if (password !== ADMIN_PASSWORD) {
+                return {
+                    success: false,
+                    error: 'رمز عبور ادمین اشتباه است'
+                };
+            }
+            
+            // ایجاد کاربر ادمین
+            const adminUser = {
+                id: 1,
+                phone: ADMIN_PHONE,
+                first_name: 'امیرمحمد',
+                last_name: 'یوسفی',
+                is_admin: true,
+                created_at: new Date().toISOString()
+            };
+            
+            // ذخیره در localStorage
+            localStorage.setItem('sidka_user_session', JSON.stringify({
+                user: adminUser,
+                expiry: Date.now() + (24 * 60 * 60 * 1000)
+            }));
+            
+            // تلاش برای ذخیره در Supabase
+            try {
+                if (supabase) {
+                    // اول بررسی کن وجود داره
+                    const { data: existingAdmin } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('phone', ADMIN_PHONE)
+                        .single()
+                        .catch(() => null);
+                    
+                    if (!existingAdmin) {
+                        // اگر وجود نداشت، ایجاد کن
+                        await supabase
+                            .from('users')
+                            .insert([{
+                                phone: ADMIN_PHONE,
+                                first_name: 'امیرمحمد',
+                                last_name: 'یوسفی',
+                                password: ADMIN_PASSWORD,
+                                is_admin: true
+                            }]);
+                    }
+                }
+            } catch (supabaseError) {
+                console.warn('⚠️ Could not save admin to Supabase:', supabaseError);
+            }
+            
+            return {
+                success: true,
+                user: adminUser
+            };
+        }
+        
+        // برای کاربران عادی
+        if (!supabase) {
+            // حالت fallback
+            if (!password || password.length < 6) {
+                return {
+                    success: false,
+                    error: 'رمز عبور باید حداقل ۶ کاراکتر باشد'
+                };
+            }
+            
+            const user = {
+                id: Date.now(),
+                phone: phone,
+                first_name: 'کاربر',
+                last_name: 'عزیز',
+                is_admin: false
+            };
+            
+            localStorage.setItem('sidka_user_session', JSON.stringify({
+                user: user,
+                expiry: Date.now() + (24 * 60 * 60 * 1000)
+            }));
+            
+            return {
+                success: true,
+                user: user
+            };
+        }
+        
+        // جستجوی کاربر در Supabase
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('phone', phone)
+            .single();
+        
+        if (error || !user) {
+            return {
+                success: false,
+                error: 'کاربری با این شماره یافت نشد'
+            };
+        }
+        
+        // چک کردن پسورد
+        if (!user.password || user.password !== password) {
+            return {
+                success: false,
+                error: 'رمز عبور اشتباه است'
+            };
+        }
+        
+        // ذخیره سشن
+        localStorage.setItem('sidka_user_session', JSON.stringify({
+            user: user,
+            expiry: Date.now() + (24 * 60 * 60 * 1000)
+        }));
+        
+        return {
+            success: true,
+            user: user
+        };
+        
+    } catch (error) {
+        console.error('❌ Error in login:', error);
+        return {
+            success: false,
+            error: 'خطا در ورود'
+        };
+    }
 }
 
 // 3. ثبت‌نام کامل
