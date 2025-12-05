@@ -15,7 +15,34 @@
     
     <!-- بارگذاری ماژول‌ها -->
     <script type="module">
+        // بارگذاری توابع Supabase
+        import { loginOrRegisterUser, getAllProducts, createNewOrder, 
+                 getUserOrders, getAllOrders, updateOrderStatus, 
+                 createNewTicket, getUserTickets, getAllTickets, 
+                 addTicketReply, updateTicketStatus, getDashboardStats,
+                 updateUserInfo } from './supabase-service.js';
+        
+        // ایجاد آبجکت global برای دسترسی از main.js
+        window.supabaseFunctions = {
+            loginOrRegisterUser,
+            getAllProducts,
+            createNewOrder,
+            getUserOrders,
+            getAllOrders,
+            updateOrderStatus,
+            createNewTicket,
+            getUserTickets,
+            getAllTickets,
+            addTicketReply,
+            updateTicketStatus,
+            getDashboardStats,
+            updateUserInfo
+        };
+        
+        // بارگذاری منطق اصلی برنامه
         import { initializeApp } from './main.js';
+        
+        // اجرای برنامه پس از بارگذاری DOM
         window.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </head>
@@ -111,6 +138,10 @@
                 
                 <div class="products-grid" id="products-grid">
                     <!-- محصولات از طریق JavaScript اضافه می‌شوند -->
+                    <div class="loading-products">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>در حال بارگذاری محصولات...</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -133,6 +164,12 @@
                         </thead>
                         <tbody id="pricing-table-body">
                             <!-- ردیف‌های جدول از طریق JavaScript اضافه می‌شوند -->
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 30px;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    در حال بارگذاری...
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -214,6 +251,10 @@
         
         <div class="cart-items" id="cart-items">
             <!-- آیتم‌های سبد خرید -->
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <p>سبد خرید شما خالی است</p>
+            </div>
         </div>
         
         <div class="cart-footer">
@@ -237,7 +278,7 @@
             <div class="login-form">
                 <div class="form-group">
                     <label for="phone">شماره موبایل</label>
-                    <input type="text" id="phone" placeholder="09xxxxxxxxx">
+                    <input type="text" id="phone" placeholder="09xxxxxxxxx" maxlength="11">
                 </div>
                 <button class="btn btn-primary btn-login" id="submit-login">ورود / عضویت</button>
             </div>
@@ -265,12 +306,14 @@
                 </div>
                 <div class="form-group">
                     <label for="checkout-phone">شماره موبایل *</label>
-                    <input type="text" id="checkout-phone" placeholder="09xxxxxxxxx">
+                    <input type="text" id="checkout-phone" placeholder="09xxxxxxxxx" maxlength="11">
                 </div>
                 
                 <div class="order-summary">
                     <h4>خلاصه سفارش</h4>
-                    <div id="order-summary-items"></div>
+                    <div id="order-summary-items">
+                        <!-- آیتم‌های سفارش -->
+                    </div>
                     <div class="order-total">
                         <span>مجموع:</span>
                         <span id="order-total-price">۰ تومان</span>
@@ -294,8 +337,8 @@
                     <h4>آپلود رسید پرداخت</h4>
                     <div class="form-group">
                         <label>رسید پرداخت (تصویر) *</label>
-                        <input type="file" id="receipt-file" accept="image/*">
-                        <p class="note">فرمت‌های مجاز: JPG, PNG (حداکثر 2MB)</p>
+                        <input type="file" id="receipt-file" accept="image/*,.jpg,.jpeg,.png">
+                        <p class="note">فرمت‌های مجاز: JPG, JPEG, PNG (حداکثر 5MB)</p>
                     </div>
                     <div class="form-group">
                         <label for="receipt-note">توضیحات (اختیاری)</label>
@@ -343,6 +386,10 @@
         <div class="modal-body">
             <div class="orders-list" id="orders-list">
                 <!-- سفارش‌ها -->
+                <div class="empty-orders">
+                    <i class="fas fa-history"></i>
+                    <p>هنوز سفارشی ثبت نکرده‌اید</p>
+                </div>
             </div>
         </div>
     </div>
@@ -397,6 +444,10 @@
         <div class="modal-body">
             <div class="user-tickets-list" id="user-tickets-list">
                 <!-- تیکت‌های کاربر -->
+                <div class="empty-message">
+                    <i class="fas fa-ticket-alt"></i>
+                    <p>هنوز تیکتی ارسال نکرده‌اید</p>
+                </div>
             </div>
         </div>
     </div>
@@ -452,6 +503,10 @@
                         <h4>مدیریت سفارشات</h4>
                         <div class="admin-orders-list" id="admin-orders-list">
                             <!-- لیست سفارشات -->
+                            <div class="empty-message">
+                                <i class="fas fa-box-open"></i>
+                                <p>هنوز سفارشی ثبت نشده است</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -462,6 +517,10 @@
                         <h4>مدیریت تیکت‌های پشتیبانی</h4>
                         <div class="admin-tickets-list" id="admin-tickets-list">
                             <!-- لیست تیکت‌ها -->
+                            <div class="empty-message">
+                                <i class="fas fa-comments"></i>
+                                <p>هیچ تیکتی ارسال نشده است</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -472,6 +531,10 @@
                         <h4>مدیریت کاربران</h4>
                         <div class="admin-users-list" id="admin-users-list">
                             <!-- لیست کاربران -->
+                            <div class="empty-message">
+                                <i class="fas fa-users"></i>
+                                <p>هنوز کاربری ثبت نکرده‌اید</p>
+                            </div>
                         </div>
                     </div>
                 </div>
