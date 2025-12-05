@@ -52,32 +52,6 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
     }
 }
 
-function formatDate(dateString) {
-    try {
-        if (!dateString) return '---';
-        
-        const date = new Date(dateString);
-        
-        if (isNaN(date.getTime())) {
-            const timestamp = parseInt(dateString);
-            if (!isNaN(timestamp)) {
-                return new Date(timestamp).toLocaleDateString('fa-IR');
-            }
-            return '---';
-        }
-        
-        return date.toLocaleDateString('fa-IR', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch {
-        return '---';
-    }
-}
-
 // 2. ورود با رمز
 async function loginUser(phone, password) {
     try {
