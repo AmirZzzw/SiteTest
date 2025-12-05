@@ -1588,3 +1588,133 @@ body {
         margin-right: 0;
     }
 }
+
+/* استایل‌های اضافی */
+.loading-products {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    grid-column: 1 / -1;
+}
+
+.loading-products i {
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    width: 100%;
+}
+
+.empty-message i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: var(--text-muted);
+}
+
+.user-ticket-item {
+    background-color: var(--dark-lighter);
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 15px;
+    border-right: 4px solid var(--primary-color);
+}
+
+.ticket-summary h4 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.ticket-summary p {
+    color: var(--text-muted);
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.ticket-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.ticket-date {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.status-success {
+    background-color: var(--success-color);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.status-warning {
+    background-color: var(--warning-color);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.status-danger {
+    background-color: var(--danger-color);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+/* استایل‌های تب‌ها در موبایل */
+@media (max-width: 768px) {
+    .tab-buttons {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 5px;
+    }
+    
+    .tab-btn {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .admin-item {
+        flex-direction: column;
+    }
+    
+    .admin-item-actions {
+        margin-top: 15px;
+        width: 100%;
+    }
+    
+    .admin-item-actions button {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+
+/* اسکرول‌بار */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-light);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
