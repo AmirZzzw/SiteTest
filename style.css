@@ -1175,6 +1175,283 @@ body {
     font-size: 1.1rem;
 }
 
+/* استایل‌های تیکت */
+.ticket-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.ticket-filters .filter-btn {
+    padding: 8px 15px;
+    background-color: var(--dark-lighter);
+    color: var(--text-color);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ticket-filters .filter-btn:hover,
+.ticket-filters .filter-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.ticket-item {
+    border-left: 4px solid var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ticket-header h4 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+.ticket-id {
+    background-color: var(--dark-color);
+    color: var(--text-muted);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.ticket-info {
+    margin-bottom: 10px;
+}
+
+.ticket-info p {
+    margin: 5px 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.ticket-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-new {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.status-pending {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.status-solved {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.reply-count {
+    background-color: var(--dark-color);
+    color: var(--text-muted);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+/* مودال جزئیات تیکت */
+.ticket-details-view {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.ticket-info-section {
+    background-color: var(--dark-lighter);
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+}
+
+.ticket-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ticket-header-info h4 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+.ticket-user-info {
+    margin-bottom: 20px;
+}
+
+.ticket-user-info p {
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ticket-user-info i {
+    color: var(--primary-color);
+    width: 20px;
+}
+
+.ticket-message-box {
+    background-color: var(--dark-color);
+    padding: 15px;
+    border-radius: var(--radius);
+    border-right: 4px solid var(--primary-color);
+}
+
+.ticket-message-box h5 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.message-content {
+    line-height: 1.8;
+    color: var(--text-color);
+}
+
+/* بخش پاسخ‌ها */
+.ticket-replies-section {
+    margin: 25px 0;
+    padding: 20px;
+    background-color: var(--dark-lighter);
+    border-radius: var(--radius);
+}
+
+.ticket-replies-section h5 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.no-replies {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px;
+    font-style: italic;
+}
+
+.reply-item {
+    background-color: var(--dark-color);
+    padding: 15px;
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    border-right: 4px solid transparent;
+}
+
+.reply-item.admin-reply {
+    border-right-color: var(--primary-color);
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.reply-item.user-reply {
+    border-right-color: var(--secondary-color);
+}
+
+.reply-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.reply-sender {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-color);
+}
+
+.reply-date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.reply-content {
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+/* فرم پاسخ ادمین */
+.admin-reply-section {
+    margin-top: 25px;
+    padding: 20px;
+    background-color: var(--dark-lighter);
+    border-radius: var(--radius);
+    border-top: 2px solid var(--primary-color);
+}
+
+.admin-reply-section h5 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.reply-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.status-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-controls label {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.status-controls select {
+    padding: 8px 15px;
+    background-color: var(--dark-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    color: var(--text-color);
+    font-family: 'Vazirmatn', sans-serif;
+}
+
+.status-controls select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
 /* رسپانسیو */
 @media (max-width: 992px) {
     .hero .container {
