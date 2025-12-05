@@ -1,5 +1,5 @@
 // main.js - فروشگاه خدمات دیجیتال SidkaShop
-// Complete Fixed Version
+// Complete Version with All Products
 
 console.log('🚀 Initializing SidkaShop...');
 
@@ -334,24 +334,8 @@ async function loadProducts() {
     try {
         showLoadingProducts(true);
         
-        if (!window.supabaseFunctions || !window.supabaseFunctions.getAllProducts) {
-            console.warn('Supabase functions not available, using fallback');
-            products = getFallbackProducts();
-            renderProducts();
-            renderPricingTable();
-            showLoadingProducts(false);
-            return;
-        }
-        
-        const result = await window.supabaseFunctions.getAllProducts();
-        
-        if (result.success && result.products && result.products.length > 0) {
-            products = result.products;
-            console.log(`Loaded ${products.length} products`);
-        } else {
-            console.warn('No products from Supabase, using fallback');
-            products = getFallbackProducts();
-        }
+        // محصولات جدید ثابت
+        products = getAllProducts();
         
         renderProducts();
         renderPricingTable();
@@ -363,7 +347,7 @@ async function loadProducts() {
         
     } catch (error) {
         console.error('Error loading products:', error);
-        products = getFallbackProducts();
+        products = getAllProducts();
         renderProducts();
         renderPricingTable();
         showLoadingProducts(false);
@@ -371,47 +355,87 @@ async function loadProducts() {
     }
 }
 
-function getFallbackProducts() {
+function getAllProducts() {
     return [
         {
             id: 1,
-            name: 'پنل اختصاصی',
-            description: 'پنل کامل با کنترل کامل و پشتیبانی ۲۴ ساعته',
-            price: 50000,
+            name: 'ساخت پنل',
+            description: 'ساخت پنل اختصاصی با امکانات کامل',
+            price: 900000,
             category: 'panels',
-            icon: 'fas fa-server'
+            icon: 'fas fa-plus-circle'
         },
         {
             id: 2,
-            name: 'VPN یک ماهه',
-            description: 'VPN پرسرعت با IP ثابت و بدون محدودیت ترافیک',
-            price: 25000,
-            category: 'subscriptions',
-            icon: 'fas fa-shield-alt'
+            name: 'آپدیت پنل',
+            description: 'ارتقاء و به‌روزرسانی پنل موجود',
+            price: 235000,
+            category: 'panels',
+            icon: 'fas fa-sync-alt'
         },
         {
             id: 3,
-            name: 'طراحی تامنیل',
-            description: 'طراحی حرفه‌ای تامنیل برای ویدیوهای شما',
-            price: 30000,
-            category: 'design',
-            icon: 'fas fa-image'
+            name: 'اشتراک سلف تلگرام - یک ماهه',
+            description: 'اشتراک یکماهه سلف تلگرام',
+            price: 40000,
+            category: 'subscriptions',
+            icon: 'fab fa-telegram'
         },
         {
             id: 4,
-            name: 'طراحی لوگو',
-            description: 'طراحی لوگو اختصاصی برای برند شما',
-            price: 80000,
-            category: 'design',
-            icon: 'fas fa-paint-brush'
+            name: 'اشتراک V2rayNG - 50 گیگ',
+            description: 'اشتراک 50 گیگ کاربر نامحدود یکماهه v2rayNG',
+            price: 30000,
+            category: 'subscriptions',
+            icon: 'fas fa-server'
         },
         {
             id: 5,
-            name: 'اشتراک شش ماهه',
-            description: 'VPN شش ماهه با تخفیف ویژه',
-            price: 120000,
+            name: 'ویاکس پنل - یکروزه',
+            description: 'اشتراک یکروزه ویاکس پنل - تک کاربره',
+            price: 15000,
+            category: 'subscriptions',
+            icon: 'fas fa-bolt'
+        },
+        {
+            id: 6,
+            name: 'ویاکس پنل - یک هفته',
+            description: 'اشتراک یک هفته ویاکس پنل - تک کاربره',
+            price: 80000,
+            category: 'subscriptions',
+            icon: 'fas fa-calendar-week'
+        },
+        {
+            id: 7,
+            name: 'ویاکس پنل - یکماهه',
+            description: 'اشتراک یکماهه ویاکس پنل - تک کاربره',
+            price: 230000,
             category: 'subscriptions',
             icon: 'fas fa-calendar-alt'
+        },
+        {
+            id: 8,
+            name: 'ویاکس پنل - دائمی',
+            description: 'اشتراک دائمی ویاکس پنل - تک کاربره',
+            price: 350000,
+            category: 'subscriptions',
+            icon: 'fas fa-infinity'
+        },
+        {
+            id: 9,
+            name: 'تامنیل یوتیوب',
+            description: 'طراحی تامنیل حرفه‌ای برای یوتیوب',
+            price: 50000,
+            category: 'design',
+            icon: 'fab fa-youtube'
+        },
+        {
+            id: 10,
+            name: 'پروفایل چنل',
+            description: 'طراحی پروفایل حرفه‌ای برای چنل',
+            price: 50000,
+            category: 'design',
+            icon: 'fas fa-id-card'
         }
     ];
 }
@@ -1255,6 +1279,87 @@ async function replyToTicket(ticketId) {
     }
 }
 
+// ========== Choose File بهبود یافته ==========
+function setupFileInput() {
+    const receiptFileInput = document.getElementById('receipt-file');
+    const customFileUpload = document.querySelector('.custom-file-upload');
+    
+    if (!receiptFileInput || !customFileUpload) return;
+    
+    // مخفی کردن input اصلی
+    receiptFileInput.style.display = 'none';
+    
+    // اضافه کردن دکمه زیبا
+    const fileButton = document.createElement('button');
+    fileButton.className = 'file-select-btn';
+    fileButton.type = 'button';
+    fileButton.innerHTML = `
+        <i class="fas fa-cloud-upload-alt"></i>
+        <span>انتخاب تصویر رسید</span>
+    `;
+    
+    customFileUpload.innerHTML = '';
+    customFileUpload.appendChild(fileButton);
+    
+    // اضافه کردن container برای نمایش فایل
+    const filePreviewContainer = document.createElement('div');
+    filePreviewContainer.className = 'file-preview-container';
+    customFileUpload.parentNode.insertBefore(filePreviewContainer, customFileUpload.nextSibling);
+    
+    // رویداد کلیک
+    fileButton.addEventListener('click', function() {
+        receiptFileInput.click();
+    });
+    
+    // رویداد تغییر فایل
+    receiptFileInput.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            
+            // نمایش اطلاعات فایل
+            filePreviewContainer.innerHTML = `
+                <div class="selected-file">
+                    <i class="fas fa-file-image"></i>
+                    <p class="file-name">${file.name}</p>
+                    <p class="file-size">${(file.size / 1024).toFixed(2)} کیلوبایت</p>
+                    <button type="button" class="change-file-btn">
+                        <i class="fas fa-exchange-alt"></i> تغییر فایل
+                    </button>
+                </div>
+            `;
+            
+            // رویداد تغییر فایل
+            const changeBtn = filePreviewContainer.querySelector('.change-file-btn');
+            changeBtn.addEventListener('click', function() {
+                receiptFileInput.click();
+            });
+            
+            // نمایش پیش‌نمایش تصویر
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    filePreviewContainer.innerHTML = `
+                        <div class="selected-file">
+                            <img src="${e.target.result}" alt="پیش‌نمایش" style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-bottom: 10px;">
+                            <p class="file-name">${file.name}</p>
+                            <p class="file-size">${(file.size / 1024).toFixed(2)} کیلوبایت</p>
+                            <button type="button" class="change-file-btn">
+                                <i class="fas fa-exchange-alt"></i> تغییر فایل
+                            </button>
+                        </div>
+                    `;
+                    
+                    const changeBtn = filePreviewContainer.querySelector('.change-file-btn');
+                    changeBtn.addEventListener('click', function() {
+                        receiptFileInput.click();
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+}
+
 // ========== تنظیم رویدادها ==========
 function setupEventListeners() {
     console.log('🔧 Setting up event listeners...');
@@ -1363,6 +1468,9 @@ function setupEventListeners() {
             
             renderOrderSummary();
             openModal('checkout-modal', 'checkout-overlay');
+            
+            // راه‌اندازی Choose File
+            setTimeout(setupFileInput, 100);
         });
     }
     
@@ -1567,9 +1675,16 @@ window.initializeApp = function() {
             el.textContent = adminInfo.formattedCard;
         });
         
+        // راه‌اندازی Choose File برای مودال پرداخت
+        const checkoutBtn = document.getElementById('checkout-btn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', function() {
+                setTimeout(setupFileInput, 300);
+            });
+        }
+        
         window.addEventListener('online', () => {
             showNotification('اتصال برقرار شد', 'success');
-            loadProducts();
         });
         
         window.addEventListener('offline', () => {
@@ -1600,5 +1715,6 @@ window.approveOrder = approveOrder;
 window.rejectOrder = rejectOrder;
 window.replyToTicket = replyToTicket;
 window.openUserTickets = openUserTickets;
+window.setupFileInput = setupFileInput;
 
 console.log('✅ main.js loaded successfully');
