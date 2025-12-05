@@ -279,11 +279,13 @@ async function getAllProducts() {
 }
 
 // 5. ایجاد سفارش جدید
+// 5. ایجاد سفارش جدید
 async function createNewOrder(orderData) {
     try {
         console.log('🛒 Creating order for user:', orderData.userId);
+        console.log('Order data:', orderData); // برای دیباگ
         
-        // ذخیره در localStorage (همیشه)
+        // ========== 1. اول در localStorage ذخیره کن (برای مطمئن بودن) ==========
         const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
         const localOrder = {
             id: orderData.id || Date.now(),
@@ -305,17 +307,18 @@ async function createNewOrder(orderData) {
         // خالی کردن سبد خرید
         localStorage.removeItem('sidka_cart');
         
-        // اگر Supabase وصل نیست
+        // ========== 2. تلاش برای ذخیره در Supabase ==========
         if (!supabase) {
+            console.warn('⚠️ Supabase not connected, only saved locally');
             return {
                 success: true,
                 order: localOrder,
-                message: 'سفارش با موفقیت ثبت شد'
+                message: 'سفارش ثبت شد (ذخیره محلی)'
             };
         }
         
-        // تلاش برای ذخیره در Supabase
         try {
+            // ساخت شیء برای Supabase
             const supabaseOrder = {
                 user_id: orderData.userId,
                 total: orderData.total,
@@ -325,6 +328,8 @@ async function createNewOrder(orderData) {
                 items: orderData.items
             };
             
+            console.log('📤 Sending to Supabase:', supabaseOrder);
+            
             const { data, error } = await supabase
                 .from('orders')
                 .insert([supabaseOrder])
@@ -332,15 +337,18 @@ async function createNewOrder(orderData) {
                 .single();
             
             if (error) {
-                console.warn('⚠️ Error creating order in Supabase:', error);
+                console.error('❌ Error creating order in Supabase:', error);
+                console.error('Error details:', error.message);
+                
                 return {
                     success: true,
                     order: localOrder,
-                    message: 'سفارش ثبت شد (ذخیره محلی)'
+                    message: 'سفارش ثبت شد (ذخیره محلی - خطای Supabase)'
                 };
             }
             
             console.log('✅ Order created in Supabase:', data.id);
+            
             return {
                 success: true,
                 order: data,
@@ -348,11 +356,12 @@ async function createNewOrder(orderData) {
             };
             
         } catch (supabaseError) {
-            console.warn('⚠️ Supabase error:', supabaseError);
+            console.error('❌ Supabase error:', supabaseError);
+            
             return {
                 success: true,
                 order: localOrder,
-                message: 'سفارش ثبت شد (ذخیره محلی)'
+                message: 'سفارش ثبت شد (ذخیره محلی - خطای اتصال)'
             };
         }
         
@@ -375,7 +384,6 @@ async function createNewOrder(orderData) {
         };
     }
 }
-
 // 6. دریافت سفارشات کاربر
 async function getUserOrders(userId) {
     try {
@@ -612,38 +620,109 @@ async function getUserTickets(userId) {
 }
 
 // 9. توابع دیگر
-async function getAllOrders() {
+// 5. ایجاد سفارش جدید
+async function createNewOrder(orderData) {
     try {
-        // اول از localStorage
-        const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        console.log('🛒 Creating order for user:', orderData.userId);
+        console.log('Order data:', orderData); // برای دیباگ
         
+        // ========== 1. اول در localStorage ذخیره کن (برای مطمئن بودن) ==========
+        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const localOrder = {
+            id: orderData.id || Date.now(),
+            userId: orderData.userId,
+            user_id: orderData.userId,
+            total: orderData.total,
+            status: 'در انتظار تأیید',
+            customer_info: orderData.customerInfo,
+            receipt_info: orderData.receipt,
+            items: orderData.items,
+            created_at: new Date().toISOString()
+        };
+        
+        orders.push(localOrder);
+        localStorage.setItem('sidka_orders', JSON.stringify(orders));
+        
+        console.log('✅ Order saved to localStorage:', localOrder.id);
+        
+        // خالی کردن سبد خرید
+        localStorage.removeItem('sidka_cart');
+        
+        // ========== 2. تلاش برای ذخیره در Supabase ==========
         if (!supabase) {
-            return { success: true, orders: localOrders };
+            console.warn('⚠️ Supabase not connected, only saved locally');
+            return {
+                success: true,
+                order: localOrder,
+                message: 'سفارش ثبت شد (ذخیره محلی)'
+            };
         }
         
-        // از Supabase
         try {
+            // ساخت شیء برای Supabase
+            const supabaseOrder = {
+                user_id: orderData.userId,
+                total: orderData.total,
+                status: 'در انتظار تأیید',
+                customer_info: orderData.customerInfo,
+                receipt_info: orderData.receipt,
+                items: orderData.items
+            };
+            
+            console.log('📤 Sending to Supabase:', supabaseOrder);
+            
             const { data, error } = await supabase
                 .from('orders')
-                .select('*, users(phone, first_name, last_name)')
-                .order('created_at', { ascending: false });
+                .insert([supabaseOrder])
+                .select()
+                .single();
             
-            if (error || !data) {
-                return { success: true, orders: localOrders };
+            if (error) {
+                console.error('❌ Error creating order in Supabase:', error);
+                console.error('Error details:', error.message);
+                
+                return {
+                    success: true,
+                    order: localOrder,
+                    message: 'سفارش ثبت شد (ذخیره محلی - خطای Supabase)'
+                };
             }
             
-            // ادغام
-            const allOrders = [...data, ...localOrders];
-            const uniqueOrders = allOrders.filter((order, index, self) =>
-                index === self.findIndex((o) => o.id === order.id)
-            );
+            console.log('✅ Order created in Supabase:', data.id);
             
-            return { success: true, orders: uniqueOrders };
-        } catch {
-            return { success: true, orders: localOrders };
+            return {
+                success: true,
+                order: data,
+                message: 'سفارش با موفقیت ثبت شد'
+            };
+            
+        } catch (supabaseError) {
+            console.error('❌ Supabase error:', supabaseError);
+            
+            return {
+                success: true,
+                order: localOrder,
+                message: 'سفارش ثبت شد (ذخیره محلی - خطای اتصال)'
+            };
         }
-    } catch {
-        return { success: true, orders: [] };
+        
+    } catch (error) {
+        console.error('❌ Error in createNewOrder:', error);
+        
+        // حالت fallback
+        const fallbackOrder = {
+            id: Date.now(),
+            userId: orderData.userId,
+            total: orderData.total || 0,
+            status: 'در انتظار تأیید',
+            created_at: new Date().toISOString()
+        };
+        
+        return {
+            success: true,
+            order: fallbackOrder,
+            message: 'سفارش ثبت شد (حالت اضطراری)'
+        };
     }
 }
 
@@ -696,27 +775,47 @@ async function getAllUsers() {
     }
 }
 
+// 10. به‌روزرسانی وضعیت سفارش
 async function updateOrderStatus(orderId, status) {
     try {
-        // آپدیت localStorage
+        console.log(`📊 Updating order ${orderId} status to: ${status}`);
+        
+        // ========== 1. آپدیت در localStorage ==========
         const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
         const orderIndex = orders.findIndex(o => o.id == orderId);
+        
         if (orderIndex !== -1) {
             orders[orderIndex].status = status;
             localStorage.setItem('sidka_orders', JSON.stringify(orders));
+            console.log(`✅ Order ${orderId} updated in localStorage`);
         }
         
-        // آپدیت Supabase
+        // ========== 2. آپدیت در Supabase ==========
         if (supabase) {
-            await supabase
-                .from('orders')
-                .update({ status: status })
-                .eq('id', orderId);
+            try {
+                const { error } = await supabase
+                    .from('orders')
+                    .update({ 
+                        status: status,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', orderId);
+                
+                if (error) {
+                    console.warn(`⚠️ Could not update order ${orderId} in Supabase:`, error);
+                } else {
+                    console.log(`✅ Order ${orderId} updated in Supabase`);
+                }
+            } catch (supabaseError) {
+                console.warn(`⚠️ Supabase error updating order ${orderId}:`, supabaseError);
+            }
         }
         
         return { success: true };
-    } catch {
-        return { success: true };
+        
+    } catch (error) {
+        console.error('❌ Error updating order status:', error);
+        return { success: false, error: 'خطا در بروزرسانی سفارش' };
     }
 }
 
