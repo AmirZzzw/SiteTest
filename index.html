@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="#">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body>
     <!-- هدر سایت -->
@@ -25,19 +25,37 @@
                     <li><a href="#pricing"><i class="fas fa-tag"></i> لیست قیمت</a></li>
                     <li><a href="#support"><i class="fas fa-headset"></i> پشتیبانی</a></li>
                     <li><a href="#contact"><i class="fas fa-phone"></i> تماس</a></li>
+                    
+                    <!-- آیتم جدید: پشتیبانی کاربران -->
+                    <li class="support-ticket-link">
+                        <a href="#ticket" id="ticket-btn">
+                            <i class="fas fa-comment-dots"></i> پشتیبانی
+                            <span class="notification-badge" id="ticket-notification" style="display: none;">0</span>
+                        </a>
+                    </li>
+                    
+                    <!-- سبد خرید -->
                     <li class="cart-icon">
                         <a href="#cart" id="cart-toggle">
                             <i class="fas fa-shopping-cart"></i>
                             <span class="cart-count">0</span>
                         </a>
                     </li>
+                    
+                    <!-- بخش کاربر -->
                     <li class="user-section">
                         <a href="#login" id="login-btn"><i class="fas fa-user"></i> ورود</a>
                         <div class="user-dropdown" id="user-dropdown">
                             <a href="#profile"><i class="fas fa-user-circle"></i> پروفایل</a>
                             <a href="#orders"><i class="fas fa-history"></i> سابقه خرید</a>
+                            <a href="#tickets"><i class="fas fa-ticket-alt"></i> تیکت‌های من</a>
                             <a href="#logout" id="logout-btn"><i class="fas fa-sign-out-alt"></i> خروج</a>
                         </div>
+                    </li>
+                    
+                    <!-- لینک ادمین (فقط برای ادمین اصلی نمایش داده می‌شود) -->
+                    <li class="admin-link" id="admin-nav-item" style="display: none;">
+                        <a href="#admin" id="admin-btn"><i class="fas fa-cogs"></i> پنل ادمین</a>
                     </li>
                 </ul>
                 
@@ -60,6 +78,9 @@
                     <div class="hero-buttons">
                         <a href="#products" class="btn btn-primary">مشاهده محصولات</a>
                         <a href="#pricing" class="btn btn-secondary">لیست قیمت</a>
+                        <a href="#ticket" class="btn btn-telegram" id="open-ticket-btn">
+                            <i class="fas fa-comment-medical"></i> ارسال تیکت پشتیبانی
+                        </a>
                     </div>
                 </div>
                 <div class="hero-image">
@@ -107,6 +128,25 @@
                             <!-- ردیف‌های جدول از طریق JavaScript اضافه می‌شوند -->
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- اطلاعات پرداخت -->
+                <div class="payment-info">
+                    <h3><i class="fas fa-credit-card"></i> روش پرداخت</h3>
+                    <div class="payment-card">
+                        <div class="payment-details">
+                            <p><strong>مبلغ را به شماره کارت زیر واریز کنید:</strong></p>
+                            <div class="card-number">
+                                <i class="fas fa-credit-card"></i>
+                                <span>6037 9982 227 6759</span>
+                                <button class="copy-btn" onclick="copyToClipboard('603799822276759')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <p><strong>به نام:</strong> امیرمحمد یوسفی</p>
+                            <p class="note">پس از واریز، رسید را در صفحه پرداخت آپلود کنید.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -173,34 +213,6 @@
             </div>
         </section>
 
-        <!-- بخش پشتیبانی -->
-        <section class="support" id="support">
-            <div class="container">
-                <h2 class="section-title">پشتیبانی</h2>
-                <p class="section-subtitle">پشتیبانی 24 ساعته برای پاسخ به سوالات شما</p>
-                
-                <div class="support-content">
-                    <div class="support-info">
-                        <div class="support-item">
-                            <i class="fas fa-clock"></i>
-                            <h3>پشتیبانی 24/7</h3>
-                            <p>در تمام ساعات شبانه‌روز پاسخگوی شما هستیم</p>
-                        </div>
-                        <div class="support-item">
-                            <i class="fas fa-shield-alt"></i>
-                            <h3>ضمانت کیفیت</h3>
-                            <p>تمام خدمات دارای ضمانت بازگشت وجه در صورت عدم رضایت</p>
-                        </div>
-                        <div class="support-item">
-                            <i class="fas fa-bolt"></i>
-                            <h3>تحویل سریع</h3>
-                            <p>تحویل خدمات در کمترین زمان ممکن پس از پرداخت</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- بخش تماس -->
         <section class="contact" id="contact">
             <div class="container">
@@ -210,14 +222,16 @@
                 <div class="contact-content">
                     <div class="contact-info">
                         <div class="contact-item">
-                            <i class="fas fa-envelope"></i>
-                            <h3>ایمیل</h3>
-                            <p>support@sidkashop.com</p>
+                            <i class="fab fa-telegram"></i>
+                            <h3>پشتیبانی تلگرام</h3>
+                            <p>@SidkaSupport</p>
+                            <a href="https://t.me/SidkaSupport" target="_blank" class="btn btn-telegram">ارتباط</a>
                         </div>
                         <div class="contact-item">
-                            <i class="fab fa-telegram"></i>
-                            <h3>تلگرام</h3>
-                            <p>@SidkaSupport</p>
+                            <i class="fas fa-phone"></i>
+                            <h3>تماس تلفنی</h3>
+                            <p>09021707830</p>
+                            <button class="btn btn-primary" onclick="copyToClipboard('09021707830')">کپی شماره</button>
                         </div>
                         <div class="contact-item">
                             <i class="fas fa-link"></i>
@@ -240,6 +254,7 @@
                         <span>SidkaShop</span>
                     </a>
                     <p>فروشگاه خدمات دیجیتال با امنیت و کیفیت بالا</p>
+                    <p>مدیریت: امیرمحمد یوسفی</p>
                 </div>
                 
                 <div class="footer-links">
@@ -248,17 +263,20 @@
                         <li><a href="#home">خانه</a></li>
                         <li><a href="#products">محصولات</a></li>
                         <li><a href="#pricing">لیست قیمت</a></li>
-                        <li><a href="#support">پشتیبانی</a></li>
+                        <li><a href="#ticket" id="footer-ticket">پشتیبانی</a></li>
                     </ul>
                 </div>
                 
                 <div class="footer-copyright">
                     <p>تمامی حقوق برای فروشگاه خدمات دیجیتال محفوظ است © ۱۴۰۳</p>
+                    <p>شماره کارت: <span onclick="copyToClipboard('603799822276759')" style="cursor: pointer;">6037-9982-227-6759</span></p>
                 </div>
             </div>
         </div>
     </footer>
 
+    <!-- ========== MODALS ========== -->
+    
     <!-- سبد خرید -->
     <div class="cart-overlay" id="cart-overlay"></div>
     <div class="cart-sidebar" id="cart-sidebar">
@@ -268,11 +286,7 @@
         </div>
         
         <div class="cart-items" id="cart-items">
-            <!-- آیتم‌های سبد خرید از طریق JavaScript اضافه می‌شوند -->
-            <div class="empty-cart" id="empty-cart">
-                <i class="fas fa-shopping-cart"></i>
-                <p>سبد خرید شما خالی است</p>
-            </div>
+            <!-- آیتم‌های سبد خرید -->
         </div>
         
         <div class="cart-footer">
@@ -299,44 +313,193 @@
                     <input type="text" id="phone" placeholder="09xxxxxxxxx">
                 </div>
                 <button class="btn btn-primary btn-login" id="submit-login">ورود / عضویت</button>
-                <p class="login-note">با ورود به سایت، <a href="#">قوانین و شرایط</a> را پذیرفته‌اید.</p>
+                <p class="login-note">با ورود به سایت، <a href="#terms">قوانین و شرایط</a> را پذیرفته‌اید.</p>
             </div>
         </div>
     </div>
 
-    <!-- مودال تکمیل خرید -->
+    <!-- مودال پرداخت -->
     <div class="modal-overlay" id="checkout-overlay"></div>
-    <div class="modal" id="checkout-modal">
+    <div class="modal modal-lg" id="checkout-modal">
         <div class="modal-header">
-            <h3>تکمیل اطلاعات خرید</h3>
+            <h3><i class="fas fa-credit-card"></i> تکمیل خرید و پرداخت</h3>
             <button class="close-modal" id="close-checkout">&times;</button>
         </div>
         
         <div class="modal-body">
+            <div class="checkout-steps">
+                <div class="step active" data-step="1">اطلاعات شخصی</div>
+                <div class="step" data-step="2">تأیید سفارش</div>
+                <div class="step" data-step="3">آپلود رسید</div>
+            </div>
+            
             <div class="checkout-form">
-                <div class="form-group">
-                    <label for="first-name">نام</label>
-                    <input type="text" id="first-name" placeholder="نام خود را وارد کنید">
-                </div>
-                <div class="form-group">
-                    <label for="last-name">نام خانوادگی</label>
-                    <input type="text" id="last-name" placeholder="نام خانوادگی خود را وارد کنید">
-                </div>
-                <div class="form-group">
-                    <label for="checkout-phone">شماره موبایل</label>
-                    <input type="text" id="checkout-phone" placeholder="09xxxxxxxxx">
-                </div>
-                <div class="order-summary">
-                    <h4>خلاصه سفارش</h4>
-                    <div id="order-summary-items">
-                        <!-- آیتم‌های سفارش از طریق JavaScript اضافه می‌شوند -->
+                <!-- مرحله 1: اطلاعات شخصی -->
+                <div class="checkout-step active" id="step-1">
+                    <h4>اطلاعات شخصی</h4>
+                    <div class="form-group">
+                        <label for="first-name">نام *</label>
+                        <input type="text" id="first-name" placeholder="نام خود را وارد کنید">
                     </div>
-                    <div class="order-total">
-                        <span>مجموع:</span>
-                        <span id="order-total-price">۰ تومان</span>
+                    <div class="form-group">
+                        <label for="last-name">نام خانوادگی *</label>
+                        <input type="text" id="last-name" placeholder="نام خانوادگی خود را وارد کنید">
+                    </div>
+                    <div class="form-group">
+                        <label for="checkout-phone">شماره موبایل *</label>
+                        <input type="text" id="checkout-phone" placeholder="09xxxxxxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-telegram">آیدی تلگرام (اختیاری)</label>
+                        <input type="text" id="user-telegram" placeholder="@username">
+                    </div>
+                    <button class="btn btn-primary" onclick="nextStep(2)">مرحله بعد</button>
+                </div>
+                
+                <!-- مرحله 2: تأیید سفارش -->
+                <div class="checkout-step" id="step-2">
+                    <h4>تأیید سفارش و پرداخت</h4>
+                    <div class="order-summary">
+                        <h5>خلاصه سفارش</h5>
+                        <div id="order-summary-items"></div>
+                        <div class="order-total">
+                            <span>مجموع:</span>
+                            <span id="order-total-price">۰ تومان</span>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-instruction">
+                        <h5>روش پرداخت</h5>
+                        <div class="payment-card-info">
+                            <p><strong>لطفاً مبلغ <span id="payment-amount">۰</span> تومان را به شماره کارت زیر واریز کنید:</strong></p>
+                            <div class="card-number-large">
+                                <i class="fas fa-credit-card"></i>
+                                <span>6037 9982 227 6759</span>
+                                <button class="copy-btn" onclick="copyToClipboard('603799822276759')">
+                                    <i class="fas fa-copy"></i> کپی
+                                </button>
+                            </div>
+                            <p><strong>به نام:</strong> امیرمحمد یوسفی</p>
+                            <p class="note">پس از واریز، در مرحله بعد رسید را آپلود کنید.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step-buttons">
+                        <button class="btn btn-secondary" onclick="prevStep(1)">مرحله قبل</button>
+                        <button class="btn btn-primary" onclick="nextStep(3)">واریز کردم، ادامه</button>
                     </div>
                 </div>
-                <button class="btn btn-primary btn-confirm" id="confirm-order">تایید و پرداخت</button>
+                
+                <!-- مرحله 3: آپلود رسید -->
+                <div class="checkout-step" id="step-3">
+                    <h4>آپلود رسید پرداخت</h4>
+                    
+                    <div class="upload-receipt">
+                        <div class="upload-area" id="upload-area">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>رسید پرداخت خود را اینجا رها کنید یا کلیک کنید</p>
+                            <p class="upload-note">فرمت‌های مجاز: JPG, PNG, PDF (حداکثر 5MB)</p>
+                            <input type="file" id="receipt-file" accept="image/*,.pdf" style="display: none;">
+                        </div>
+                        
+                        <div class="preview-area" id="preview-area" style="display: none;">
+                            <img id="receipt-preview" src="" alt="پیش‌نمایش رسید">
+                            <button class="btn btn-danger" onclick="removeReceipt()">حذف عکس</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="receipt-note">توضیحات (اختیاری)</label>
+                            <textarea id="receipt-note" rows="3" placeholder="مثلاً ساعت واریز، شماره پیگیری و ..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="step-buttons">
+                        <button class="btn btn-secondary" onclick="prevStep(2)">مرحله قبل</button>
+                        <button class="btn btn-primary" id="final-submit-btn">تکمیل خرید و ارسال</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تیکت پشتیبانی -->
+    <div class="modal-overlay" id="ticket-overlay"></div>
+    <div class="modal modal-lg" id="ticket-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-comment-medical"></i> سیستم پشتیبانی</h3>
+            <button class="close-modal" id="close-ticket">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="ticket-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="new-ticket-tab">تیکت جدید</button>
+                    <button class="tab-btn" data-tab="my-tickets-tab">تیکت‌های من</button>
+                </div>
+                
+                <!-- تب تیکت جدید -->
+                <div class="tab-content active" id="new-ticket-tab">
+                    <div class="new-ticket-form">
+                        <div class="form-group">
+                            <label for="ticket-subject">موضوع *</label>
+                            <input type="text" id="ticket-subject" placeholder="مشکل در خرید، سوال درباره محصول و ...">
+                        </div>
+                        <div class="form-group">
+                            <label for="ticket-message">پیام *</label>
+                            <textarea id="ticket-message" rows="5" placeholder="پیام خود را با جزئیات بنویسید..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>پیوست (اختیاری)</label>
+                            <div class="upload-area" id="ticket-upload-area">
+                                <i class="fas fa-paperclip"></i>
+                                <p>فایل خود را اینجا رها کنید یا کلیک کنید</p>
+                                <input type="file" id="ticket-file" style="display: none;">
+                            </div>
+                            <div id="ticket-preview-area" style="display: none;"></div>
+                        </div>
+                        <button class="btn btn-primary" id="submit-ticket-btn">ارسال تیکت</button>
+                    </div>
+                </div>
+                
+                <!-- تب تیکت‌های من -->
+                <div class="tab-content" id="my-tickets-tab">
+                    <div class="tickets-list" id="tickets-list">
+                        <!-- لیست تیکت‌ها -->
+                        <div class="empty-tickets">
+                            <i class="fas fa-ticket-alt"></i>
+                            <p>هنوز تیکتی ارسال نکرده‌اید</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال مشاهده تیکت -->
+    <div class="modal-overlay" id="view-ticket-overlay"></div>
+    <div class="modal modal-lg" id="view-ticket-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-ticket-alt"></i> مشاهده تیکت</h3>
+            <button class="close-modal" id="close-view-ticket">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="ticket-view" id="ticket-view">
+                <!-- محتوای تیکت -->
+            </div>
+            
+            <!-- بخش پاسخ‌ها -->
+            <div class="ticket-replies" id="ticket-replies">
+                <!-- پاسخ‌های تیکت -->
+            </div>
+            
+            <!-- فرم پاسخ (برای کاربر) -->
+            <div class="reply-form" id="user-reply-form" style="display: none;">
+                <h4>پاسخ شما</h4>
+                <div class="form-group">
+                    <textarea id="user-reply-message" rows="3" placeholder="پاسخ خود را بنویسید..."></textarea>
+                </div>
+                <button class="btn btn-primary" id="submit-user-reply">ارسال پاسخ</button>
             </div>
         </div>
     </div>
@@ -351,11 +514,7 @@
         
         <div class="modal-body">
             <div class="orders-list" id="orders-list">
-                <!-- سفارش‌ها از طریق JavaScript اضافه می‌شوند -->
-                <div class="empty-orders" id="empty-orders">
-                    <i class="fas fa-history"></i>
-                    <p>شما تاکنون خریدی انجام نداده‌اید</p>
-                </div>
+                <!-- سفارش‌ها -->
             </div>
         </div>
     </div>
@@ -390,12 +549,167 @@
                         <span>تعداد سفارشات:</span>
                         <span id="profile-orders-count">۰</span>
                     </div>
+                    <div class="profile-item">
+                        <span>تیکت‌های فعال:</span>
+                        <span id="profile-tickets-count">۰</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال پنل ادمین -->
+    <div class="modal-overlay" id="admin-overlay"></div>
+    <div class="modal modal-xl" id="admin-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-cogs"></i> پنل مدیریت ادمین</h3>
+            <button class="close-modal" id="close-admin">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- آمار کلی -->
+            <div class="admin-stats">
+                <div class="stat-card">
+                    <h5>کاربران</h5>
+                    <span id="stats-users-count">0</span>
+                </div>
+                <div class="stat-card">
+                    <h5>سفارشات</h5>
+                    <span id="stats-orders-count">0</span>
+                </div>
+                <div class="stat-card">
+                    <h5>درآمد کل</h5>
+                    <span id="stats-total-income">0 تومان</span>
+                </div>
+                <div class="stat-card">
+                    <h5>تیکت‌های جدید</h5>
+                    <span id="stats-new-tickets">0</span>
+                </div>
+            </div>
+            
+            <!-- تب‌های ادمین -->
+            <div class="admin-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="tickets-tab">تیکت‌ها</button>
+                    <button class="tab-btn" data-tab="orders-tab">سفارشات</button>
+                    <button class="tab-btn" data-tab="users-tab">کاربران</button>
+                    <button class="tab-btn" data-tab="products-tab">محصولات</button>
+                    <button class="tab-btn" data-tab="settings-tab">تنظیمات</button>
+                </div>
+                
+                <!-- تب تیکت‌ها -->
+                <div class="tab-content active" id="tickets-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت تیکت‌های پشتیبانی</h4>
+                        <div class="admin-tickets-list" id="admin-tickets-list">
+                            <!-- لیست تیکت‌ها -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تب سفارشات -->
+                <div class="tab-content" id="orders-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت سفارشات</h4>
+                        <div class="admin-orders-list" id="admin-orders-list">
+                            <!-- لیست سفارشات -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تب کاربران -->
+                <div class="tab-content" id="users-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت کاربران</h4>
+                        <div class="admin-users-list" id="admin-users-list">
+                            <!-- لیست کاربران -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تب محصولات -->
+                <div class="tab-content" id="products-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت محصولات</h4>
+                        <button class="btn btn-primary" onclick="openAddProductModal()">
+                            <i class="fas fa-plus"></i> افزودن محصول جدید
+                        </button>
+                        <div class="admin-products-list" id="admin-products-list">
+                            <!-- لیست محصولات -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تب تنظیمات -->
+                <div class="tab-content" id="settings-tab">
+                    <div class="admin-section">
+                        <h4>تنظیمات سیستم</h4>
+                        <div class="settings-form">
+                            <div class="form-group">
+                                <label>شماره کارت</label>
+                                <input type="text" id="admin-card-number" value="603799822276759">
+                            </div>
+                            <div class="form-group">
+                                <label>نام صاحب کارت</label>
+                                <input type="text" id="admin-card-name" value="امیرمحمد یوسفی">
+                            </div>
+                            <div class="form-group">
+                                <label>شماره تماس ادمین</label>
+                                <input type="text" id="admin-phone" value="09021707830">
+                            </div>
+                            <div class="form-group">
+                                <label>آیدی عددی تلگرام (برای ربات)</label>
+                                <input type="text" id="admin-telegram-id" value="7549513123">
+                            </div>
+                            <div class="form-group">
+                                <label>توکن ربات تلگرام</label>
+                                <input type="password" id="admin-bot-token" value="7408423935:AAH9nkoZg7ykqQMGKDeitIiOtu6uYZl0Vxg">
+                            </div>
+                            <button class="btn btn-primary" onclick="saveAdminSettings()">ذخیره تنظیمات</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال مشاهده تیکت (ادمین) -->
+    <div class="modal-overlay" id="admin-ticket-overlay"></div>
+    <div class="modal modal-lg" id="admin-ticket-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-ticket-alt"></i> مدیریت تیکت</h3>
+            <button class="close-modal" id="close-admin-ticket">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="ticket-view-admin" id="ticket-view-admin">
+                <!-- محتوای تیکت -->
+            </div>
+            
+            <!-- پاسخ‌های تیکت -->
+            <div class="ticket-replies-admin" id="ticket-replies-admin"></div>
+            
+            <!-- فرم پاسخ ادمین -->
+            <div class="admin-reply-form">
+                <h4>پاسخ ادمین</h4>
+                <div class="form-group">
+                    <textarea id="admin-reply-message" rows="3" placeholder="پاسخ خود را بنویسید..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>پیوست (اختیاری)</label>
+                    <input type="file" id="admin-reply-file">
+                </div>
+                <div class="reply-actions">
+                    <button class="btn btn-primary" onclick="submitAdminReply()">ارسال پاسخ</button>
+                    <button class="btn btn-success" onclick="closeTicketAsSolved()">بستن تیکت (حل شد)</button>
+                    <button class="btn btn-danger" onclick="deleteTicket()">حذف تیکت</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- اسکریپت‌ها -->
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="script.js"></script>
 </body>
 </html>
