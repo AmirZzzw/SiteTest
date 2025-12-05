@@ -1,148 +1,136 @@
-// supabase-service-fixed.js - با مدیریت حافظه پیشرفته
-console.log('🔧 Loading FIXED Supabase service with memory management...');
+// supabase-service-fixed.js - با ذخیره‌سازی بر اساس کاربر
+console.log('🔧 Loading User-Based Storage Service...');
 
-// تنظیمات Supabase
-const SUPABASE_CONFIG = {
-    URL: 'https://oudwditrdwugozxizehm.supabase.co',
-    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91ZHdkaXRyZHd1Z296eGl6ZWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4ODQzMTcsImV4cCI6MjA4MDQ2MDMxN30.BQxoJD-WnRQQvIaQQSTzKzXLxf2LdGuPkqBCKvDruGE'
-};
+// ========== سیستم ذخیره‌سازی مبتنی بر کاربر ==========
 
-// کلاینت Supabase
-let supabase;
-
-try {
-    if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
-        console.log('✅ Supabase client created');
-    } else {
-        console.warn('⚠️ Supabase library not found');
-        supabase = null;
-    }
-} catch (error) {
-    console.error('❌ Failed to create Supabase client:', error);
-    supabase = null;
+// کلیدهای ذخیره‌سازی برای هر کاربر
+function getUserStorageKey(userId, dataType) {
+    return `sidka_${dataType}_user_${userId}`;
 }
 
-// ========== مدیریت حافظه ==========
-
-// بررسی حجم localStorage
-function checkStorageSpace() {
+// ذخیره داده برای کاربر خاص
+function saveUserData(userId, dataType, data) {
     try {
-        let total = 0;
-        for (let key in localStorage) {
-            if (localStorage.hasOwnProperty(key)) {
-                total += localStorage[key].length * 2; // هر کاراکتر ۲ بایت
-            }
-        }
-        console.log(`💾 Storage used: ${(total / 1024 / 1024).toFixed(2)} MB`);
-        return total;
-    } catch (error) {
-        console.warn('⚠️ Cannot check storage space:', error);
-        return 0;
-    }
-}
-
-// پاک کردن سفارشات قدیمی (بیش از ۳۰ روز)
-function cleanupOldOrders() {
-    try {
-        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        const now = Date.now();
-        const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-        
-        const oldOrders = orders.filter(order => {
-            const orderDate = new Date(order.created_at || order.createdAt || now).getTime();
-            return orderDate < thirtyDaysAgo;
-        });
-        
-        const newOrders = orders.filter(order => {
-            const orderDate = new Date(order.created_at || order.createdAt || now).getTime();
-            return orderDate >= thirtyDaysAgo;
-        });
-        
-        if (oldOrders.length > 0) {
-            console.log(`🧹 Cleaning up ${oldOrders.length} old orders`);
-            localStorage.setItem('sidka_orders', JSON.stringify(newOrders));
-        }
-        
-        return newOrders;
-    } catch (error) {
-        console.error('❌ Error cleaning up orders:', error);
-        return JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-    }
-}
-
-// محدود کردن تعداد رکوردها
-function limitStorageItems(key, maxItems = 50) {
-    try {
-        const items = JSON.parse(localStorage.getItem(key) || '[]');
-        
-        if (items.length > maxItems) {
-            console.log(`📦 Limiting ${key} from ${items.length} to ${maxItems} items`);
-            const limitedItems = items.slice(-maxItems); // آخرین items رو نگه دار
-            localStorage.setItem(key, JSON.stringify(limitedItems));
-            return limitedItems;
-        }
-        
-        return items;
-    } catch (error) {
-        console.error(`❌ Error limiting ${key}:`, error);
-        return [];
-    }
-}
-
-// ذخیره امن در localStorage
-function safeSetItem(key, data) {
-    try {
-        // محدود کردن داده‌های بزرگ
-        const dataStr = JSON.stringify(data);
-        if (dataStr.length > 2 * 1024 * 1024) { // بیشتر از ۲ مگابایت
-            console.warn(`⚠️ Data too large for ${key}: ${dataStr.length / 1024 / 1024} MB`);
-            
-            // اگر آرایه هست، نصف کن
-            if (Array.isArray(data)) {
-                const halfData = data.slice(-Math.floor(data.length / 2));
-                localStorage.setItem(key, JSON.stringify(halfData));
-                console.log(`✅ Saved ${halfData.length} items (half of ${data.length})`);
-                return halfData;
-            }
-        }
-        
-        localStorage.setItem(key, dataStr);
-        console.log(`✅ ${key} saved (${dataStr.length / 1024} KB)`);
+        const key = getUserStorageKey(userId, dataType);
+        localStorage.setItem(key, JSON.stringify(data));
+        console.log(`✅ Saved ${dataType} for user ${userId}`);
         return true;
     } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-            console.error(`❌ Storage full for ${key}`);
-            
-            // پاکسازی
-            cleanupOldOrders();
-            limitStorageItems('sidka_orders', 20);
-            limitStorageItems('sidka_tickets', 20);
-            
-            // دوباره امتحان کن
-            try {
-                const limitedData = Array.isArray(data) ? data.slice(-10) : data;
-                localStorage.setItem(key, JSON.stringify(limitedData));
-                console.log(`✅ ${key} saved with limited data`);
-                return limitedData;
-            } catch (retryError) {
-                console.error(`❌ Still failing:`, retryError);
-                return false;
-            }
-        }
-        console.error(`❌ Error saving ${key}:`, error);
+        console.error(`❌ Error saving ${dataType}:`, error);
         return false;
     }
 }
 
-// ========== توایع اصلی ==========
+// دریافت داده کاربر
+function getUserData(userId, dataType) {
+    try {
+        const key = getUserStorageKey(userId, dataType);
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : [];
+    } catch (error) {
+        console.error(`❌ Error reading ${dataType}:`, error);
+        return [];
+    }
+}
 
-// 1. ایجاد سفارش جدید (با مدیریت خطا)
+// ادغام داده‌های کاربر با داده‌های عمومی
+function mergeUserData(userId, dataType) {
+    try {
+        // داده‌های کاربر
+        const userKey = getUserStorageKey(userId, dataType);
+        let userData = JSON.parse(localStorage.getItem(userKey) || '[]');
+        
+        // داده‌های عمومی (برای سازگاری با نسخه قدیم)
+        const publicKey = `sidka_${dataType}`;
+        let publicData = JSON.parse(localStorage.getItem(publicKey) || '[]');
+        
+        // فقط داده‌های مربوط به این کاربر رو از عمومی بگیر
+        const userPublicData = publicData.filter(item => 
+            item.userId == userId || item.user_id == userId
+        );
+        
+        // ادغام و حذف تکراری‌ها
+        const allData = [...userData, ...userPublicData];
+        const uniqueData = [];
+        const seenIds = new Set();
+        
+        allData.forEach(item => {
+            if (item.id && !seenIds.has(item.id)) {
+                seenIds.add(item.id);
+                uniqueData.push(item);
+            }
+        });
+        
+        // ذخیره در مخزن کاربر
+        saveUserData(userId, dataType, uniqueData);
+        
+        // حذف داده‌های کاربر از مخزن عمومی
+        const remainingPublicData = publicData.filter(item => 
+            item.userId != userId && item.user_id != userId
+        );
+        localStorage.setItem(publicKey, JSON.stringify(remainingPublicData));
+        
+        return uniqueData;
+    } catch (error) {
+        console.error(`❌ Error merging ${dataType}:`, error);
+        return [];
+    }
+}
+
+// انتقال داده‌های قدیم به سیستم جدید
+function migrateOldData() {
+    try {
+        console.log('🔄 Migrating old data to new system...');
+        
+        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        
+        // گروه‌بندی سفارشات بر اساس کاربر
+        const ordersByUser = {};
+        orders.forEach(order => {
+            const userId = order.userId || order.user_id;
+            if (userId) {
+                if (!ordersByUser[userId]) ordersByUser[userId] = [];
+                ordersByUser[userId].push(order);
+            }
+        });
+        
+        // ذخیره برای هر کاربر
+        Object.keys(ordersByUser).forEach(userId => {
+            saveUserData(userId, 'orders', ordersByUser[userId]);
+        });
+        
+        // همین کار برای تیکت‌ها
+        const ticketsByUser = {};
+        tickets.forEach(ticket => {
+            const userId = ticket.userId || ticket.user_id;
+            if (userId) {
+                if (!ticketsByUser[userId]) ticketsByUser[userId] = [];
+                ticketsByUser[userId].push(ticket);
+            }
+        });
+        
+        Object.keys(ticketsByUser).forEach(userId => {
+            saveUserData(userId, 'tickets', ticketsByUser[userId]);
+        });
+        
+        console.log('✅ Data migration completed');
+        
+    } catch (error) {
+        console.error('❌ Migration error:', error);
+    }
+}
+
+// اجرای مهاجرت هنگام بارگذاری
+migrateOldData();
+
+// ========== توابع اصلی ==========
+
+// 1. ایجاد سفارش جدید
 async function createNewOrder(orderData) {
     try {
         console.log('🛒 Creating order for user:', orderData.userId);
         
-        // ساخت سفارش
         const order = {
             id: orderData.id || Date.now(),
             userId: orderData.userId,
@@ -152,49 +140,24 @@ async function createNewOrder(orderData) {
             customer_info: orderData.customerInfo || {},
             receipt_info: orderData.receipt || {},
             items: orderData.items || [],
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString()
         };
         
-        console.log('📝 Order created:', order.id, 'Total:', order.total);
+        // ذخیره برای کاربر
+        const userOrders = getUserData(orderData.userId, 'orders');
+        userOrders.push(order);
+        saveUserData(orderData.userId, 'orders', userOrders);
         
-        // 1. اول در localStorage ذخیره کن
-        const storedOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        storedOrders.push(order);
+        // همچنین در مخزن عمومی (برای سازگاری)
+        const publicOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        publicOrders.push(order);
+        localStorage.setItem('sidka_orders', JSON.stringify(publicOrders));
         
-        // ذخیره با مدیریت حافظه
-        const saved = safeSetItem('sidka_orders', storedOrders);
-        
-        if (!saved) {
-            // اگر ذخیره نشد، فقط آخرین سفارش رو ذخیره کن
-            safeSetItem('sidka_orders', [order]);
-        }
-        
-        // 2. سپس در Supabase ذخیره کن (اگر وصل است)
-        if (supabase) {
-            try {
-                const { error } = await supabase
-                    .from('orders')
-                    .insert([{
-                        user_id: order.userId,
-                        total: order.total,
-                        status: order.status,
-                        customer_info: order.customer_info,
-                        receipt_info: order.receipt_info,
-                        items: order.items
-                    }]);
-                
-                if (error) {
-                    console.warn('⚠️ Supabase error:', error);
-                } else {
-                    console.log('✅ Order saved to Supabase');
-                }
-            } catch (supabaseError) {
-                console.warn('⚠️ Supabase exception:', supabaseError);
-            }
-        }
-        
-        // 3. سبد خرید رو خالی کن
+        // خالی کردن سبد خرید
         localStorage.removeItem('sidka_cart');
+        
+        console.log(`✅ Order #${order.id} saved for user ${orderData.userId}`);
         
         return {
             success: true,
@@ -203,94 +166,44 @@ async function createNewOrder(orderData) {
         };
         
     } catch (error) {
-        console.error('❌ Fatal error creating order:', error);
-        
-        // حتی اگر خطا هم داد، حداقل سفارش رو برگردون
-        const fallbackOrder = {
-            id: Date.now(),
-            userId: orderData.userId,
-            total: orderData.total || 0,
-            status: 'در انتظار تأیید',
-            created_at: new Date().toISOString()
-        };
-        
-        // فقط همین یک سفارش رو ذخیره کن
-        safeSetItem('sidka_orders', [fallbackOrder]);
-        
+        console.error('❌ Error creating order:', error);
         return {
-            success: true,
-            order: fallbackOrder,
-            message: 'سفارش ثبت شد (حالت ذخیره محدود)'
+            success: false,
+            error: 'خطا در ثبت سفارش'
         };
     }
 }
 
-// 2. دریافت همه سفارشات (با فیلتر)
-async function getAllOrders() {
+// 2. دریافت سفارشات کاربر
+async function getUserOrders(userId) {
     try {
-        console.log('📋 Getting all orders...');
+        console.log(`📋 Getting orders for user ${userId}`);
         
-        // اول localStorage رو بررسی کن
-        let localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        // اول از مخزن کاربر بگیر
+        let userOrders = getUserData(userId, 'orders');
         
-        // پاکسازی سفارشات قدیمی
-        localOrders = cleanupOldOrders();
-        
-        console.log(`📊 Found ${localOrders.length} orders in localStorage`);
-        
-        // اگر Supabase وصل بود، از اونجا هم بگیر
-        let supabaseOrders = [];
-        if (supabase) {
-            try {
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select('*, users(first_name, last_name, phone)')
-                    .order('created_at', { ascending: false })
-                    .limit(50); // فقط ۵۰ تا آخرین سفارش
-                
-                if (!error && data) {
-                    supabaseOrders = data;
-                    console.log(`📊 Found ${supabaseOrders.length} orders in Supabase`);
-                    
-                    // ادغام با localStorage
-                    const allOrders = [...supabaseOrders, ...localOrders];
-                    const uniqueOrders = [];
-                    const seenIds = new Set();
-                    
-                    allOrders.forEach(order => {
-                        if (order.id && !seenIds.has(order.id)) {
-                            seenIds.add(order.id);
-                            uniqueOrders.push(order);
-                        }
-                    });
-                    
-                    // مرتب‌سازی
-                    uniqueOrders.sort((a, b) => {
-                        const dateA = new Date(a.created_at || 0).getTime();
-                        const dateB = new Date(b.created_at || 0).getTime();
-                        return dateB - dateA;
-                    });
-                    
-                    return {
-                        success: true,
-                        orders: uniqueOrders,
-                        count: uniqueOrders.length
-                    };
-                }
-            } catch (supabaseError) {
-                console.warn('⚠️ Supabase error, using localStorage only:', supabaseError);
-            }
+        // اگر خالی بود، از مخزن عمومی مهاجرت کن
+        if (userOrders.length === 0) {
+            userOrders = mergeUserData(userId, 'orders');
         }
         
-        // فقط از localStorage برگردون
+        // مرتب‌سازی بر اساس تاریخ (جدیدترین اول)
+        userOrders.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+            const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+            return dateB - dateA;
+        });
+        
+        console.log(`📊 Found ${userOrders.length} orders for user ${userId}`);
+        
         return {
             success: true,
-            orders: localOrders,
-            count: localOrders.length
+            orders: userOrders,
+            count: userOrders.length
         };
         
     } catch (error) {
-        console.error('❌ Error getting orders:', error);
+        console.error('❌ Error getting user orders:', error);
         return {
             success: true,
             orders: [],
@@ -299,10 +212,80 @@ async function getAllOrders() {
     }
 }
 
-// 3. ایجاد تیکت جدید
+// 3. دریافت همه سفارشات (برای ادمین)
+async function getAllOrders() {
+    try {
+        console.log('📋 Getting ALL orders (admin view)');
+        
+        // جمع‌آوری از همه کاربران
+        let allOrders = [];
+        const keys = Object.keys(localStorage);
+        
+        // سفارشات کاربران
+        const userOrderKeys = keys.filter(key => key.startsWith('sidka_orders_user_'));
+        userOrderKeys.forEach(key => {
+            try {
+                const orders = JSON.parse(localStorage.getItem(key) || '[]');
+                allOrders = [...allOrders, ...orders];
+            } catch (e) {
+                console.warn(`⚠️ Error reading ${key}:`, e);
+            }
+        });
+        
+        // سفارشات عمومی (قدیمی)
+        const publicOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        allOrders = [...allOrders, ...publicOrders];
+        
+        // حذف تکراری‌ها
+        const uniqueOrders = [];
+        const seenIds = new Set();
+        
+        allOrders.forEach(order => {
+            if (order.id && !seenIds.has(order.id)) {
+                seenIds.add(order.id);
+                
+                // اضافه کردن اطلاعات کاربر اگر موجود نیست
+                if (!order.users) {
+                    order.users = {
+                        first_name: order.customer_info?.firstName || 'کاربر',
+                        last_name: order.customer_info?.lastName || '',
+                        phone: order.customer_info?.phone || '---'
+                    };
+                }
+                
+                uniqueOrders.push(order);
+            }
+        });
+        
+        // مرتب‌سازی
+        uniqueOrders.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+            const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+            return dateB - dateA;
+        });
+        
+        console.log(`📊 Total orders: ${uniqueOrders.length}`);
+        
+        return {
+            success: true,
+            orders: uniqueOrders,
+            count: uniqueOrders.length
+        };
+        
+    } catch (error) {
+        console.error('❌ Error getting all orders:', error);
+        return {
+            success: true,
+            orders: [],
+            count: 0
+        };
+    }
+}
+
+// 4. ایجاد تیکت جدید
 async function createNewTicket(ticketData) {
     try {
-        console.log('🎫 Creating ticket:', ticketData.subject);
+        console.log('🎫 Creating ticket for user:', ticketData.userId);
         
         const ticket = {
             id: Date.now(),
@@ -311,29 +294,21 @@ async function createNewTicket(ticketData) {
             subject: ticketData.subject || 'بدون موضوع',
             message: ticketData.message || 'بدون پیام',
             status: 'جدید',
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString()
         };
         
-        // ذخیره در localStorage
-        const storedTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
-        storedTickets.push(ticket);
-        safeSetItem('sidka_tickets', storedTickets);
+        // ذخیره برای کاربر
+        const userTickets = getUserData(ticketData.userId, 'tickets');
+        userTickets.push(ticket);
+        saveUserData(ticketData.userId, 'tickets', userTickets);
         
-        // ذخیره در Supabase
-        if (supabase) {
-            try {
-                await supabase
-                    .from('tickets')
-                    .insert([{
-                        user_id: ticket.userId,
-                        subject: ticket.subject,
-                        message: ticket.message,
-                        status: ticket.status
-                    }]);
-            } catch (supabaseError) {
-                console.warn('⚠️ Supabase error:', supabaseError);
-            }
-        }
+        // همچنین در مخزن عمومی
+        const publicTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        publicTickets.push(ticket);
+        localStorage.setItem('sidka_tickets', JSON.stringify(publicTickets));
+        
+        console.log(`✅ Ticket #${ticket.id} saved for user ${ticketData.userId}`);
         
         return {
             success: true,
@@ -350,99 +325,151 @@ async function createNewTicket(ticketData) {
     }
 }
 
-// 4. دریافت همه تیکت‌ها
-async function getAllTickets() {
+// 5. دریافت تیکت‌های کاربر
+async function getUserTickets(userId) {
     try {
-        // اول localStorage
-        let localTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        console.log(`📨 Getting tickets for user ${userId}`);
         
-        // پاکسازی قدیمی‌ها
-        localTickets = limitStorageItems('sidka_tickets', 50);
+        // از مخزن کاربر بگیر
+        let userTickets = getUserData(userId, 'tickets');
         
-        // اگر Supabase وصل بود
-        let supabaseTickets = [];
-        if (supabase) {
-            try {
-                const { data, error } = await supabase
-                    .from('tickets')
-                    .select('*, users(first_name, last_name, phone)')
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-                
-                if (!error && data) {
-                    supabaseTickets = data;
-                    
-                    // ادغام
-                    const allTickets = [...supabaseTickets, ...localTickets];
-                    const uniqueTickets = [];
-                    const seenIds = new Set();
-                    
-                    allTickets.forEach(ticket => {
-                        if (ticket.id && !seenIds.has(ticket.id)) {
-                            seenIds.add(ticket.id);
-                            uniqueTickets.push(ticket);
-                        }
-                    });
-                    
-                    return {
-                        success: true,
-                        tickets: uniqueTickets
-                    };
-                }
-            } catch (error) {
-                console.warn('⚠️ Supabase error:', error);
-            }
+        // اگر خالی بود، مهاجرت کن
+        if (userTickets.length === 0) {
+            userTickets = mergeUserData(userId, 'tickets');
         }
+        
+        // مرتب‌سازی
+        userTickets.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+            const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+            return dateB - dateA;
+        });
+        
+        console.log(`📨 Found ${userTickets.length} tickets for user ${userId}`);
         
         return {
             success: true,
-            tickets: localTickets
+            tickets: userTickets,
+            count: userTickets.length
         };
         
     } catch (error) {
-        console.error('❌ Error getting tickets:', error);
+        console.error('❌ Error getting user tickets:', error);
         return {
             success: true,
-            tickets: []
+            tickets: [],
+            count: 0
         };
     }
 }
 
-// 5. به‌روزرسانی وضعیت سفارش
+// 6. دریافت همه تیکت‌ها (برای ادمین)
+async function getAllTickets() {
+    try {
+        console.log('📨 Getting ALL tickets (admin view)');
+        
+        // جمع‌آوری از همه کاربران
+        let allTickets = [];
+        const keys = Object.keys(localStorage);
+        
+        // تیکت‌های کاربران
+        const userTicketKeys = keys.filter(key => key.startsWith('sidka_tickets_user_'));
+        userTicketKeys.forEach(key => {
+            try {
+                const tickets = JSON.parse(localStorage.getItem(key) || '[]');
+                allTickets = [...allTickets, ...tickets];
+            } catch (e) {
+                console.warn(`⚠️ Error reading ${key}:`, e);
+            }
+        });
+        
+        // تیکت‌های عمومی
+        const publicTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        allTickets = [...allTickets, ...publicTickets];
+        
+        // حذف تکراری‌ها و اضافه کردن اطلاعات کاربر
+        const uniqueTickets = [];
+        const seenIds = new Set();
+        
+        allTickets.forEach(ticket => {
+            if (ticket.id && !seenIds.has(ticket.id)) {
+                seenIds.add(ticket.id);
+                
+                // اگر اطلاعات کاربر نداره
+                if (!ticket.users) {
+                    ticket.users = {
+                        first_name: 'کاربر',
+                        last_name: '',
+                        phone: ticket.userId || '---'
+                    };
+                }
+                
+                uniqueTickets.push(ticket);
+            }
+        });
+        
+        // مرتب‌سازی
+        uniqueTickets.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+            const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+            return dateB - dateA;
+        });
+        
+        console.log(`📨 Total tickets: ${uniqueTickets.length}`);
+        
+        return {
+            success: true,
+            tickets: uniqueTickets,
+            count: uniqueTickets.length
+        };
+        
+    } catch (error) {
+        console.error('❌ Error getting all tickets:', error);
+        return {
+            success: true,
+            tickets: [],
+            count: 0
+        };
+    }
+}
+
+// 7. به‌روزرسانی وضعیت سفارش
 async function updateOrderStatus(orderId, status) {
     try {
         console.log(`📊 Updating order ${orderId} to ${status}`);
         
-        // به‌روزرسانی localStorage
-        let orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        // پیدا کردن سفارش در همه مخازن
+        const keys = Object.keys(localStorage);
+        const orderKeys = keys.filter(key => 
+            key.startsWith('sidka_orders_user_') || key === 'sidka_orders'
+        );
+        
         let updated = false;
         
-        orders = orders.map(order => {
-            if (order.id == orderId) {
-                order.status = status;
-                order.updated_at = new Date().toISOString();
-                updated = true;
+        orderKeys.forEach(key => {
+            try {
+                const orders = JSON.parse(localStorage.getItem(key) || '[]');
+                const updatedOrders = orders.map(order => {
+                    if (order.id == orderId) {
+                        order.status = status;
+                        order.updated_at = new Date().toISOString();
+                        updated = true;
+                    }
+                    return order;
+                });
+                
+                localStorage.setItem(key, JSON.stringify(updatedOrders));
+            } catch (e) {
+                console.warn(`⚠️ Error updating ${key}:`, e);
             }
-            return order;
         });
         
         if (updated) {
-            safeSetItem('sidka_orders', orders);
+            console.log(`✅ Order ${orderId} status updated to ${status}`);
+            return { success: true };
+        } else {
+            return { success: false, error: 'سفارش یافت نشد' };
         }
-        
-        // به‌روزرسانی Supabase
-        if (supabase) {
-            try {
-                await supabase
-                    .from('orders')
-                    .update({ status: status })
-                    .eq('id', orderId);
-            } catch (error) {
-                console.warn('⚠️ Supabase error:', error);
-            }
-        }
-        
-        return { success: true };
         
     } catch (error) {
         console.error('❌ Error updating order:', error);
@@ -450,39 +477,30 @@ async function updateOrderStatus(orderId, status) {
     }
 }
 
-// 6. سایر توابع ضروری
+// 8. محصولات
 async function getAllProducts() {
-    try {
-        // محصولات ثابت
-        const products = [
-            { id: 1, name: 'ساخت پنل', description: 'ساخت پنل اختصاصی با امکانات کامل', price: 900000, category: 'panels', icon: 'fas fa-plus-circle', active: true },
-            { id: 2, name: 'آپدیت پنل', description: 'ارتقاء و به‌روزرسانی پنل موجود', price: 235000, category: 'panels', icon: 'fas fa-sync-alt', active: true },
-            { id: 3, name: 'اشتراک سلف تلگرام - یک ماهه', description: 'اشتراک یکماهه سلف تلگرام', price: 40000, category: 'subscriptions', icon: 'fab fa-telegram', active: true },
-            { id: 4, name: 'اشتراک V2rayNG - 50 گیگ', description: 'اشتراک 50 گیگ کاربر نامحدود یکماهه v2rayNG', price: 30000, category: 'subscriptions', icon: 'fas fa-server', active: true },
-            { id: 5, name: 'ویاکس پنل - یکروزه', description: 'اشتراک یکروزه ویاکس پنل - تک کاربره', price: 15000, category: 'subscriptions', icon: 'fas fa-bolt', active: true },
-            { id: 6, name: 'ویاکس پنل - یک هفته', description: 'اشتراک یک هفته ویاکس پنل - تک کاربره', price: 80000, category: 'subscriptions', icon: 'fas fa-calendar-week', active: true },
-            { id: 7, name: 'ویاکس پنل - یکماهه', description: 'اشتراک یکماهه ویاکس پنل - تک کاربره', price: 230000, category: 'subscriptions', icon: 'fas fa-calendar-alt', active: true },
-            { id: 8, name: 'ویاکس پنل - دائمی', description: 'اشتراک دائمی ویاکس پنل - تک کاربره', price: 350000, category: 'subscriptions', icon: 'fas fa-infinity', active: true },
-            { id: 9, name: 'تامنیل یوتیوب', description: 'طراحی تامنیل حرفه‌ای برای یوتیوب', price: 50000, category: 'design', icon: 'fab fa-youtube', active: true },
-            { id: 10, name: 'پروفایل چنل', description: 'طراحی پروفایل حرفه‌ای برای چنل', price: 50000, category: 'design', icon: 'fas fa-id-card', active: true }
-        ];
-        
-        return {
-            success: true,
-            products: products,
-            count: products.length
-        };
-    } catch (error) {
-        console.error('❌ Error getting products:', error);
-        return {
-            success: true,
-            products: [],
-            count: 0
-        };
-    }
+    // محصولات ثابت
+    const products = [
+        { id: 1, name: 'ساخت پنل', description: 'ساخت پنل اختصاصی با امکانات کامل', price: 900000, category: 'panels', icon: 'fas fa-plus-circle', active: true },
+        { id: 2, name: 'آپدیت پنل', description: 'ارتقاء و به‌روزرسانی پنل موجود', price: 235000, category: 'panels', icon: 'fas fa-sync-alt', active: true },
+        { id: 3, name: 'اشتراک سلف تلگرام - یک ماهه', description: 'اشتراک یکماهه سلف تلگرام', price: 40000, category: 'subscriptions', icon: 'fab fa-telegram', active: true },
+        { id: 4, name: 'اشتراک V2rayNG - 50 گیگ', description: 'اشتراک 50 گیگ کاربر نامحدود یکماهه v2rayNG', price: 30000, category: 'subscriptions', icon: 'fas fa-server', active: true },
+        { id: 5, name: 'ویاکس پنل - یکروزه', description: 'اشتراک یکروزه ویاکس پنل - تک کاربره', price: 15000, category: 'subscriptions', icon: 'fas fa-bolt', active: true },
+        { id: 6, name: 'ویاکس پنل - یک هفته', description: 'اشتراک یک هفته ویاکس پنل - تک کاربره', price: 80000, category: 'subscriptions', icon: 'fas fa-calendar-week', active: true },
+        { id: 7, name: 'ویاکس پنل - یکماهه', description: 'اشتراک یکماهه ویاکس پنل - تک کاربره', price: 230000, category: 'subscriptions', icon: 'fas fa-calendar-alt', active: true },
+        { id: 8, name: 'ویاکس پنل - دائمی', description: 'اشتراک دائمی ویاکس پنل - تک کاربره', price: 350000, category: 'subscriptions', icon: 'fas fa-infinity', active: true },
+        { id: 9, name: 'تامنیل یوتیوب', description: 'طراحی تامنیل حرفه‌ای برای یوتیوب', price: 50000, category: 'design', icon: 'fab fa-youtube', active: true },
+        { id: 10, name: 'پروفایل چنل', description: 'طراحی پروفایل حرفه‌ای برای چنل', price: 50000, category: 'design', icon: 'fas fa-id-card', active: true }
+    ];
+    
+    return {
+        success: true,
+        products: products,
+        count: products.length
+    };
 }
 
-// 7. ورود/عضویت
+// 9. ورود/عضویت
 async function loginOrRegisterUser(phone, firstName = '', lastName = '', password = '') {
     try {
         const ADMIN_PHONE = '09021707830';
@@ -503,7 +521,8 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
                 created_at: new Date().toISOString()
             };
             
-            safeSetItem('sidka_user_session', JSON.stringify({
+            // ذخیره سشن
+            localStorage.setItem('sidka_user_session', JSON.stringify({
                 user: adminUser,
                 expiry: Date.now() + (24 * 60 * 60 * 1000)
             }));
@@ -511,22 +530,43 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
             return { success: true, user: adminUser };
         }
         
-        // کاربر عادی
-        const user = {
-            id: Date.now(),
-            phone: phone,
-            first_name: firstName || 'کاربر',
-            last_name: lastName || '',
-            is_admin: false,
-            created_at: new Date().toISOString()
-        };
+        // کاربر عادی - ایجاد یا بازیابی
+        let user;
+        const userKey = `sidka_user_${phone}`;
+        const storedUser = localStorage.getItem(userKey);
         
-        safeSetItem('sidka_user_session', JSON.stringify({
+        if (storedUser) {
+            user = JSON.parse(storedUser);
+            console.log(`✅ Existing user found: ${user.first_name} ${user.last_name}`);
+        } else {
+            user = {
+                id: Date.now(),
+                phone: phone,
+                first_name: firstName || 'کاربر',
+                last_name: lastName || '',
+                is_admin: false,
+                created_at: new Date().toISOString()
+            };
+            
+            localStorage.setItem(userKey, JSON.stringify(user));
+            console.log(`✅ New user created: ${user.first_name} ${user.last_name}`);
+        }
+        
+        // ذخیره سشن
+        localStorage.setItem('sidka_user_session', JSON.stringify({
             user: user,
             expiry: Date.now() + (24 * 60 * 60 * 1000)
         }));
         
-        return { success: true, user: user, isNew: true };
+        // مهاجرت داده‌های قدیم این کاربر
+        mergeUserData(user.id, 'orders');
+        mergeUserData(user.id, 'tickets');
+        
+        return {
+            success: true,
+            user: user,
+            isNew: !storedUser
+        };
         
     } catch (error) {
         console.error('❌ Error in login:', error);
@@ -534,46 +574,60 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
     }
 }
 
-// 8. سایر توابع
-async function getUserOrders(userId) {
-    try {
-        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        const userOrders = orders.filter(order => order.userId == userId || order.user_id == userId);
-        return { success: true, orders: userOrders };
-    } catch (error) {
-        return { success: true, orders: [] };
-    }
-}
-
-async function getUserTickets(userId) {
-    try {
-        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
-        const userTickets = tickets.filter(ticket => ticket.userId == userId || ticket.user_id == userId);
-        return { success: true, tickets: userTickets };
-    } catch (error) {
-        return { success: true, tickets: [] };
-    }
-}
-
+// 10. آمار
 async function getDashboardStats() {
     try {
-        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        let totalOrders = 0;
+        let totalIncome = 0;
+        let newTickets = 0;
         
-        const totalIncome = orders
-            .filter(o => o.status === 'تأیید شده')
-            .reduce((sum, order) => sum + (order.total || 0), 0);
+        // بررسی همه کلیدها
+        const keys = Object.keys(localStorage);
+        
+        // سفارشات
+        keys.forEach(key => {
+            if (key.startsWith('sidka_orders_user_') || key === 'sidka_orders') {
+                try {
+                    const orders = JSON.parse(localStorage.getItem(key) || '[]');
+                    totalOrders += orders.length;
+                    
+                    totalIncome += orders
+                        .filter(o => o.status === 'تأیید شده')
+                        .reduce((sum, order) => sum + (order.total || 0), 0);
+                } catch (e) {
+                    console.warn(`⚠️ Error reading ${key}:`, e);
+                }
+            }
+        });
+        
+        // تیکت‌ها
+        keys.forEach(key => {
+            if (key.startsWith('sidka_tickets_user_') || key === 'sidka_tickets') {
+                try {
+                    const tickets = JSON.parse(localStorage.getItem(key) || '[]');
+                    newTickets += tickets.filter(t => t.status === 'جدید').length;
+                } catch (e) {
+                    console.warn(`⚠️ Error reading ${key}:`, e);
+                }
+            }
+        });
+        
+        // تخمین تعداد کاربران
+        const userKeys = keys.filter(key => key.startsWith('sidka_user_') && !key.includes('session'));
+        const estimatedUsers = Math.max(1, userKeys.length);
         
         return {
             success: true,
             stats: {
-                users: Math.max(1, orders.length),
-                orders: orders.length,
+                users: estimatedUsers,
+                orders: totalOrders,
                 totalIncome: totalIncome,
-                newTickets: tickets.filter(t => t.status === 'جدید').length
+                newTickets: newTickets
             }
         };
+        
     } catch (error) {
+        console.error('❌ Error getting stats:', error);
         return {
             success: true,
             stats: {
@@ -586,73 +640,129 @@ async function getDashboardStats() {
     }
 }
 
+// 11. توابع ساده شده
+async function updateTicketStatus(ticketId, status) {
+    try {
+        const keys = Object.keys(localStorage);
+        const ticketKeys = keys.filter(key => 
+            key.startsWith('sidka_tickets_user_') || key === 'sidka_tickets'
+        );
+        
+        ticketKeys.forEach(key => {
+            try {
+                const tickets = JSON.parse(localStorage.getItem(key) || '[]');
+                const updatedTickets = tickets.map(ticket => {
+                    if (ticket.id == ticketId) {
+                        ticket.status = status;
+                    }
+                    return ticket;
+                });
+                localStorage.setItem(key, JSON.stringify(updatedTickets));
+            } catch (e) {
+                console.warn(`⚠️ Error updating ${key}:`, e);
+            }
+        });
+        
+        return { success: true };
+    } catch (error) {
+        return { success: false };
+    }
+}
+
 // ========== اتصال به window ==========
 
 const supabaseFunctionsFixed = {
+    // توابع کاربر
     loginOrRegisterUser,
     loginUser: loginOrRegisterUser,
     registerUser: loginOrRegisterUser,
+    
+    // محصولات
     getAllProducts,
+    
+    // سفارشات
     createNewOrder,
     getUserOrders,
     getAllOrders,
     updateOrderStatus,
+    getOrderReceipt: async function(orderId) {
+        // پیدا کردن سفارش در همه مخازن
+        const keys = Object.keys(localStorage);
+        for (const key of keys) {
+            if (key.startsWith('sidka_orders_user_') || key === 'sidka_orders') {
+                const orders = JSON.parse(localStorage.getItem(key) || '[]');
+                const order = orders.find(o => o.id == orderId);
+                if (order && order.receipt_info) {
+                    return { success: true, receipt: order.receipt_info };
+                }
+            }
+        }
+        return { success: false, error: 'رسید یافت نشد' };
+    },
+    
+    // تیکت‌ها
     createNewTicket,
     getUserTickets,
     getAllTickets,
-    getDashboardStats,
+    updateTicketStatus,
+    addTicketReply: async function() {
+        return { success: true };
+    },
     
-    // توابع ساده شده برای بقیه
-    updateTicketStatus: async function(ticketId, status) {
+    // کاربران
+    getAllUsers: async function() {
+        const keys = Object.keys(localStorage);
+        const userKeys = keys.filter(key => 
+            key.startsWith('sidka_user_') && !key.includes('session')
+        );
+        
+        const users = userKeys.map(key => {
+            try {
+                return JSON.parse(localStorage.getItem(key));
+            } catch {
+                return null;
+            }
+        }).filter(user => user);
+        
+        return { success: true, users: users };
+    },
+    
+    updateUserInfo: async function(userId, firstName, lastName) {
         try {
-            const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
-            const updatedTickets = tickets.map(ticket => {
-                if (ticket.id == ticketId) {
-                    ticket.status = status;
-                }
-                return ticket;
-            });
-            safeSetItem('sidka_tickets', updatedTickets);
+            // به‌روزرسانی در سشن
+            const session = JSON.parse(localStorage.getItem('sidka_user_session') || '{}');
+            if (session.user && session.user.id == userId) {
+                session.user.first_name = firstName;
+                session.user.last_name = lastName;
+                localStorage.setItem('sidka_user_session', JSON.stringify(session));
+            }
+            
+            // به‌روزرسانی در مخزن کاربر
+            const userKey = `sidka_user_${session.user?.phone || userId}`;
+            const user = JSON.parse(localStorage.getItem(userKey) || '{}');
+            if (user.id == userId) {
+                user.first_name = firstName;
+                user.last_name = lastName;
+                localStorage.setItem(userKey, JSON.stringify(user));
+            }
+            
             return { success: true };
         } catch (error) {
             return { success: false };
         }
     },
     
-    addTicketReply: async function(ticketId, replyData) {
-        return { success: true };
-    },
+    // آمار
+    getDashboardStats,
     
-    getAllUsers: async function() {
-        return { success: true, users: [] };
-    },
-    
-    updateUserInfo: async function(userId, firstName, lastName) {
-        return { success: true };
-    },
-    
-    getOrderReceipt: async function(orderId) {
-        try {
-            const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-            const order = orders.find(o => o.id == orderId);
-            
-            if (order && order.receipt_info) {
-                return { success: true, receipt: order.receipt_info };
-            }
-            
-            return { success: false, error: 'رسید یافت نشد' };
-        } catch (error) {
-            return { success: false, error: 'خطا در دریافت رسید' };
-        }
+    // ابزارها
+    clearAuthData: function() {
+        // فقط سشن رو پاک کن، نه داده‌های کاربر
+        localStorage.removeItem('sidka_user_session');
+        console.log('✅ Auth data cleared (user data preserved)');
     }
 };
 
 // جایگزینی توابع
 window.supabaseFunctions = supabaseFunctionsFixed;
-console.log('✅ Supabase service loaded with memory management');
-console.log('💾 Current storage:', checkStorageSpace() / 1024 / 1024, 'MB');
-
-// پاکسازی اولیه
-cleanupOldOrders();
-limitStorageItems('sidka_orders', 50);
-limitStorageItems('sidka_tickets', 30);
+console.log('✅ User-based storage service loaded');
