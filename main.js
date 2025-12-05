@@ -83,7 +83,21 @@ function formatNumber(num) {
 
 function formatDate(dateString) {
     try {
+        if (!dateString) return '---';
+        
+        // اگر رشته تاریخ باشه
         const date = new Date(dateString);
+        
+        // اگر تاریخ معتبر نبود
+        if (isNaN(date.getTime())) {
+            // شاید timestamp باشه
+            const timestamp = parseInt(dateString);
+            if (!isNaN(timestamp)) {
+                return new Date(timestamp).toLocaleDateString('fa-IR');
+            }
+            return '---';
+        }
+        
         return date.toLocaleDateString('fa-IR', { 
             year: 'numeric', 
             month: 'long', 
