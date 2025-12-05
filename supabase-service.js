@@ -4,7 +4,7 @@
 // تنظیمات Supabase
 const SUPABASE_CONFIG = {
     URL: 'https://oudwditrdwugozxizehm.supabase.co',
-    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91ZHdkaXRyZHd1Z296eGl6ZWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM5NDE1NjIsImV4cCI6MjA0OTUxNzU2Mn0.8h7TlX3P65eScaZGH7T7tCUIFM7zF5SPCxLxJtQq5_w'
+    ANON_KEY: 'sb_publishable_K-eXHsnknpw5im47hnI-Tw_kwtT_V5S'
 };
 
 // ایجاد کلاینت Supabase
