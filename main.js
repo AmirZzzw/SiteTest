@@ -773,7 +773,7 @@ function toggleCart() {
 }
 
 // ========== مدیریت سفارشات ==========
-async function completeOrder() {
+aasync function completeOrder() {
     if (cartState.items.length === 0) {
         showNotification('سبد خرید شما خالی است', 'warning');
         return;
@@ -817,7 +817,7 @@ async function completeOrder() {
     reader.onload = async function(e) {
         try {
             const orderData = {
-                id: Date.now(),
+                id: Date.now(), // ID رو دستی اضافه کن
                 userId: userState.currentUser.id,
                 total: cartState.total,
                 customerInfo: {
@@ -834,12 +834,14 @@ async function completeOrder() {
                     status: 'در انتظار تأیید'
                 },
                 items: cartState.items,
+                status: 'در انتظار تأیید', // این رو اضافه کن
                 createdAt: new Date().toISOString()
             };
             
             const result = await window.supabaseFunctions.createNewOrder(orderData);
             
             if (result.success) {
+                // خالی کردن سبد خرید
                 cartState.items = [];
                 saveCart();
                 updateCartTotal();
@@ -849,24 +851,36 @@ async function completeOrder() {
                 
                 closeModal('checkout-modal', 'checkout-overlay');
                 
+                // پاک کردن فرم
                 document.getElementById('first-name').value = '';
                 document.getElementById('last-name').value = '';
                 document.getElementById('checkout-phone').value = '';
                 document.getElementById('receipt-file').value = '';
                 document.getElementById('receipt-note').value = '';
                 
-                showNotification(`سفارش شما ثبت شد! کد پیگیری: #${orderData.id}`, 'success');
+                // حذف پیش‌نمایش فایل
+                const filePreview = document.querySelector('.file-preview-container');
+                if (filePreview) filePreview.innerHTML = '';
                 
+                showNotification(`✅ سفارش شما ثبت شد! کد پیگیری: #${orderData.id}`, 'success');
+                
+                // آپدیت اطلاعات کاربر اگر تغییر کرده
                 if (userState.currentUser.first_name !== firstName || userState.currentUser.last_name !== lastName) {
                     await window.supabaseFunctions.updateUserInfo(
                         userState.currentUser.id, 
                         firstName, 
                         lastName
                     );
+                    
+                    // آپدیت کاربر جاری
+                    userState.currentUser.first_name = firstName;
+                    userState.currentUser.last_name = lastName;
+                    sessionManager.saveSession(userState.currentUser);
+                    updateUserUI();
                 }
                 
             } else {
-                showNotification('خطا در ثبت سفارش: ' + result.error, 'error');
+                showNotification('❌ خطا در ثبت سفارش: ' + result.error, 'error');
             }
             
         } catch (error) {
@@ -973,22 +987,28 @@ async function openUserTickets() {
         const result = await window.supabaseFunctions.getUserTickets(userState.currentUser.id);
         const ticketsList = document.getElementById('user-tickets-list');
         
+        console.log('Tickets result:', result); // برای دیباگ
+        
         if (result.success && result.tickets && result.tickets.length > 0) {
             let html = '';
             result.tickets.forEach(ticket => {
+                console.log('Ticket data:', ticket); // برای دیباگ
+                
                 const statusClass = ticket.status === 'جدید' ? 'status-new' : 
                                   ticket.status === 'در حال بررسی' ? 'status-pending' : 
                                   'status-solved';
                 
+                const ticketDate = ticket.created_at || ticket.createdAt || ticket.date || '---';
+                
                 html += `
                     <div class="user-ticket-item">
                         <div class="ticket-summary">
-                            <h4>${ticket.subject}</h4>
-                            <p>${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
+                            <h4>${ticket.subject || 'بدون موضوع'}</h4>
+                            <p>${(ticket.message || '').substring(0, 100)}${(ticket.message || '').length > 100 ? '...' : ''}</p>
                         </div>
                         <div class="ticket-meta">
-                            <span class="ticket-date">${formatDate(ticket.created_at)}</span>
-                            <span class="${statusClass}">${ticket.status}</span>
+                            <span class="ticket-date">${formatDate(ticketDate)}</span>
+                            <span class="${statusClass}">${ticket.status || 'جدید'}</span>
                         </div>
                     </div>
                 `;
@@ -1008,7 +1028,50 @@ async function openUserTickets() {
         
     } catch (error) {
         console.error('Error loading user tickets:', error);
-        showNotification('خطا در بارگذاری تیکت‌ها', 'error');
+        
+        // حالت fallback: از localStorage بگیر
+        try {
+            const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+            const userTickets = tickets.filter(t => t.userId === userState.currentUser.id);
+            const ticketsList = document.getElementById('user-tickets-list');
+            
+            if (userTickets.length > 0) {
+                let html = '';
+                userTickets.forEach(ticket => {
+                    const statusClass = ticket.status === 'جدید' ? 'status-new' : 
+                                      ticket.status === 'در حال بررسی' ? 'status-pending' : 
+                                      'status-solved';
+                    
+                    html += `
+                        <div class="user-ticket-item">
+                            <div class="ticket-summary">
+                                <h4>${ticket.subject}</h4>
+                                <p>${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
+                            </div>
+                            <div class="ticket-meta">
+                                <span class="ticket-date">${formatDate(ticket.created_at)}</span>
+                                <span class="${statusClass}">${ticket.status}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                ticketsList.innerHTML = html;
+            } else {
+                ticketsList.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-ticket-alt"></i>
+                        <p>هنوز تیکتی ارسال نکرده‌اید</p>
+                    </div>
+                `;
+            }
+            
+            openModal('mytickets-modal', 'mytickets-overlay');
+            
+        } catch (fallbackError) {
+            console.error('Fallback error:', fallbackError);
+            showNotification('خطا در بارگذاری تیکت‌ها', 'error');
+        }
     }
 }
 
