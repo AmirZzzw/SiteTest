@@ -651,18 +651,28 @@
                     <p class="note">حتماً شماره پیگیری را یادداشت کنید.</p>
                 </div>
                 
+                <!-- در قسمت مودال پرداخت، بخش آپلود رسید را با این کد جایگزین کن -->
+
                 <div class="upload-receipt">
-                    <h4>آپلود رسید پرداخت</h4>
-                    <div class="form-group">
-                        <label>رسید پرداخت (تصویر) *</label>
-                        <input type="file" id="receipt-file" accept="image/*,.jpg,.jpeg,.png,.webp" capture="environment">
-                        <p class="note">می‌توانید با دوربین موبایل عکس بگیرید (حداکثر ۵MB)</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="receipt-note">توضیحات (اختیاری)</label>
-                        <textarea id="receipt-note" rows="2" placeholder="مثلاً ساعت واریز، شماره پیگیری و ..."></textarea>
-                    </div>
-                </div>
+                  <h4>آپلود رسید پرداخت</h4>
+    
+                  <!-- دکمه زیبای انتخاب فایل -->
+                  <div class="custom-file-upload">
+                      <!-- دکمه توسط JavaScript اضافه می‌شود -->
+                  </div>
+    
+                  <!-- Input اصلی (مخفی) -->
+                  <input type="file" id="receipt-file" accept="image/*,.jpg,.jpeg,.png,.webp">
+    
+                  <p class="note" style="margin-top: 15px; color: #aaa; font-size: 0.9rem;">
+                      <i class="fas fa-info-circle"></i> می‌توانید از گالری یا دوربین عکس بگیرید (حداکثر ۵MB)
+                  </p>
+    
+                  <div class="form-group">
+                      <label for="receipt-note">توضیحات (اختیاری)</label>
+                      <textarea id="receipt-note" rows="2" placeholder="مثلاً ساعت واریز، شماره پیگیری و ..."></textarea>
+                  </div>
+              </div>
                 
                 <button class="btn btn-primary" id="final-submit-btn">تکمیل خرید و ارسال</button>
             </div>
