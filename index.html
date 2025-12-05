@@ -402,10 +402,11 @@
             <!-- تب‌های ادمین -->
             <div class="admin-tabs">
                 <div class="tab-buttons">
-                    <button class="tab-btn active" data-tab="orders-tab">سفارشات</button>
-                    <button class="tab-btn" data-tab="users-tab">کاربران</button>
-                    <button class="tab-btn" data-tab="products-tab">محصولات</button>
-                </div>
+                     <button class="tab-btn active" data-tab="tickets-tab">تیکت‌ها</button>
+                     <button class="tab-btn" data-tab="orders-tab">سفارشات</button>
+                     <button class="tab-btn" data-tab="users-tab">کاربران</button>
+                     <button class="tab-btn" data-tab="products-tab">محصولات</button>
+           </div>
                 
                 <!-- تب سفارشات -->
                 <div class="tab-content active" id="orders-tab">
@@ -416,6 +417,22 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- تب تیکت‌ها -->
+               <div class="tab-content active" id="tickets-tab">
+                   <div class="admin-section">
+                       <h4>تیکت‌های پشتیبانی</h4>
+                       <div class="ticket-filters">
+                       <button class="filter-btn active" onclick="filterTickets('all')">همه</button>
+                       <button class="filter-btn" onclick="filterTickets('new')">جدید</button>
+                       <button class="filter-btn" onclick="filterTickets('pending')">در حال بررسی</button>
+                       <button class="filter-btn" onclick="filterTickets('solved')">حل شده</button>
+              </div>
+              <div class="admin-tickets-list" id="admin-tickets-list">
+            <!-- لیست تیکت‌ها -->
+              </div>
+          </div>
+      </div>
                 
                 <!-- تب کاربران -->
                 <div class="tab-content" id="users-tab">
