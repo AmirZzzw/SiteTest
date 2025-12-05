@@ -279,102 +279,79 @@ async function getAllProducts() {
 }
 
 // 5. ایجاد سفارش جدید
+// در supabase-service.js این قسمت را اضافه کن:
+
 async function createNewOrder(orderData) {
     try {
-        console.log('🛒 Creating order for user:', orderData.userId);
-        console.log('Order data:', orderData);
+        console.log('🛒 Creating order:', orderData);
         
-        // 1. ذخیره در localStorage
-        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        const localOrder = {
+        // اطمینان از ساختار داده
+        const orderToSave = {
             id: orderData.id || Date.now(),
             userId: orderData.userId,
             user_id: orderData.userId,
-            total: orderData.total,
-            status: 'در انتظار تأیید',
-            customer_info: orderData.customerInfo,
-            receipt_info: orderData.receipt,
-            items: orderData.items,
-            created_at: new Date().toISOString()
-        };
-        
-        orders.push(localOrder);
-        localStorage.setItem('sidka_orders', JSON.stringify(orders));
-        
-        console.log('✅ Order saved to localStorage:', localOrder.id);
-        
-        // خالی کردن سبد خرید
-        localStorage.removeItem('sidka_cart');
-        
-        // 2. ذخیره در Supabase
-        if (!supabase) {
-            return {
-                success: true,
-                order: localOrder,
-                message: 'سفارش ثبت شد (ذخیره محلی)'
-            };
-        }
-        
-        try {
-            const supabaseOrder = {
-                user_id: orderData.userId,
-                total: orderData.total,
-                status: 'در انتظار تأیید',
-                customer_info: orderData.customerInfo,
-                receipt_info: orderData.receipt,
-                items: orderData.items
-            };
-            
-            const { data, error } = await supabase
-                .from('orders')
-                .insert([supabaseOrder])
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('❌ Error creating order in Supabase:', error);
-                return {
-                    success: true,
-                    order: localOrder,
-                    message: 'سفارش ثبت شد (ذخیره محلی)'
-                };
-            }
-            
-            console.log('✅ Order created in Supabase:', data.id);
-            return {
-                success: true,
-                order: data,
-                message: 'سفارش با موفقیت ثبت شد'
-            };
-            
-        } catch (supabaseError) {
-            console.error('❌ Supabase error:', supabaseError);
-            return {
-                success: true,
-                order: localOrder,
-                message: 'سفارش ثبت شد (ذخیره محلی)'
-            };
-        }
-        
-    } catch (error) {
-        console.error('❌ Error in createNewOrder:', error);
-        
-        const fallbackOrder = {
-            id: Date.now(),
-            userId: orderData.userId,
             total: orderData.total || 0,
             status: 'در انتظار تأیید',
-            created_at: new Date().toISOString()
+            customer_info: orderData.customerInfo || {},
+            receipt_info: orderData.receipt || {},
+            items: orderData.items || [],
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString()
         };
+        
+        // 1. ذخیره در localStorage
+        try {
+            let orders = [];
+            const stored = localStorage.getItem('sidka_orders');
+            if (stored) {
+                orders = JSON.parse(stored);
+                if (!Array.isArray(orders)) orders = [];
+            }
+            
+            orders.push(orderToSave);
+            localStorage.setItem('sidka_orders', JSON.stringify(orders));
+            console.log('✅ Order saved to localStorage:', orderToSave.id);
+        } catch (storageError) {
+            console.error('❌ localStorage error:', storageError);
+        }
+        
+        // 2. ذخیره در Supabase (اگر موجود است)
+        if (supabase) {
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .insert([{
+                        user_id: orderData.userId,
+                        total: orderData.total,
+                        status: 'در انتظار تأیید',
+                        customer_info: orderData.customerInfo,
+                        receipt_info: orderData.receipt,
+                        items: orderData.items
+                    }])
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                console.log('✅ Order saved to Supabase:', data.id);
+            } catch (supabaseError) {
+                console.warn('⚠️ Supabase error:', supabaseError);
+            }
+        }
         
         return {
             success: true,
-            order: fallbackOrder,
-            message: 'سفارش ثبت شد (حالت اضطراری)'
+            order: orderToSave,
+            message: 'سفارش با موفقیت ثبت شد'
+        };
+        
+    } catch (error) {
+        console.error('❌ Error in createNewOrder:', error);
+        return {
+            success: false,
+            error: 'خطا در ثبت سفارش: ' + error.message
         };
     }
 }
-
 // 6. دریافت سفارشات کاربر
 async function getUserOrders(userId) {
     try {
@@ -503,86 +480,70 @@ async function getAllOrders() {
 }
 
 // 8. ایجاد تیکت جدید
+// در supabase-service.js این تابع را اصلاح کن:
+
 async function createNewTicket(ticketData) {
     try {
-        console.log('🎫 Creating ticket:', ticketData.subject);
+        console.log('🎫 Creating ticket:', ticketData);
         
-        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
-        const localTicket = {
+        // ساختار داده تیکت
+        const ticketToSave = {
             id: Date.now(),
             userId: ticketData.userId,
             user_id: ticketData.userId,
-            subject: ticketData.subject,
-            message: ticketData.message,
-            created_at: new Date().toISOString(),
-            status: 'جدید'
-        };
-        
-        tickets.push(localTicket);
-        localStorage.setItem('sidka_tickets', JSON.stringify(tickets));
-        
-        console.log('✅ Ticket saved to localStorage:', localTicket.id);
-        
-        if (!supabase) {
-            return {
-                success: true,
-                ticket: localTicket
-            };
-        }
-        
-        try {
-            const supabaseTicket = {
-                user_id: ticketData.userId,
-                subject: ticketData.subject,
-                message: ticketData.message,
-                status: 'جدید'
-            };
-            
-            const { data, error } = await supabase
-                .from('tickets')
-                .insert([supabaseTicket])
-                .select()
-                .single();
-            
-            if (error) {
-                return {
-                    success: true,
-                    ticket: localTicket
-                };
-            }
-            
-            console.log('✅ Ticket created in Supabase:', data.id);
-            return {
-                success: true,
-                ticket: data
-            };
-            
-        } catch (supabaseError) {
-            return {
-                success: true,
-                ticket: localTicket
-            };
-        }
-        
-    } catch (error) {
-        console.error('❌ Error creating ticket:', error);
-        
-        const fallbackTicket = {
-            id: Date.now(),
-            userId: ticketData.userId,
             subject: ticketData.subject || 'بدون موضوع',
             message: ticketData.message || 'بدون پیام',
+            status: 'جدید',
             created_at: new Date().toISOString(),
-            status: 'جدید'
+            createdAt: new Date().toISOString()
         };
+        
+        // ذخیره در localStorage
+        try {
+            let tickets = [];
+            const stored = localStorage.getItem('sidka_tickets');
+            if (stored) {
+                tickets = JSON.parse(stored);
+                if (!Array.isArray(tickets)) tickets = [];
+            }
+            
+            tickets.push(ticketToSave);
+            localStorage.setItem('sidka_tickets', JSON.stringify(tickets));
+            console.log('✅ Ticket saved to localStorage:', ticketToSave.id);
+        } catch (storageError) {
+            console.error('❌ localStorage error:', storageError);
+        }
+        
+        // ذخیره در Supabase
+        if (supabase) {
+            try {
+                await supabase
+                    .from('tickets')
+                    .insert([{
+                        user_id: ticketData.userId,
+                        subject: ticketData.subject,
+                        message: ticketData.message,
+                        status: 'جدید'
+                    }]);
+            } catch (supabaseError) {
+                console.warn('⚠️ Supabase error:', supabaseError);
+            }
+        }
         
         return {
             success: true,
-            ticket: fallbackTicket
+            ticket: ticketToSave,
+            message: 'تیکت با موفقیت ارسال شد'
+        };
+        
+    } catch (error) {
+        console.error('❌ Error creating ticket:', error);
+        return {
+            success: false,
+            error: 'خطا در ارسال تیکت'
         };
     }
 }
-
 // 9. دریافت تیکت‌های کاربر
 async function getUserTickets(userId) {
     try {
