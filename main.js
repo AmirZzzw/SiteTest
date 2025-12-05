@@ -1742,6 +1742,14 @@ window.initializeApp = function() {
             loadingScreen.style.opacity = '0';
             setTimeout(() => loadingScreen.remove(), 500);
         }
+
+                // پاکسازی localStorage اگر پر شده
+        try {
+            checkStorageSpace();
+            cleanupOldOrders();
+        } catch (e) {
+            console.warn('⚠️ Storage cleanup failed:', e);
+        }
         
         const savedUser = sessionManager.loadSession();
         if (savedUser) {
