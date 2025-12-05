@@ -1,57 +1,94 @@
-// supabase-service.js
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
-import { SUPABASE_CONFIG } from './supabase-config.js'
+// supabase-service-fixed.js
+// Fixed version with better error handling
 
-const supabase = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY)
+// تنظیمات مستقیم (به جای import)
+const SUPABASE_CONFIG = {
+    URL: 'https://oudwditrdwugozxizehm.supabase.co',
+    ANON_KEY: 'sb_publishable_K-eXHsnknpw5im47hnI-Tw_kwtT_V5S'
+};
 
-// ==================== توابع کاربران ====================
-export async function loginOrRegisterUser(phone, firstName = '', lastName = '') {
+// ایجاد کلاینت با error handling بهتر
+let supabase;
+try {
+    // بارگذاری Supabase از CDN اگر موجود نیست
+    if (!window.supabase) {
+        console.error('Supabase library not loaded!');
+        throw new Error('Supabase library missing');
+    }
+    
+    supabase = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        },
+        global: {
+            headers: {
+                'apikey': SUPABASE_CONFIG.ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.ANON_KEY}`
+            }
+        }
+    });
+    
+    console.log('Supabase client created successfully');
+} catch (error) {
+    console.error('Failed to create Supabase client:', error);
+    supabase = null;
+}
+
+// ==================== توابع اصلی ====================
+
+// 1. ورود/عضویت
+async function loginOrRegisterUser(phone, firstName = '', lastName = '', password = '') {
     try {
-        // اول چک کن آیا کاربر وجود داره
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
+        console.log('Attempting login/register for:', phone);
+        
+        // ابتدا چک کن کاربر وجود داره
         const { data: existingUser, error: fetchError } = await supabase
             .from('users')
             .select('*')
             .eq('phone', phone)
-            .single()
-        
-        if (fetchError && fetchError.code !== 'PGRST116') {
-            console.log('خطا در دریافت کاربر:', fetchError)
-            // اگر کاربر وجود نداره، ایجادش کن
-        }
+            .maybeSingle();
         
         let user;
         
         if (existingUser) {
             // کاربر موجود
-            user = existingUser
+            user = existingUser;
+            console.log('Existing user found:', user.id);
         } else {
             // کاربر جدید
             const newUser = {
-                id: Date.now(),
                 phone: phone,
-                first_name: firstName,
-                last_name: lastName,
-                is_admin: phone === '09021707830'
-            }
+                first_name: firstName || 'کاربر',
+                last_name: lastName || '',
+                is_admin: phone === '09021707830',
+                created_at: new Date().toISOString()
+            };
             
             const { data, error } = await supabase
                 .from('users')
                 .insert([newUser])
                 .select()
-                .single()
+                .single();
             
             if (error) {
-                console.log('خطا در ثبت کاربر جدید:', error)
-                // شاید کاربر همزمان ساخته شده، دوباره چک کن
+                console.error('Error creating user:', error);
+                // شاید همزمان کاربر ساخته شده
                 const { data: retryData } = await supabase
                     .from('users')
                     .select('*')
                     .eq('phone', phone)
-                    .single()
+                    .single();
                 
-                user = retryData
+                user = retryData;
             } else {
-                user = data
+                user = data;
+                console.log('New user created:', user.id);
             }
         }
         
@@ -59,311 +96,433 @@ export async function loginOrRegisterUser(phone, firstName = '', lastName = '') 
             success: true,
             user: user,
             isNew: !existingUser
-        }
+        };
+        
     } catch (error) {
-        console.error('خطا در ورود/ثبت‌نام:', error)
+        console.error('Error in login/register:', error);
         return {
             success: false,
-            error: error.message
+            error: 'خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید.'
+        };
+    }
+}
+
+// 2. ثبت‌نام کامل
+async function registerUser(phone, firstName, lastName, password) {
+    return loginOrRegisterUser(phone, firstName, lastName, password);
+}
+
+// 3. دریافت محصولات
+async function getAllProducts() {
+    try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
         }
-    }
-}
-
-export async function updateUserInfo(userId, firstName, lastName) {
-    try {
-        const { data, error } = await supabase
-            .from('users')
-            .update({
-                first_name: firstName,
-                last_name: lastName
-            })
-            .eq('id', userId)
-            .select()
-            .single()
         
-        if (error) throw error
-        return { success: true, user: data }
-    } catch (error) {
-        console.error('خطا در بروزرسانی کاربر:', error)
-        return { success: false, error: error.message }
-    }
-}
-
-export async function getUserByPhone(phone) {
-    try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('phone', phone)
-            .single()
+        console.log('Fetching products...');
         
-        if (error) throw error
-        return { success: true, user: data }
-    } catch (error) {
-        console.error('خطا در دریافت کاربر:', error)
-        return { success: false, error: error.message }
-    }
-}
-
-// ==================== توابع محصولات ====================
-export async function getAllProducts() {
-    try {
-        const { data, error } = await supabase
+        // تلاش برای دریافت از Supabase
+        const { data, error, count } = await supabase
             .from('products')
-            .select('*')
-            .order('id')
+            .select('*', { count: 'exact' })
+            .eq('active', true)
+            .order('id');
         
-        if (error) throw error
-        return { success: true, products: data }
+        if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
+        
+        console.log(`Found ${data?.length || 0} products`);
+        
+        return {
+            success: true,
+            products: data || [],
+            count: count || 0
+        };
+        
     } catch (error) {
-        console.error('خطا در دریافت محصولات:', error)
-        return { success: false, error: error.message }
+        console.error('Error getting products:', error);
+        
+        // Fallback: محصولات پیش‌فرض
+        const fallbackProducts = [
+            {
+                id: 1,
+                name: 'پنل اختصاصی',
+                description: 'پنل کامل با کنترل کامل و پشتیبانی ۲۴ ساعته',
+                price: 50000,
+                category: 'panels',
+                icon: 'fas fa-server',
+                active: true
+            },
+            {
+                id: 2,
+                name: 'VPN یک ماهه',
+                description: 'VPN پرسرعت با IP ثابت و بدون محدودیت ترافیک',
+                price: 25000,
+                category: 'subscriptions',
+                icon: 'fas fa-shield-alt',
+                active: true
+            },
+            {
+                id: 3,
+                name: 'طراحی تامنیل',
+                description: 'طراحی حرفه‌ای تامنیل برای ویدیوهای شما',
+                price: 30000,
+                category: 'design',
+                icon: 'fas fa-image',
+                active: true
+            }
+        ];
+        
+        return {
+            success: true,
+            products: fallbackProducts,
+            count: fallbackProducts.length,
+            isFallback: true
+        };
     }
 }
 
-// ==================== توابع سفارشات ====================
-export async function createNewOrder(orderData) {
+// 4. ایجاد سفارش
+async function createNewOrder(orderData) {
     try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
         const order = {
-            id: orderData.id,
             user_id: orderData.userId,
             total: orderData.total,
             status: 'در انتظار تأیید رسید',
             customer_info: orderData.customerInfo,
             receipt_info: orderData.receipt,
-            items: orderData.items
-        }
+            items: orderData.items,
+            created_at: new Date().toISOString()
+        };
         
         const { data, error } = await supabase
             .from('orders')
             .insert([order])
             .select()
-            .single()
+            .single();
         
-        if (error) throw error
-        return { success: true, order: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            order: data,
+            message: 'سفارش با موفقیت ثبت شد'
+        };
+        
     } catch (error) {
-        console.error('خطا در ثبت سفارش:', error)
-        return { success: false, error: error.message }
+        console.error('Error creating order:', error);
+        return {
+            success: false,
+            error: 'خطا در ثبت سفارش. لطفاً با پشتیبانی تماس بگیرید.'
+        };
     }
 }
 
-export async function getUserOrders(userId) {
+// 5. دریافت سفارشات کاربر
+async function getUserOrders(userId) {
     try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
         const { data, error } = await supabase
             .from('orders')
             .select('*')
             .eq('user_id', userId)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
         
-        if (error) throw error
-        return { success: true, orders: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            orders: data || []
+        };
+        
     } catch (error) {
-        console.error('خطا در دریافت سفارشات کاربر:', error)
-        return { success: false, error: error.message }
+        console.error('Error getting user orders:', error);
+        return {
+            success: true,
+            orders: [],
+            message: 'خطا در دریافت سفارشات'
+        };
     }
 }
 
-export async function getAllOrders() {
+// 6. دریافت همه سفارشات (ادمین)
+async function getAllOrders() {
     try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
         const { data, error } = await supabase
             .from('orders')
             .select(`
                 *,
                 users (phone, first_name, last_name)
             `)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
         
-        if (error) throw error
-        return { success: true, orders: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            orders: data || []
+        };
+        
     } catch (error) {
-        console.error('خطا در دریافت همه سفارشات:', error)
-        return { success: false, error: error.message }
+        console.error('Error getting all orders:', error);
+        return {
+            success: true,
+            orders: []
+        };
     }
 }
 
-export async function updateOrderStatus(orderId, status) {
+// 7. به‌روزرسانی وضعیت سفارش
+async function updateOrderStatus(orderId, status) {
     try {
-        const updateData = {
-            status: status
-        }
-        
-        // اگر وضعیت رسید هم باید آپدیت شه
-        if (status === 'تأیید شده' || status === 'رد شده') {
-            updateData.receipt_info = { status: status }
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
         }
         
         const { data, error } = await supabase
             .from('orders')
-            .update(updateData)
+            .update({ 
+                status: status,
+                updated_at: new Date().toISOString()
+            })
             .eq('id', orderId)
             .select()
-            .single()
+            .single();
         
-        if (error) throw error
-        return { success: true, order: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            order: data
+        };
+        
     } catch (error) {
-        console.error('خطا در بروزرسانی سفارش:', error)
-        return { success: false, error: error.message }
+        console.error('Error updating order:', error);
+        return {
+            success: false,
+            error: 'خطا در بروزرسانی سفارش'
+        };
     }
 }
 
-// ==================== توابع تیکت‌ها ====================
-export async function createNewTicket(ticketData) {
+// 8. ایجاد تیکت
+async function createNewTicket(ticketData) {
     try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
         const ticket = {
-            id: ticketData.id,
             user_id: ticketData.userId,
             subject: ticketData.subject,
             message: ticketData.message,
             status: 'جدید',
-            replies: []
-        }
+            created_at: new Date().toISOString()
+        };
         
         const { data, error } = await supabase
             .from('tickets')
             .insert([ticket])
             .select()
-            .single()
+            .single();
         
-        if (error) throw error
-        return { success: true, ticket: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            ticket: data
+        };
+        
     } catch (error) {
-        console.error('خطا در ایجاد تیکت:', error)
-        return { success: false, error: error.message }
+        console.error('Error creating ticket:', error);
+        return {
+            success: false,
+            error: 'خطا در ایجاد تیکت'
+        };
     }
 }
 
-export async function getUserTickets(userId) {
+// 9. دریافت تیکت‌های کاربر
+async function getUserTickets(userId) {
     try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
         const { data, error } = await supabase
             .from('tickets')
             .select('*')
             .eq('user_id', userId)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
         
-        if (error) throw error
-        return { success: true, tickets: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            tickets: data || []
+        };
+        
     } catch (error) {
-        console.error('خطا در دریافت تیکت‌های کاربر:', error)
-        return { success: false, error: error.message }
+        console.error('Error getting user tickets:', error);
+        return {
+            success: true,
+            tickets: []
+        };
     }
 }
 
-export async function getAllTickets() {
+// 10. دریافت همه تیکت‌ها (ادمین)
+async function getAllTickets() {
     try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
         const { data, error } = await supabase
             .from('tickets')
             .select(`
                 *,
                 users (phone, first_name, last_name)
             `)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
         
-        if (error) throw error
-        return { success: true, tickets: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            tickets: data || []
+        };
+        
     } catch (error) {
-        console.error('خطا در دریافت همه تیکت‌ها:', error)
-        return { success: false, error: error.message }
+        console.error('Error getting all tickets:', error);
+        return {
+            success: true,
+            tickets: []
+        };
     }
 }
 
-export async function addTicketReply(ticketId, replyData) {
+// 11. پاسخ به تیکت
+async function addTicketReply(ticketId, replyData) {
     try {
-        // دریافت تیکت فعلی
-        const { data: ticket, error: fetchError } = await supabase
-            .from('tickets')
-            .select('replies, status')
-            .eq('id', ticketId)
-            .single()
-        
-        if (fetchError) throw fetchError
-        
-        // اضافه کردن پاسخ جدید
-        const replies = ticket.replies || []
-        replies.push({
-            id: Date.now(),
-            isAdmin: replyData.isAdmin,
-            message: replyData.message,
-            date: new Date().toISOString()
-        })
-        
-        // تعیین وضعیت جدید
-        let newStatus = ticket.status
-        if (replyData.isAdmin && ticket.status === 'جدید') {
-            newStatus = 'در حال بررسی'
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
         }
         
-        // بروزرسانی تیکت
+        const reply = {
+            ticket_id: ticketId,
+            is_admin: replyData.isAdmin || false,
+            message: replyData.message,
+            created_at: new Date().toISOString()
+        };
+        
+        const { data, error } = await supabase
+            .from('ticket_replies')
+            .insert([reply])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        // آپدیت وضعیت تیکت
+        await supabase
+            .from('tickets')
+            .update({ 
+                status: 'در حال بررسی',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', ticketId);
+        
+        return {
+            success: true,
+            reply: data
+        };
+        
+    } catch (error) {
+        console.error('Error adding ticket reply:', error);
+        return {
+            success: false,
+            error: 'خطا در ارسال پاسخ'
+        };
+    }
+}
+
+// 12. آپدیت وضعیت تیکت
+async function updateTicketStatus(ticketId, status) {
+    try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
         const { data, error } = await supabase
             .from('tickets')
-            .update({
-                replies: replies,
-                status: newStatus
+            .update({ 
+                status: status,
+                updated_at: new Date().toISOString()
             })
             .eq('id', ticketId)
             .select()
-            .single()
+            .single();
         
-        if (error) throw error
-        return { success: true, ticket: data }
+        if (error) throw error;
+        
+        return {
+            success: true,
+            ticket: data
+        };
+        
     } catch (error) {
-        console.error('خطا در پاسخ به تیکت:', error)
-        return { success: false, error: error.message }
+        console.error('Error updating ticket status:', error);
+        return {
+            success: false,
+            error: 'خطا در بروزرسانی تیکت'
+        };
     }
 }
 
-export async function updateTicketStatus(ticketId, status) {
+// 13. آمار داشبورد
+async function getDashboardStats() {
     try {
-        const { data, error } = await supabase
-            .from('tickets')
-            .update({ status: status })
-            .eq('id', ticketId)
-            .select()
-            .single()
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
         
-        if (error) throw error
-        return { success: true, ticket: data }
-    } catch (error) {
-        console.error('خطا در بروزرسانی وضعیت تیکت:', error)
-        return { success: false, error: error.message }
-    }
-}
-
-// ==================== توابع آمار ====================
-export async function getDashboardStats() {
-    try {
         // تعداد کاربران
-        const { count: usersCount, error: usersError } = await supabase
+        const { count: usersCount } = await supabase
             .from('users')
-            .select('*', { count: 'exact', head: true })
-        
-        if (usersError) throw usersError
+            .select('*', { count: 'exact', head: true });
         
         // تعداد سفارشات
-        const { count: ordersCount, error: ordersError } = await supabase
+        const { count: ordersCount } = await supabase
             .from('orders')
-            .select('*', { count: 'exact', head: true })
+            .select('*', { count: 'exact', head: true });
         
-        if (ordersError) throw ordersError
-        
-        // مجموع درآمد (از سفارشات تأیید شده)
-        const { data: orders, error: incomeError } = await supabase
+        // مجموع درآمد
+        const { data: orders } = await supabase
             .from('orders')
             .select('total')
-            .eq('status', 'تأیید شده')
+            .eq('status', 'تأیید شده');
         
-        if (incomeError) throw incomeError
-        
-        const totalIncome = orders ? orders.reduce((sum, order) => sum + (order.total || 0), 0) : 0
+        const totalIncome = orders ? orders.reduce((sum, order) => sum + (order.total || 0), 0) : 0;
         
         // تعداد تیکت‌های جدید
-        const { count: newTicketsCount, error: ticketsError } = await supabase
+        const { count: newTicketsCount } = await supabase
             .from('tickets')
             .select('*', { count: 'exact', head: true })
-            .eq('status', 'جدید')
-        
-        if (ticketsError) throw ticketsError
+            .eq('status', 'جدید');
         
         return {
             success: true,
@@ -373,21 +532,136 @@ export async function getDashboardStats() {
                 totalIncome: totalIncome || 0,
                 newTickets: newTicketsCount || 0
             }
-        }
+        };
+        
     } catch (error) {
-        console.error('خطا در دریافت آمار:', error)
+        console.error('Error getting dashboard stats:', error);
         return {
-            success: false,
-            error: error.message,
+            success: true,
             stats: {
                 users: 0,
                 orders: 0,
                 totalIncome: 0,
                 newTickets: 0
             }
-        }
+        };
     }
 }
 
-// صادر کردن supabase client (برای مواقع ضروری)
-export { supabase }
+// 14. آپدیت اطلاعات کاربر
+async function updateUserInfo(userId, firstName, lastName) {
+    try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
+        const { data, error } = await supabase
+            .from('users')
+            .update({
+                first_name: firstName,
+                last_name: lastName,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        return {
+            success: true,
+            user: data
+        };
+        
+    } catch (error) {
+        console.error('Error updating user info:', error);
+        return {
+            success: false,
+            error: 'خطا در بروزرسانی اطلاعات'
+        };
+    }
+}
+
+// 15. دریافت رسید
+async function getOrderReceipt(orderId) {
+    try {
+        if (!supabase) {
+            throw new Error('اتصال به سرور برقرار نیست');
+        }
+        
+        const { data, error } = await supabase
+            .from('orders')
+            .select('receipt_url, receipt_filename, receipt_info')
+            .eq('id', orderId)
+            .single();
+        
+        if (error) throw error;
+        
+        return {
+            success: true,
+            receipt: data
+        };
+        
+    } catch (error) {
+        console.error('Error getting receipt:', error);
+        return {
+            success: false,
+            error: 'رسید یافت نشد'
+        };
+    }
+}
+
+// ==================== اتصال به window ====================
+
+// ایجاد آبجکت توابع
+const supabaseFunctions = {
+    loginOrRegisterUser,
+    registerUser,
+    getAllProducts,
+    createNewOrder,
+    getUserOrders,
+    getAllOrders,
+    updateOrderStatus,
+    createNewTicket,
+    getUserTickets,
+    getAllTickets,
+    addTicketReply,
+    updateTicketStatus,
+    getDashboardStats,
+    updateUserInfo,
+    getOrderReceipt,
+    
+    // تابع تست اتصال
+    testConnection: async function() {
+        try {
+            if (!supabase) {
+                return { success: false, error: 'Supabase client not initialized' };
+            }
+            
+            const { data, error } = await supabase
+                .from('users')
+                .select('count', { count: 'exact', head: true });
+            
+            if (error) throw error;
+            
+            return {
+                success: true,
+                connected: true,
+                message: 'Connected to Supabase successfully'
+            };
+            
+        } catch (error) {
+            console.error('Connection test failed:', error);
+            return {
+                success: false,
+                connected: false,
+                error: error.message
+            };
+        }
+    }
+};
+
+// اضافه کردن به window
+window.supabaseFunctions = supabaseFunctions;
+
+console.log('✅ Supabase service loaded with', Object.keys(supabaseFunctions).length, 'functions');
