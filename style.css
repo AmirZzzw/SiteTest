@@ -894,6 +894,203 @@ body {
     margin-top: 30px;
 }
 
+/* ========== استایل Choose File زیبا ========== */
+
+.custom-file-upload {
+    border: 2px dashed var(--primary-color);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: rgba(52, 152, 219, 0.05);
+    margin-bottom: 20px;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.custom-file-upload:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+    border-color: var(--primary-dark);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+}
+
+.file-select-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 18px 30px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    min-width: 250px;
+}
+
+.file-select-btn:hover {
+    background: linear-gradient(135deg, var(--primary-dark), #1c5a7c);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.file-select-btn:active {
+    transform: translateY(-1px);
+}
+
+.file-select-btn i {
+    font-size: 1.4rem;
+}
+
+.file-preview-container {
+    margin-top: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.selected-file {
+    background-color: var(--dark-lighter);
+    padding: 25px;
+    border-radius: var(--radius);
+    text-align: center;
+    border: 2px solid var(--primary-color);
+    animation: slideDown 0.3s ease;
+}
+
+.selected-file img {
+    max-width: 250px;
+    max-height: 250px;
+    border-radius: var(--radius);
+    border: 3px solid var(--primary-color);
+    margin-bottom: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.selected-file i {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    display: block;
+}
+
+.file-name {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.file-size {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.change-file-btn {
+    padding: 10px 20px;
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.change-file-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* انیمیشن‌ها */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* دکمه‌های منبع در موبایل */
+@media (max-width: 768px) {
+    .file-source-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .source-btn {
+        padding: 15px;
+        border: none;
+        border-radius: var(--radius);
+        font-family: 'Vazirmatn', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+    }
+    
+    .source-btn.camera {
+        background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
+        color: white;
+    }
+    
+    .source-btn.gallery {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+    }
+    
+    .source-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .file-select-btn {
+        min-width: 100%;
+        padding: 20px;
+        font-size: 1rem;
+    }
+    
+    .selected-file img {
+        max-width: 200px;
+        max-height: 200px;
+    }
+}
+
 /* سابقه خرید */
 .orders-list {
     max-height: 500px;
@@ -1103,6 +1300,7 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     border: 1px solid var(--border-color);
+    animation: fadeIn 0.3s ease;
 }
 
 .admin-item h4 {
@@ -1529,6 +1727,11 @@ body {
         width: 100%;
         min-width: auto;
     }
+    
+    .file-select-btn {
+        min-width: 100%;
+        padding: 20px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1567,6 +1770,11 @@ body {
     .admin-stats {
         grid-template-columns: 1fr;
     }
+    
+    .selected-file img {
+        max-width: 200px;
+        max-height: 200px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -1586,6 +1794,24 @@ body {
     
     .card-number-large .copy-btn {
         margin-right: 0;
+    }
+    
+    .file-select-btn {
+        padding: 18px;
+        font-size: 0.95rem;
+    }
+    
+    .file-select-btn i {
+        font-size: 1.2rem;
+    }
+    
+    .selected-file {
+        padding: 20px 15px;
+    }
+    
+    .selected-file img {
+        max-width: 180px;
+        max-height: 180px;
     }
 }
 
@@ -1718,437 +1944,6 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary-dark);
 }
-/* ========== استایل Choose File زیبا ========== */
-
-.file-input-wrapper {
-    position: relative;
-    overflow: hidden;
-    display: inline-block;
-    width: 100%;
-    margin: 10px 0;
-}
-
-.file-input-wrapper input[type="file"] {
-    position: absolute;
-    left: 0;
-    top: 0;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-}
-
-.file-input-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 15px 20px;
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Vazirmatn', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 100%;
-    text-align: center;
-}
-
-.file-input-button:hover {
-    background: linear-gradient(135deg, #2980b9, #1c5a7c);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-}
-
-.file-input-button:active {
-    transform: translateY(0);
-}
-
-.file-input-button i {
-    font-size: 1.2rem;
-}
-
-.file-name {
-    margin-top: 10px;
-    padding: 8px 12px;
-    background-color: #2a2a2a;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    color: #aaa;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* استایل برای Choose File در مودال پرداخت */
-.upload-receipt .form-group input[type="file"] {
-    display: none;
-}
-
-.custom-file-upload {
-    border: 2px dashed #3498db;
-    border-radius: 8px;
-    padding: 30px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: rgba(52, 152, 219, 0.05);
-    margin-bottom: 15px;
-}
-
-.custom-file-upload:hover {
-    background-color: rgba(52, 152, 219, 0.1);
-    border-color: #2980b9;
-}
-
-.custom-file-upload i {
-    font-size: 2.5rem;
-    color: #3498db;
-    margin-bottom: 10px;
-}
-
-.custom-file-upload h4 {
-    margin-bottom: 5px;
-    color: #f5f5f5;
-}
-
-.custom-file-upload p {
-    color: #aaa;
-    font-size: 0.9rem;
-}
-
-/* استایل برای نمایش فایل انتخاب شده */
-.file-preview {
-    margin-top: 15px;
-    text-align: center;
-}
-
-.file-preview img {
-    max-width: 200px;
-    max-height: 200px;
-    border-radius: 8px;
-    border: 2px solid #3498db;
-    margin-bottom: 10px;
-}
-
-.file-preview .file-info {
-    background-color: #2a2a2a;
-    padding: 10px;
-    border-radius: 6px;
-    margin-top: 10px;
-}
-
-.file-preview .file-info p {
-    margin: 5px 0;
-    font-size: 0.9rem;
-    color: #aaa;
-}
-
-/* استایل برای دکمه‌های انتخاب منبع در موبایل */
-@media (max-width: 768px) {
-    .file-source-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 10px;
-    }
-    
-    .source-btn {
-        flex: 1;
-        padding: 12px;
-        border: none;
-        border-radius: 8px;
-        font-family: 'Vazirmatn', sans-serif;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.3s ease;
-    }
-    
-    .source-btn.camera {
-        background: linear-gradient(135deg, #2ecc71, #27ae60);
-        color: white;
-    }
-    
-    .source-btn.gallery {
-        background: linear-gradient(135deg, #3498db, #2980b9);
-        color: white;
-    }
-    
-    .source-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-}
-
-/* استایل برای input file در دسکتاپ */
-@media (min-width: 769px) {
-    .file-input-wrapper {
-        max-width: 400px;
-    }
-    
-    .custom-file-upload {
-        min-height: 150px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-}
-
-/* استایل‌های اضافی برای Choose File در فرم‌های مختلف */
-.registration-form .file-input-wrapper,
-.login-form .file-input-wrapper {
-    margin: 15px 0;
-}
-
-.ticket-form .file-input-wrapper {
-    margin-top: 20px;
-}
-
-/* استایل برای دکمه حذف فایل */
-.remove-file-btn {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 15px;
-    font-family: 'Vazirmatn', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    transition: all 0.3s ease;
-}
-
-.remove-file-btn:hover {
-    background: linear-gradient(135deg, #c0392b, #a93226);
-    transform: translateY(-2px);
-}
-
-/* استایل‌های جدید برای پنل ادمین */
-
-/* تیکت‌ها در پنل ادمین */
-.ticket-item {
-    border-left: 4px solid #3498db;
-    margin-bottom: 15px;
-    transition: all 0.3s ease;
-}
-
-.ticket-item:hover {
-    transform: translateX(-5px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.ticket-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #444;
-}
-
-.ticket-header h4 {
-    margin: 0;
-    color: #f5f5f5;
-    font-size: 1.1rem;
-}
-
-.ticket-id {
-    background-color: #1e1e1e;
-    color: #aaa;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.ticket-info {
-    margin-bottom: 10px;
-}
-
-.ticket-info p {
-    margin: 5px 0;
-    color: #aaa;
-    font-size: 0.9rem;
-}
-
-.ticket-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed #444;
-}
-
-.status-new {
-    background-color: #e74c3c;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-}
-
-.status-pending {
-    background-color: #f39c12;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-}
-
-.status-solved {
-    background-color: #2ecc71;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-}
-
-/* تیکت‌های کاربر */
-.user-ticket-item {
-    background-color: #2a2a2a;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    border-right: 4px solid #3498db;
-    transition: all 0.3s ease;
-}
-
-.user-ticket-item:hover {
-    transform: translateX(5px);
-}
-
-.ticket-summary h4 {
-    margin-bottom: 10px;
-    color: #f5f5f5;
-}
-
-.ticket-summary p {
-    color: #aaa;
-    margin-bottom: 15px;
-    line-height: 1.6;
-}
-
-/* مودال رسید */
-#receipt-modal .modal-body {
-    padding: 0;
-    overflow: hidden;
-}
-
-#receipt-modal img {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-/* دکمه‌های تأیید/رد در پنل ادمین */
-.admin-item-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 120px;
-}
-
-.admin-item-actions button {
-    width: 100%;
-    padding: 8px 12px;
-    font-size: 0.9rem;
-}
-
-/* استایل برای Choose File در حالت‌های مختلف */
-input[type="file"]::-webkit-file-upload-button {
-    visibility: hidden;
-}
-
-input[type="file"]::before {
-    content: 'انتخاب فایل';
-    display: inline-block;
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    border: none;
-    border-radius: 6px;
-    padding: 10px 15px;
-    outline: none;
-    white-space: nowrap;
-    cursor: pointer;
-    color: white;
-    font-weight: 600;
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 0.9rem;
-}
-
-input[type="file"]:hover::before {
-    background: linear-gradient(135deg, #2980b9, #1c5a7c);
-}
-
-input[type="file"]:active::before {
-    background: linear-gradient(135deg, #1c5a7c, #154360);
-}
-
-/* رسپانسیو برای Choose File */
-@media (max-width: 480px) {
-    .file-input-button {
-        padding: 12px 15px;
-        font-size: 0.9rem;
-    }
-    
-    .custom-file-upload {
-        padding: 20px 15px;
-    }
-    
-    .custom-file-upload i {
-        font-size: 2rem;
-    }
-    
-    .file-preview img {
-        max-width: 150px;
-        max-height: 150px;
-    }
-}
-
-/* انیمیشن‌های جدید */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.ticket-item,
-.user-ticket-item,
-.admin-item {
-    animation: fadeIn 0.3s ease;
-}
-
-/* استایل برای وضعیت‌ها در سابقه خرید */
-.status-success {
-    color: #2ecc71;
-    font-weight: 600;
-}
-
-.status-danger {
-    color: #e74c3c;
-    font-weight: 600;
-}
-
-.status-warning {
-    color: #f39c12;
-    font-weight: 600;
-}
 
 /* بهبود استایل Choose File برای iOS */
 input[type="file"] {
@@ -2156,8 +1951,8 @@ input[type="file"] {
     appearance: none;
 }
 
-/* مخفی کردن Choose File پیش‌فرض در موبایل */
-input[type="file"] {
+/* مخفی کردن Choose File پیش‌فرض */
+#receipt-file {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -2166,85 +1961,4 @@ input[type="file"] {
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
     border: 0;
-}
-
-/* دکمه زیبا برای انتخاب فایل */
-.file-select-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    padding: 16px;
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);
-}
-
-.file-select-btn:hover {
-    background: linear-gradient(135deg, #2980b9, #1c5a7c);
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
-}
-
-.file-select-btn:active {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
-}
-
-.file-select-btn i {
-    font-size: 1.2rem;
-}
-
-/* استایل برای نمایش فایل انتخاب شده */
-.selected-file {
-    margin-top: 15px;
-    padding: 15px;
-    background-color: #2a2a2a;
-    border-radius: 8px;
-    border: 2px dashed #3498db;
-    text-align: center;
-}
-
-.selected-file i {
-    font-size: 2rem;
-    color: #3498db;
-    margin-bottom: 10px;
-}
-
-.selected-file p {
-    margin: 5px 0;
-    color: #f5f5f5;
-    font-size: 0.9rem;
-}
-
-.selected-file .file-size {
-    color: #aaa;
-    font-size: 0.8rem;
-}
-
-/* دکمه تغییر فایل */
-.change-file-btn {
-    margin-top: 10px;
-    padding: 8px 15px;
-    background-color: transparent;
-    color: #3498db;
-    border: 1px solid #3498db;
-    border-radius: 6px;
-    font-family: 'Vazirmatn', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.change-file-btn:hover {
-    background-color: #3498db;
-    color: white;
 }
