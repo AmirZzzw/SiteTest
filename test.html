@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="module">
+        import { getAllProducts } from './supabase-service.js';
+        
+        async function test() {
+            console.log('در حال تست اتصال به Supabase...');
+            const result = await getAllProducts();
+            
+            if (result.success) {
+                console.log('✅ اتصال موفق!');
+                console.log('تعداد محصولات:', result.products.length);
+                alert(`اتصال موفق! ${result.products.length} محصول لود شد.`);
+            } else {
+                console.error('❌ خطا:', result.error);
+                alert('خطا در اتصال: ' + result.error);
+            }
+        }
+        
+        test();
+    </script>
+</head>
+<body>
+    <h1>تست اتصال Supabase</h1>
+    <p>کنسول رو باز کن (F12)</p>
+</body>
+</html>
