@@ -4,9 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فروشگاه خدمات دیجیتال | SidkaShop</title>
+    
+    <!-- استایل‌ها -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="#">
+    
+    <!-- بارگذاری ماژول‌ها -->
+    <script type="module">
+        import { initializeApp } from './main.js';
+        window.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
 </head>
 <body>
     <!-- هدر سایت -->
@@ -23,7 +34,7 @@
                     <li><a href="#products"><i class="fas fa-box"></i> محصولات</a></li>
                     <li><a href="#pricing"><i class="fas fa-tag"></i> لیست قیمت</a></li>
                     
-                    <!-- آیتم پشتیبانی -->
+                    <!-- پشتیبانی -->
                     <li class="support-ticket-link">
                         <a href="#ticket" id="ticket-btn">
                             <i class="fas fa-comment-dots"></i> پشتیبانی
@@ -42,15 +53,15 @@
                     <li class="user-section">
                         <a href="#login" id="login-btn"><i class="fas fa-user"></i> ورود</a>
                         <div class="user-dropdown" id="user-dropdown">
-                            <a href="#profile"><i class="fas fa-user-circle"></i> پروفایل</a>
-                            <a href="#orders"><i class="fas fa-history"></i> سابقه خرید</a>
-                            <a href="#mytickets"><i class="fas fa-ticket-alt"></i> تیکت‌های من</a>
+                            <a href="#profile" id="profile-btn"><i class="fas fa-user-circle"></i> پروفایل</a>
+                            <a href="#orders" id="orders-btn"><i class="fas fa-history"></i> سابقه خرید</a>
+                            <a href="#mytickets" id="mytickets-btn"><i class="fas fa-ticket-alt"></i> تیکت‌های من</a>
                             <a href="#logout" id="logout-btn"><i class="fas fa-sign-out-alt"></i> خروج</a>
                         </div>
                     </li>
                     
-                    <!-- لینک ادمین -->
-                    <li class="admin-link" id="admin-nav-item">
+                    <!-- ادمین -->
+                    <li class="admin-link" id="admin-nav-item" style="display: none;">
                         <a href="#admin" id="admin-btn"><i class="fas fa-cogs"></i> پنل ادمین</a>
                     </li>
                 </ul>
@@ -64,6 +75,7 @@
 
     <!-- صفحه اصلی -->
     <main>
+        <!-- بخش معرفی -->
         <section class="hero" id="home">
             <div class="container">
                 <div class="hero-content">
@@ -134,7 +146,7 @@
                             <div class="card-number">
                                 <i class="fas fa-credit-card"></i>
                                 <span id="card-number-text">6037 9982 227 6759</span>
-                                <button class="copy-btn" onclick="copyToClipboard('603799822276759')">
+                                <button class="copy-btn" onclick="window.copyToClipboard('603799822276759')">
                                     <i class="fas fa-copy"></i>
                                 </button>
                             </div>
@@ -163,7 +175,7 @@
                             <i class="fas fa-phone"></i>
                             <h3>تماس تلفنی</h3>
                             <p id="admin-phone-text">09021707830</p>
-                            <button class="btn btn-primary" onclick="copyToClipboard('09021707830')">کپی شماره</button>
+                            <button class="btn btn-primary" onclick="window.copyToClipboard('09021707830')">کپی شماره</button>
                         </div>
                     </div>
                 </div>
@@ -271,7 +283,7 @@
                     <div class="card-number-large">
                         <i class="fas fa-credit-card"></i>
                         <span>6037 9982 227 6759</span>
-                        <button class="copy-btn" onclick="copyToClipboard('603799822276759')">
+                        <button class="copy-btn" onclick="window.copyToClipboard('603799822276759')">
                             <i class="fas fa-copy"></i> کپی
                         </button>
                     </div>
@@ -281,7 +293,7 @@
                 <div class="upload-receipt">
                     <h4>آپلود رسید پرداخت</h4>
                     <div class="form-group">
-                        <label>رسید پرداخت (تصویر)</label>
+                        <label>رسید پرداخت (تصویر) *</label>
                         <input type="file" id="receipt-file" accept="image/*">
                         <p class="note">فرمت‌های مجاز: JPG, PNG (حداکثر 2MB)</p>
                     </div>
@@ -361,7 +373,30 @@
                         <span>شماره موبایل:</span>
                         <span id="profile-phone">---</span>
                     </div>
+                    <div class="profile-item">
+                        <span>تعداد سفارشات:</span>
+                        <span id="profile-orders-count">۰</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>تعداد تیکت‌ها:</span>
+                        <span id="profile-tickets-count">۰</span>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تیکت‌های من -->
+    <div class="modal-overlay" id="mytickets-overlay"></div>
+    <div class="modal modal-lg" id="mytickets-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-ticket-alt"></i> تیکت‌های من</h3>
+            <button class="close-modal" id="close-mytickets">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="user-tickets-list" id="user-tickets-list">
+                <!-- تیکت‌های کاربر -->
             </div>
         </div>
     </div>
@@ -397,16 +432,19 @@
                     <h5>درآمد کل</h5>
                     <span id="stats-total-income">0 تومان</span>
                 </div>
+                <div class="stat-card">
+                    <h5>تیکت‌های جدید</h5>
+                    <span id="stats-new-tickets">0</span>
+                </div>
             </div>
             
             <!-- تب‌های ادمین -->
             <div class="admin-tabs">
                 <div class="tab-buttons">
-                     <button class="tab-btn active" data-tab="tickets-tab">تیکت‌ها</button>
-                     <button class="tab-btn" data-tab="orders-tab">سفارشات</button>
-                     <button class="tab-btn" data-tab="users-tab">کاربران</button>
-                     <button class="tab-btn" data-tab="products-tab">محصولات</button>
-           </div>
+                    <button class="tab-btn active" data-tab="orders-tab">سفارشات</button>
+                    <button class="tab-btn" data-tab="tickets-tab">تیکت‌ها</button>
+                    <button class="tab-btn" data-tab="users-tab">کاربران</button>
+                </div>
                 
                 <!-- تب سفارشات -->
                 <div class="tab-content active" id="orders-tab">
@@ -417,22 +455,16 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <!-- تب تیکت‌ها -->
-               <div class="tab-content active" id="tickets-tab">
-                   <div class="admin-section">
-                       <h4>تیکت‌های پشتیبانی</h4>
-                       <div class="ticket-filters">
-                       <button class="filter-btn active" onclick="filterTickets('all')">همه</button>
-                       <button class="filter-btn" onclick="filterTickets('new')">جدید</button>
-                       <button class="filter-btn" onclick="filterTickets('pending')">در حال بررسی</button>
-                       <button class="filter-btn" onclick="filterTickets('solved')">حل شده</button>
-              </div>
-              <div class="admin-tickets-list" id="admin-tickets-list">
-            <!-- لیست تیکت‌ها -->
-              </div>
-          </div>
-      </div>
+                <div class="tab-content" id="tickets-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت تیکت‌های پشتیبانی</h4>
+                        <div class="admin-tickets-list" id="admin-tickets-list">
+                            <!-- لیست تیکت‌ها -->
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- تب کاربران -->
                 <div class="tab-content" id="users-tab">
@@ -443,21 +475,8 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- تب محصولات -->
-                <div class="tab-content" id="products-tab">
-                    <div class="admin-section">
-                        <h4>مدیریت محصولات</h4>
-                        <div class="admin-products-list" id="admin-products-list">
-                            <!-- لیست محصولات -->
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
-
-    <!-- اسکریپت‌ها -->
-    <script src="script.js"></script>
 </body>
 </html>
