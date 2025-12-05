@@ -1,126 +1,21 @@
-// اطلاعات محصولات
-const products = [
-    {
-        id: 1,
-        name: "ساخت پنل",
-        category: "panels",
-        description: "ساخت پنل شخصی با امکانات کامل",
-        price: 900000,
-        icon: "fas fa-cogs"
-    },
-    {
-        id: 2,
-        name: "آپدیت پنل",
-        category: "panels",
-        description: "بروزرسانی پنل به آخرین نسخه",
-        price: 235000,
-        icon: "fas fa-sync-alt"
-    },
-    {
-        id: 3,
-        name: "اشتراک سلف تلگرام",
-        category: "subscriptions",
-        description: "اشتراک یک ماهه سلف تلگرام تک کاربره",
-        price: 40000,
-        icon: "fab fa-telegram"
-    },
-    {
-        id: 4,
-        name: "اشتراک v2rayNG",
-        category: "subscriptions",
-        description: "اشتراک 50 گیگ کاربر نامحدود یک ماهه",
-        price: 30000,
-        icon: "fas fa-server"
-    },
-    {
-        id: 5,
-        name: "اشتراک ViaX Panel یک روزه",
-        category: "subscriptions",
-        description: "اشتراک ViaX Panel یک روزه",
-        price: 15000,
-        icon: "fas fa-bolt"
-    },
-    {
-        id: 6,
-        name: "اشتراک ViaX Panel یک هفته",
-        category: "subscriptions",
-        description: "اشتراک ViaX Panel یک هفته‌ای",
-        price: 80000,
-        icon: "fas fa-calendar-week"
-    },
-    {
-        id: 7,
-        name: "اشتراک ViaX Panel یک ماهه",
-        category: "subscriptions",
-        description: "اشتراک ViaX Panel یک ماهه",
-        price: 230000,
-        icon: "fas fa-calendar-alt"
-    },
-    {
-        id: 8,
-        name: "اشتراک ViaX Panel دائم",
-        category: "subscriptions",
-        description: "اشتراک ViaX Panel دائمی",
-        price: 350000,
-        icon: "fas fa-infinity"
-    },
-    {
-        id: 9,
-        name: "تامنیل یوتیوب",
-        category: "design",
-        description: "طراحی تامنیل حرفه‌ای برای یوتیوب",
-        price: 50000,
-        icon: "fab fa-youtube"
-    },
-    {
-        id: 10,
-        name: "پروفایل چنل",
-        category: "design",
-        description: "طراحی پروفایل چنل تلگرام",
-        price: 50000,
-        icon: "fas fa-id-card"
-    }
-];
-
-// اطلاعات قیمت‌گذاری
-const pricingData = [
-    { name: "ساخت پنل", description: "ساخت پنل شخصی با امکانات کامل", price: "۹۰۰,۰۰۰" },
-    { name: "آپدیت پنل", description: "بروزرسانی پنل به آخرین نسخه", price: "۲۳۵,۰۰۰" },
-    { name: "اشتراک یک‌ماهه سلف تلگرام", description: "اشتراک تک‌کاربره ضدبن", price: "۴۰,۰۰۰" },
-    { name: "اشتراک 50 گیگ v2rayNG", description: "کاربر نامحدود یک‌ماهه", price: "۳۰,۰۰۰" },
-    { name: "اشتراک ViaX Panel یک روزه", description: "اشتراک تک‌کاربره", price: "۱۵,۰۰۰" },
-    { name: "اشتراک ViaX Panel یک هفته", description: "اشتراک تک‌کاربره", price: "۸۰,۰۰۰" },
-    { name: "اشتراک ViaX Panel یک ماهه", description: "اشتراک تک‌کاربره", price: "۲۳۰,۰۰۰" },
-    { name: "اشتراک ViaX Panel دائم", description: "اشتراک تک‌کاربره", price: "۳۵۰,۰۰۰" },
-    { name: "تامنیل یوتیوب", description: "طراحی حرفه‌ای تامنیل", price: "۵۰,۰۰۰" },
-    { name: "پروفایل چنل", description: "طراحی پروفایل چنل", price: "۵۰,۰۰۰" }
-];
-
 // اطلاعات ادمین اصلی
 const adminInfo = {
     phone: "09021707830",
     name: "امیرمحمد یوسفی",
-    cardNumber: "603799822276759",
-    telegramId: "7549513123",
-    botToken: "7408423935:AAH9nkoZg7ykqQMGKDeitIiOtu6uYZl0Vxg"
+    cardNumber: "603799822276759"
 };
 
 // مدیریت وضعیت کاربر
 const userState = {
     isLoggedIn: false,
-    currentUser: null,
-    users: JSON.parse(localStorage.getItem('users')) || [],
-    tickets: JSON.parse(localStorage.getItem('tickets')) || []
+    currentUser: null
 };
 
-// مدیریت سبد خرید
+// مدیریت سبد خرید (موقت در localStorage)
 const cartState = {
     items: JSON.parse(localStorage.getItem('cart')) || [],
     total: 0
 };
-
-// مدیریت سفارشات
-const ordersHistory = JSON.parse(localStorage.getItem('ordersHistory')) || [];
 
 // فرمت اعداد به فارسی
 function formatNumber(num) {
@@ -134,11 +29,8 @@ function formatDate(date) {
     return d.toLocaleDateString('fa-IR', options);
 }
 
-// ذخیره اطلاعات در localStorage
-function saveToLocalStorage() {
-    localStorage.setItem('users', JSON.stringify(userState.users));
-    localStorage.setItem('ordersHistory', JSON.stringify(ordersHistory));
-    localStorage.setItem('tickets', JSON.stringify(userState.tickets));
+// ذخیره سبد خرید در localStorage
+function saveCartToLocalStorage() {
     localStorage.setItem('cart', JSON.stringify(cartState.items));
 }
 
@@ -155,16 +47,37 @@ function updateCartCount() {
     }
 }
 
+// بارگذاری محصولات از Supabase
+async function loadProducts() {
+    try {
+        showNotification('در حال بارگذاری محصولات...', 'info');
+        const result = await window.supabaseFunctions.getAllProducts();
+        
+        if (result.success && result.products) {
+            window.products = result.products; // ذخیره در scope جهانی
+            renderProducts();
+            renderPricingTable();
+            showNotification('محصولات با موفقیت بارگذاری شدند', 'success');
+        } else {
+            console.error('خطا در بارگذاری محصولات:', result.error);
+            showNotification('خطا در بارگذاری محصولات', 'error');
+        }
+    } catch (error) {
+        console.error('خطا در بارگذاری محصولات:', error);
+        showNotification('خطا در اتصال به سرور', 'error');
+    }
+}
+
 // نمایش محصولات
 function renderProducts(filter = 'all') {
     const productsGrid = document.getElementById('products-grid');
-    if (!productsGrid) return;
+    if (!productsGrid || !window.products) return;
     
     productsGrid.innerHTML = '';
     
     const filteredProducts = filter === 'all' 
-        ? products 
-        : products.filter(product => product.category === filter);
+        ? window.products 
+        : window.products.filter(product => product.category === filter);
     
     filteredProducts.forEach(product => {
         const productCard = document.createElement('div');
@@ -175,11 +88,11 @@ function renderProducts(filter = 'all') {
         
         productCard.innerHTML = `
             <div class="product-image">
-                <i class="${product.icon}"></i>
+                <i class="${product.icon || 'fas fa-box'}"></i>
             </div>
             <div class="product-content">
                 <h3 class="product-title">${product.name}</h3>
-                <p class="product-description">${product.description}</p>
+                <p class="product-description">${product.description || ''}</p>
                 <div class="product-price">${formatNumber(product.price)} تومان</div>
                 <div class="product-actions">
                     ${isInCart 
@@ -196,26 +109,23 @@ function renderProducts(filter = 'all') {
 // نمایش جدول قیمت‌ها
 function renderPricingTable() {
     const pricingTableBody = document.getElementById('pricing-table-body');
-    if (!pricingTableBody) return;
+    if (!pricingTableBody || !window.products) return;
     
     pricingTableBody.innerHTML = '';
     
-    pricingData.forEach(item => {
+    window.products.forEach(product => {
         const row = document.createElement('tr');
         
-        const product = products.find(p => p.name === item.name);
-        const isInCart = product ? cartState.items.find(cartItem => cartItem.id === product.id) : false;
+        const isInCart = cartState.items.find(item => item.id === product.id);
         
         row.innerHTML = `
-            <td>${item.name}</td>
-            <td>${item.description}</td>
-            <td class="price-cell">${item.price} تومان</td>
+            <td>${product.name}</td>
+            <td>${product.description || ''}</td>
+            <td class="price-cell">${formatNumber(product.price)} تومان</td>
             <td>
-                ${product 
-                    ? (isInCart 
-                        ? `<button class="btn btn-secondary" onclick="removeFromCart(${product.id})">حذف از سبد</button>` 
-                        : `<button class="btn btn-primary" onclick="addToCart(${product.id})">افزودن به سبد</button>`)
-                    : ''}
+                ${isInCart 
+                    ? `<button class="btn btn-secondary" onclick="removeFromCart(${product.id})">حذف از سبد</button>` 
+                    : `<button class="btn btn-primary" onclick="addToCart(${product.id})">افزودن به سبد</button>`}
             </td>
         `;
         
@@ -225,7 +135,7 @@ function renderPricingTable() {
 
 // افزودن محصول به سبد خرید
 function addToCart(productId) {
-    const product = products.find(p => p.id === productId);
+    const product = window.products.find(p => p.id === productId);
     if (!product) return;
     
     const existingItem = cartState.items.find(item => item.id === productId);
@@ -241,7 +151,7 @@ function addToCart(productId) {
         });
     }
     
-    saveToLocalStorage();
+    saveCartToLocalStorage();
     updateCartCount();
     renderProducts();
     renderPricingTable();
@@ -255,14 +165,14 @@ function removeFromCart(productId) {
     const itemIndex = cartState.items.findIndex(item => item.id === productId);
     
     if (itemIndex !== -1) {
+        const product = window.products.find(p => p.id === productId);
         cartState.items.splice(itemIndex, 1);
-        saveToLocalStorage();
+        saveCartToLocalStorage();
         updateCartCount();
         renderProducts();
         renderPricingTable();
         renderCartItems();
         
-        const product = products.find(p => p.id === productId);
         if (product) {
             showNotification(`${product.name} از سبد خرید حذف شد`, 'warning');
         }
@@ -348,7 +258,6 @@ function copyToClipboard(text) {
         })
         .catch(err => {
             console.error('خطا در کپی کردن:', err);
-            // روش جایگزین برای مرورگرهای قدیمی
             const textArea = document.createElement('textarea');
             textArea.value = text;
             document.body.appendChild(textArea);
@@ -361,7 +270,6 @@ function copyToClipboard(text) {
 
 // نمایش پیام
 function showNotification(message, type = 'info') {
-    // حذف نوتیفیکیشن قبلی
     const existingNotification = document.querySelector('.notification');
     if (existingNotification) {
         existingNotification.remove();
@@ -371,7 +279,6 @@ function showNotification(message, type = 'info') {
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
     
-    // استایل نوتیفیکیشن
     notification.style.position = 'fixed';
     notification.style.top = '20px';
     notification.style.left = '50%';
@@ -395,7 +302,6 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // حذف خودکار
     setTimeout(() => {
         notification.style.opacity = '0';
         notification.style.transition = 'opacity 0.5s ease';
@@ -407,47 +313,37 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// مدیریت ورود/عضویت
-function loginUser(phone) {
-    // بررسی ادمین
-    if (phone === adminInfo.phone) {
-        userState.isLoggedIn = true;
-        userState.currentUser = {
-            id: 0,
-            phone: adminInfo.phone,
-            firstName: adminInfo.name.split(' ')[0],
-            lastName: adminInfo.name.split(' ')[1],
-            isAdmin: true,
-            registeredAt: new Date().toISOString()
-        };
+// مدیریت ورود/عضویت با Supabase
+async function loginUser(phone) {
+    showNotification('در حال ورود...', 'info');
+    
+    try {
+        const result = await window.supabaseFunctions.loginOrRegisterUser(phone);
         
-        updateUserUI();
-        showNotification(`خوش آمدید ادمین!`, 'success');
-        return;
+        if (result.success) {
+            userState.isLoggedIn = true;
+            userState.currentUser = result.user;
+            
+            updateUserUI();
+            showNotification(`خوش آمدید ${result.user.first_name || 'کاربر'}!`, 'success');
+            
+            // اگر کاربر ادمین بود، پنل ادمین رو نشون بده
+            if (phone === adminInfo.phone) {
+                setTimeout(() => {
+                    document.getElementById('admin-nav-item').style.display = 'block';
+                }, 500);
+            }
+            
+            return true;
+        } else {
+            showNotification('خطا در ورود: ' + result.error, 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('خطا در ورود:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+        return false;
     }
-    
-    // کاربر عادی
-    let user = userState.users.find(u => u.phone === phone);
-    
-    if (!user) {
-        user = {
-            id: Date.now(),
-            phone,
-            firstName: '',
-            lastName: '',
-            isAdmin: false,
-            registeredAt: new Date().toISOString()
-        };
-        
-        userState.users.push(user);
-        saveToLocalStorage();
-    }
-    
-    userState.isLoggedIn = true;
-    userState.currentUser = user;
-    
-    updateUserUI();
-    showNotification(`خوش آمدید ${user.firstName || 'کاربر'}!`, 'success');
 }
 
 // خروج کاربر
@@ -456,39 +352,32 @@ function logoutUser() {
     userState.currentUser = null;
     
     updateUserUI();
+    document.getElementById('admin-nav-item').style.display = 'none';
     showNotification('با موفقیت خارج شدید', 'info');
 }
 
 // به روزرسانی رابط کاربری بر اساس وضعیت ورود
 function updateUserUI() {
     const loginBtn = document.getElementById('login-btn');
-    const adminNavItem = document.getElementById('admin-nav-item');
+    const userDropdown = document.getElementById('user-dropdown');
     
     if (userState.isLoggedIn && userState.currentUser) {
-        loginBtn.innerHTML = `<i class="fas fa-user"></i> ${userState.currentUser.firstName || 'پروفایل'}`;
-        
-        // نمایش لینک ادمین برای ادمین اصلی
-        if (userState.currentUser.phone === adminInfo.phone) {
-            adminNavItem.style.display = 'block';
-        } else {
-            adminNavItem.style.display = 'none';
-        }
+        loginBtn.innerHTML = `<i class="fas fa-user"></i> ${userState.currentUser.first_name || 'پروفایل'}`;
         
         // به روزرسانی اطلاعات پروفایل
         if (document.getElementById('profile-name')) {
-            document.getElementById('profile-name').textContent = userState.currentUser.firstName || '---';
-            document.getElementById('profile-lastname').textContent = userState.currentUser.lastName || '---';
+            document.getElementById('profile-name').textContent = userState.currentUser.first_name || '---';
+            document.getElementById('profile-lastname').textContent = userState.currentUser.last_name || '---';
             document.getElementById('profile-phone').textContent = userState.currentUser.phone || '---';
         }
         
     } else {
         loginBtn.innerHTML = '<i class="fas fa-user"></i> ورود';
-        adminNavItem.style.display = 'none';
     }
 }
 
-// تکمیل فرآیند خرید
-function completeOrder() {
+// تکمیل فرآیند خرید و ذخیره در Supabase
+async function completeOrder() {
     if (cartState.items.length === 0) {
         showNotification('سبد خرید شما خالی است', 'warning');
         return;
@@ -522,76 +411,82 @@ function completeOrder() {
         return;
     }
     
-    // خواندن فایل به عنوان Data URL
+    // تبدیل فایل به base64
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         const receiptImage = e.target.result;
         
-        // ایجاد سفارش
-        const order = {
+        // آماده کردن داده‌های سفارش
+        const orderData = {
             id: Date.now(),
             userId: userState.currentUser.id,
-            items: [...cartState.items],
             total: cartState.total,
             customerInfo: {
-                firstName,
-                lastName,
-                phone
+                firstName: firstName,
+                lastName: lastName,
+                phone: phone
             },
             receipt: {
-                image: receiptImage,
                 fileName: receiptFile.name,
+                fileSize: receiptFile.size,
+                fileType: receiptFile.type,
+                image: receiptImage, // تصویر به صورت base64
                 note: receiptNote,
-                uploadTime: new Date().toISOString(),
-                status: 'در انتظار تأیید' // وضعیت جدید
+                status: 'در انتظار تأیید'
             },
-            date: new Date().toISOString(),
-            status: 'در انتظار تأیید رسید'
+            items: cartState.items
         };
         
-        // افزودن به تاریخچه سفارشات
-        ordersHistory.push(order);
+        showNotification('در حال ثبت سفارش...', 'info');
         
-        // به روزرسانی اطلاعات کاربر
-        const user = userState.currentUser;
-        user.firstName = firstName;
-        user.lastName = lastName;
-        user.phone = phone;
-        
-        const userIndex = userState.users.findIndex(u => u.id === user.id);
-        if (userIndex !== -1) {
-            userState.users[userIndex] = user;
+        try {
+            // ذخیره در Supabase
+            const result = await window.supabaseFunctions.createNewOrder(orderData);
+            
+            if (result.success) {
+                // به روزرسانی اطلاعات کاربر
+                if (userState.currentUser.first_name !== firstName || userState.currentUser.last_name !== lastName) {
+                    await window.supabaseFunctions.updateUserInfo(
+                        userState.currentUser.id, 
+                        firstName, 
+                        lastName
+                    );
+                }
+                
+                // خالی کردن سبد خرید
+                cartState.items = [];
+                saveCartToLocalStorage();
+                updateCartCount();
+                renderCartItems();
+                renderProducts();
+                renderPricingTable();
+                
+                // بستن مودال پرداخت
+                closeModal('checkout-modal', 'checkout-overlay');
+                
+                // نمایش پیام موفقیت
+                showNotification(`سفارش شما با موفقیت ثبت شد. کد پیگیری: ${orderData.id}`, 'success');
+                
+                // ریست فرم
+                document.getElementById('first-name').value = '';
+                document.getElementById('last-name').value = '';
+                document.getElementById('checkout-phone').value = '';
+                document.getElementById('receipt-file').value = '';
+                document.getElementById('receipt-note').value = '';
+            } else {
+                showNotification('خطا در ثبت سفارش: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('خطا در ثبت سفارش:', error);
+            showNotification('خطا در ارتباط با سرور', 'error');
         }
-        
-        // خالی کردن سبد خرید
-        cartState.items = [];
-        
-        // ذخیره همه چیز
-        saveToLocalStorage();
-        updateCartCount();
-        renderCartItems();
-        renderProducts();
-        renderPricingTable();
-        
-        // بستن مودال پرداخت
-        closeModal('checkout-modal', 'checkout-overlay');
-        
-        // نمایش پیام موفقیت
-        showNotification(`سفارش شما با موفقیت ثبت شد. کد پیگیری: ${order.id}`, 'success');
-        
-        // ریست فرم
-        document.getElementById('first-name').value = '';
-        document.getElementById('last-name').value = '';
-        document.getElementById('checkout-phone').value = '';
-        document.getElementById('receipt-file').value = '';
-        document.getElementById('receipt-note').value = '';
     };
     
     reader.readAsDataURL(receiptFile);
 }
 
-// ارسال تیکت پشتیبانی
-function submitSupportTicket() {
+// ارسال تیکت پشتیبانی به Supabase
+async function submitSupportTicket() {
     if (!userState.isLoggedIn) {
         showNotification('لطفاً ابتدا وارد شوید', 'warning');
         openModal('login-modal', 'login-overlay');
@@ -606,31 +501,36 @@ function submitSupportTicket() {
         return;
     }
     
-    const ticket = {
+    const ticketData = {
         id: Date.now(),
         userId: userState.currentUser.id,
-        userPhone: userState.currentUser.phone,
-        userName: `${userState.currentUser.firstName || ''} ${userState.currentUser.lastName || ''}`.trim(),
-        subject,
-        message,
-        date: new Date().toISOString(),
-        status: 'جدید',
-        replies: []
+        subject: subject,
+        message: message
     };
     
-    userState.tickets.push(ticket);
-    saveToLocalStorage();
+    showNotification('در حال ارسال تیکت...', 'info');
     
-    // بستن مودال و ریست فرم
-    closeModal('ticket-modal', 'ticket-overlay');
-    document.getElementById('ticket-subject').value = '';
-    document.getElementById('ticket-message').value = '';
-    
-    showNotification('تیکت شما با موفقیت ارسال شد. به زودی پاسخ می‌دهیم.', 'success');
+    try {
+        const result = await window.supabaseFunctions.createNewTicket(ticketData);
+        
+        if (result.success) {
+            // بستن مودال و ریست فرم
+            closeModal('ticket-modal', 'ticket-overlay');
+            document.getElementById('ticket-subject').value = '';
+            document.getElementById('ticket-message').value = '';
+            
+            showNotification('تیکت شما با موفقیت ارسال شد. به زودی پاسخ می‌دهیم.', 'success');
+        } else {
+            showNotification('خطا در ارسال تیکت: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error('خطا در ارسال تیکت:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+    }
 }
 
-// نمایش سابقه خرید
-function renderOrdersHistory() {
+// نمایش سابقه خرید از Supabase
+async function renderOrdersHistory() {
     const ordersList = document.getElementById('orders-list');
     if (!ordersList) return;
     
@@ -646,434 +546,525 @@ function renderOrdersHistory() {
         return;
     }
     
-    // دریافت سفارشات کاربر جاری
-    const userOrders = ordersHistory.filter(order => order.userId === userState.currentUser.id);
+    showNotification('در حال بارگذاری سفارشات...', 'info');
     
-    if (userOrders.length === 0) {
+    try {
+        const result = await window.supabaseFunctions.getUserOrders(userState.currentUser.id);
+        
+        if (result.success && result.orders && result.orders.length > 0) {
+            // نمایش سفارشات از جدید به قدیم
+            result.orders.sort((a, b) => b.id - a.id).forEach(order => {
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-history-item';
+                
+                const itemsList = order.items.map(item => 
+                    `<div class="order-history-product">
+                        <span>${item.name} (${item.quantity} عدد)</span>
+                        <span>${formatNumber(item.price * item.quantity)} تومان</span>
+                    </div>`
+                ).join('');
+                
+                orderItem.innerHTML = `
+                    <div class="order-history-header">
+                        <span class="order-id">سفارش #${order.id}</span>
+                        <span class="order-date">${formatDate(order.created_at)}</span>
+                    </div>
+                    <div class="order-history-products">
+                        ${itemsList}
+                    </div>
+                    <div class="order-history-footer">
+                        <span>وضعیت: <strong class="status-${order.status === 'تأیید شده' ? 'success' : order.status === 'رد شده' ? 'danger' : 'warning'}">${order.status}</strong></span>
+                        <span class="order-history-total">${formatNumber(order.total)} تومان</span>
+                    </div>
+                `;
+                
+                ordersList.appendChild(orderItem);
+            });
+        } else {
+            ordersList.innerHTML = `
+                <div class="empty-orders">
+                    <i class="fas fa-history"></i>
+                    <p>شما تاکنون خریدی انجام نداده‌اید</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('خطا در دریافت سفارشات:', error);
         ordersList.innerHTML = `
             <div class="empty-orders">
-                <i class="fas fa-history"></i>
-                <p>شما تاکنون خریدی انجام نداده‌اید</p>
+                <i class="fas fa-exclamation-circle"></i>
+                <p>خطا در بارگذاری سفارشات</p>
             </div>
         `;
-        return;
     }
-    
-    // نمایش سفارشات از جدید به قدیم
-    userOrders.sort((a, b) => b.id - a.id).forEach(order => {
-        const orderItem = document.createElement('div');
-        orderItem.className = 'order-history-item';
-        
-        const itemsList = order.items.map(item => 
-            `<div class="order-history-product">
-                <span>${item.name} (${item.quantity} عدد)</span>
-                <span>${formatNumber(item.price * item.quantity)} تومان</span>
-            </div>`
-        ).join('');
-        
-        orderItem.innerHTML = `
-            <div class="order-history-header">
-                <span class="order-id">سفارش #${order.id}</span>
-                <span class="order-date">${formatDate(order.date)}</span>
-            </div>
-            <div class="order-history-products">
-                ${itemsList}
-            </div>
-            <div class="order-history-footer">
-                <span>وضعیت: <strong class="status-${order.status === 'تأیید شده' ? 'success' : order.status === 'رد شده' ? 'danger' : 'warning'}">${order.status}</strong></span>
-                <span class="order-history-total">${formatNumber(order.total)} تومان</span>
-            </div>
-        `;
-        
-        ordersList.appendChild(orderItem);
-    });
 }
 
-// پنل ادمین
-function openAdminPanel() {
+// ========== پنل ادمین ==========
+
+// باز کردن پنل ادمین
+async function openAdminPanel() {
     if (!userState.isLoggedIn || userState.currentUser.phone !== adminInfo.phone) {
         showNotification('شما دسترسی ادمین ندارید', 'error');
         return;
     }
     
-    renderAdminPanel();
+    await renderAdminPanel();
     openModal('admin-modal', 'admin-overlay');
 }
 
-function renderAdminPanel() {
-    // آمار
-    document.getElementById('stats-users-count').textContent = userState.users.length;
-    document.getElementById('stats-orders-count').textContent = ordersHistory.length;
+// رندر پنل ادمین
+async function renderAdminPanel() {
+    showNotification('در حال بارگذاری پنل ادمین...', 'info');
     
-    const totalIncome = ordersHistory.reduce((sum, order) => sum + order.total, 0);
-    document.getElementById('stats-total-income').textContent = formatNumber(totalIncome) + " تومان";
-    
-    // سفارشات (با رسید)
-    renderAdminOrders();
-    
-    // کاربران
-    renderAdminUsers();
-    
-    // محصولات
-    renderAdminProducts();
-}
-
-// مدیریت تب‌های ادمین
-function switchAdminTab(tabId) {
-    // مخفی کردن همه تب‌ها
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // حذف active از همه دکمه‌ها
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // نمایش تب انتخاب شده
-    const selectedTab = document.getElementById(tabId);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
+    try {
+        // دریافت آمار
+        const statsResult = await window.supabaseFunctions.getDashboardStats();
+        if (statsResult.success) {
+            document.getElementById('stats-users-count').textContent = statsResult.stats.users;
+            document.getElementById('stats-orders-count').textContent = statsResult.stats.orders;
+            document.getElementById('stats-total-income').textContent = formatNumber(statsResult.stats.totalIncome) + " تومان";
+        }
+        
+        // دریافت سفارشات
+        await renderAdminOrders();
+        
+        // دریافت کاربران (فعلاً نمایش نمی‌دیم)
+        // await renderAdminUsers();
+        
+        // دریافت تیکت‌ها
+        await renderAdminTickets();
+        
+    } catch (error) {
+        console.error('خطا در بارگذاری پنل ادمین:', error);
+        showNotification('خطا در بارگذاری پنل ادمین', 'error');
     }
-    
-    // آپدیت دکمه
-    event.target.classList.add('active');
 }
 
-function renderAdminOrders() {
+// رندر سفارشات در پنل ادمین
+async function renderAdminOrders() {
     const container = document.getElementById('admin-orders-list');
     if (!container) return;
     
-    container.innerHTML = '';
-    
-    if (ordersHistory.length === 0) {
-        container.innerHTML = '<p class="empty-message">هنوز سفارشی ثبت نشده است</p>';
-        return;
-    }
-    
-    // مرتب کردن سفارشات از جدید به قدیم
-    const sortedOrders = [...ordersHistory].sort((a, b) => b.id - a.id);
-    
-    sortedOrders.forEach(order => {
-        const user = userState.users.find(u => u.id === order.userId);
-        const item = document.createElement('div');
-        item.className = 'admin-item';
+    try {
+        const result = await window.supabaseFunctions.getAllOrders();
         
-        const itemsText = order.items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ');
-        
-        item.innerHTML = `
-            <div style="flex: 1;">
-                <h4>سفارش #${order.id}</h4>
-                <p><strong>مشتری:</strong> ${order.customerInfo?.firstName || 'نامشخص'} ${order.customerInfo?.lastName || ''}</p>
-                <p><strong>شماره:</strong> ${order.customerInfo?.phone || 'نامشخص'}</p>
-                <p><strong>محصولات:</strong> ${itemsText}</p>
-                <p><strong>توضیحات رسید:</strong> ${order.receipt?.note || 'بدون توضیح'}</p>
-                <p><strong>تاریخ:</strong> ${formatDate(order.date)}</p>
-                <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
-                <p><strong>وضعیت رسید:</strong> 
-                    <span class="status-badge status-${order.receipt?.status === 'تأیید شده' ? 'success' : order.receipt?.status === 'رد شده' ? 'danger' : 'warning'}">
-                        ${order.receipt?.status || 'در انتظار تأیید'}
-                    </span>
-                </p>
-            </div>
-            <div class="admin-item-actions">
-                ${order.receipt?.image ? 
-                    `<button class="btn btn-primary" onclick="viewReceipt(${order.id})">
-                        <i class="fas fa-receipt"></i> مشاهده رسید
-                    </button>` : 
-                    `<span class="badge-warning">بدون رسید</span>`
-                }
-                <button class="btn btn-success" onclick="approveReceipt(${order.id})">
-                    <i class="fas fa-check"></i> تأیید رسید
-                </button>
-                <button class="btn btn-danger" onclick="rejectReceipt(${order.id})">
-                    <i class="fas fa-times"></i> رد رسید
-                </button>
-            </div>
-        `;
-        
-        container.appendChild(item);
-    });
-}
-
-// مشاهده رسید
-function viewReceipt(orderId) {
-    const order = ordersHistory.find(o => o.id === orderId);
-    if (!order || !order.receipt?.image) {
-        showNotification('رسید یافت نشد', 'error');
-        return;
-    }
-    
-    const modalHtml = `
-        <div class="modal-overlay" id="view-receipt-overlay"></div>
-        <div class="modal modal-lg" id="view-receipt-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-receipt"></i> رسید سفارش #${order.id}</h3>
-                <button class="close-modal" onclick="closeModal('view-receipt-modal', 'view-receipt-overlay')">&times;</button>
-            </div>
+        if (result.success && result.orders) {
+            container.innerHTML = '';
             
-            <div class="modal-body">
-                <div class="receipt-view">
-                    <div class="receipt-info">
-                        <p><strong>مشتری:</strong> ${order.customerInfo.firstName} ${order.customerInfo.lastName}</p>
-                        <p><strong>شماره تماس:</strong> ${order.customerInfo.phone}</p>
+            result.orders.forEach(order => {
+                const item = document.createElement('div');
+                item.className = 'admin-item';
+                
+                const itemsText = order.items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ');
+                const customer = order.customer_info || {};
+                const receipt = order.receipt_info || {};
+                
+                item.innerHTML = `
+                    <div style="flex: 1;">
+                        <h4>سفارش #${order.id}</h4>
+                        <p><strong>مشتری:</strong> ${customer.firstName || ''} ${customer.lastName || ''}</p>
+                        <p><strong>شماره:</strong> ${customer.phone || ''}</p>
+                        <p><strong>محصولات:</strong> ${itemsText}</p>
+                        <p><strong>توضیحات رسید:</strong> ${receipt.note || 'بدون توضیح'}</p>
+                        <p><strong>تاریخ:</strong> ${formatDate(order.created_at)}</p>
                         <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
-                        <p><strong>تاریخ:</strong> ${formatDate(order.date)}</p>
-                        <p><strong>وضعیت:</strong> ${order.receipt.status}</p>
+                        <p><strong>وضعیت:</strong> 
+                            <span class="status-badge status-${order.status === 'تأیید شده' ? 'success' : order.status === 'رد شده' ? 'danger' : 'warning'}">
+                                ${order.status}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="admin-item-actions">
+                        ${receipt.image ? 
+                            `<button class="btn btn-primary" onclick="viewReceiptAdmin(${order.id})">
+                                <i class="fas fa-receipt"></i> مشاهده رسید
+                            </button>` : 
+                            `<span class="badge-warning">بدون رسید</span>`
+                        }
+                        <button class="btn btn-success" onclick="approveOrder(${order.id})">
+                            <i class="fas fa-check"></i> تأیید
+                        </button>
+                        <button class="btn btn-danger" onclick="rejectOrder(${order.id})">
+                            <i class="fas fa-times"></i> رد
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        } else {
+            container.innerHTML = '<p class="empty-message">هنوز سفارشی ثبت نشده است</p>';
+        }
+    } catch (error) {
+        console.error('خطا در دریافت سفارشات:', error);
+        container.innerHTML = '<p class="empty-message">خطا در بارگذاری سفارشات</p>';
+    }
+}
+
+// رندر تیکت‌ها در پنل ادمین
+async function renderAdminTickets() {
+    const container = document.getElementById('admin-tickets-list');
+    if (!container) return;
+    
+    try {
+        const result = await window.supabaseFunctions.getAllTickets();
+        
+        if (result.success && result.tickets) {
+            container.innerHTML = '';
+            
+            result.tickets.forEach(ticket => {
+                const item = document.createElement('div');
+                item.className = 'admin-item ticket-item';
+                
+                const user = ticket.users || {};
+                
+                item.innerHTML = `
+                    <div style="flex: 1;">
+                        <div class="ticket-header">
+                            <h4>${ticket.subject}</h4>
+                            <span class="ticket-id">#${ticket.id}</span>
+                        </div>
+                        <div class="ticket-info">
+                            <p><strong>ارسال کننده:</strong> ${user.first_name || ''} ${user.last_name || ''} (${user.phone || ''})</p>
+                            <p><strong>تاریخ:</strong> ${formatDate(ticket.created_at)}</p>
+                            <p><strong>پیام:</strong> ${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
+                        </div>
+                        <div class="ticket-meta">
+                            <span class="status-badge status-${ticket.status === 'جدید' ? 'new' : ticket.status === 'در حال بررسی' ? 'pending' : 'solved'}">
+                                ${ticket.status}
+                            </span>
+                            <span class="reply-count">${ticket.replies ? ticket.replies.length : 0} پاسخ</span>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="btn btn-primary" onclick="viewTicketAdmin(${ticket.id})">
+                            <i class="fas fa-eye"></i> مشاهده
+                        </button>
+                        <button class="btn btn-success" onclick="markTicketAsSolved(${ticket.id})">
+                            <i class="fas fa-check"></i> حل شد
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        } else {
+            container.innerHTML = '<p class="empty-message">هیچ تیکتی ارسال نشده است</p>';
+        }
+    } catch (error) {
+        console.error('خطا در دریافت تیکت‌ها:', error);
+        container.innerHTML = '<p class="empty-message">خطا در بارگذاری تیکت‌ها</p>';
+    }
+}
+
+// تأیید سفارش
+async function approveOrder(orderId) {
+    try {
+        const result = await window.supabaseFunctions.updateOrderStatus(orderId, 'تأیید شده');
+        
+        if (result.success) {
+            showNotification('سفارش تأیید شد', 'success');
+            await renderAdminOrders();
+        } else {
+            showNotification('خطا در تأیید سفارش', 'error');
+        }
+    } catch (error) {
+        console.error('خطا در تأیید سفارش:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+    }
+}
+
+// رد سفارش
+async function rejectOrder(orderId) {
+    try {
+        const result = await window.supabaseFunctions.updateOrderStatus(orderId, 'رد شده');
+        
+        if (result.success) {
+            showNotification('سفارش رد شد', 'warning');
+            await renderAdminOrders();
+        } else {
+            showNotification('خطا در رد سفارش', 'error');
+        }
+    } catch (error) {
+        console.error('خطا در رد سفارش:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+    }
+}
+
+// مشاهده رسید در پنل ادمین
+function viewReceiptAdmin(orderId) {
+    // این تابع رو بعداً کامل می‌کنیم
+    showNotification('این قابلیت به زودی اضافه خواهد شد', 'info');
+}
+
+// مشاهده تیکت در پنل ادمین
+async function viewTicketAdmin(ticketId) {
+    try {
+        const result = await window.supabaseFunctions.getAllTickets();
+        if (!result.success) return;
+        
+        const ticket = result.tickets.find(t => t.id === ticketId);
+        if (!ticket) return;
+        
+        const user = ticket.users || {};
+        
+        // ایجاد مودال مشاهده تیکت
+        const modalHtml = `
+            <div class="modal-overlay" id="admin-ticket-view-overlay"></div>
+            <div class="modal modal-lg" id="admin-ticket-view-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-ticket-alt"></i> تیکت #${ticket.id}</h3>
+                    <button class="close-modal" onclick="closeModal('admin-ticket-view-modal', 'admin-ticket-view-overlay')">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="ticket-info-admin">
+                        <p><strong>ارسال کننده:</strong> ${user.first_name || ''} ${user.last_name || ''}</p>
+                        <p><strong>شماره:</strong> ${user.phone || ''}</p>
+                        <p><strong>موضوع:</strong> ${ticket.subject}</p>
+                        <p><strong>تاریخ:</strong> ${formatDate(ticket.created_at)}</p>
+                        <p><strong>وضعیت:</strong> ${ticket.status}</p>
                     </div>
                     
-                    <div class="receipt-image-container">
-                        <img src="${order.receipt.image}" alt="رسید پرداخت" class="receipt-image">
+                    <div class="ticket-message-admin">
+                        <h4>پیام کاربر:</h4>
+                        <div class="message-content">${ticket.message}</div>
                     </div>
                     
-                    <div class="receipt-notes">
-                        <h4>توضیحات مشتری:</h4>
-                        <p>${order.receipt.note || 'بدون توضیح'}</p>
+                    <div class="ticket-replies-admin">
+                        <h4>پاسخ‌ها:</h4>
+                        ${ticket.replies && ticket.replies.length > 0 ? 
+                            ticket.replies.map(reply => `
+                                <div class="reply-item ${reply.isAdmin ? 'admin-reply' : 'user-reply'}">
+                                    <div class="reply-header">
+                                        <strong>${reply.isAdmin ? '👮 ادمین' : '👤 کاربر'}</strong>
+                                        <span>${formatDate(reply.date)}</span>
+                                    </div>
+                                    <div class="reply-content">${reply.message}</div>
+                                </div>
+                            `).join('') : 
+                            '<p class="no-replies">هنوز پاسخی داده نشده</p>'
+                        }
+                    </div>
+                    
+                    <div class="admin-reply-form">
+                        <h4>پاسخ ادمین</h4>
+                        <div class="form-group">
+                            <textarea id="admin-reply-message-${ticket.id}" rows="3" placeholder="پاسخ خود را بنویسید..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="submitAdminReplyToTicket(${ticket.id})">
+                            <i class="fas fa-paper-plane"></i> ارسال پاسخ
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
-    
-    // اضافه کردن مودال به صفحه
-    const existingModal = document.getElementById('view-receipt-modal');
-    if (existingModal) existingModal.remove();
-    
-    const existingOverlay = document.getElementById('view-receipt-overlay');
-    if (existingOverlay) existingOverlay.remove();
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // باز کردن مودال
-    openModal('view-receipt-modal', 'view-receipt-overlay');
+        `;
+        
+        // اضافه کردن مودال
+        const existingModal = document.getElementById('admin-ticket-view-modal');
+        if (existingModal) existingModal.remove();
+        
+        const existingOverlay = document.getElementById('admin-ticket-view-overlay');
+        if (existingOverlay) existingOverlay.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // باز کردن مودال
+        openModal('admin-ticket-view-modal', 'admin-ticket-view-overlay');
+        
+    } catch (error) {
+        console.error('خطا در مشاهده تیکت:', error);
+        showNotification('خطا در بارگذاری تیکت', 'error');
+    }
 }
 
-// تأیید رسید
-function approveReceipt(orderId) {
-    const orderIndex = ordersHistory.findIndex(o => o.id === orderId);
-    if (orderIndex === -1) return;
+// ارسال پاسخ به تیکت
+async function submitAdminReplyToTicket(ticketId) {
+    const messageInput = document.getElementById(`admin-reply-message-${ticketId}`);
+    const message = messageInput.value.trim();
     
-    ordersHistory[orderIndex].receipt.status = 'تأیید شده';
-    ordersHistory[orderIndex].status = 'تأیید شده';
-    
-    saveToLocalStorage();
-    showNotification('رسید تأیید شد', 'success');
-    renderAdminOrders();
-}
-
-// رد رسید
-function rejectReceipt(orderId) {
-    const orderIndex = ordersHistory.findIndex(o => o.id === orderId);
-    if (orderIndex === -1) return;
-    
-    ordersHistory[orderIndex].receipt.status = 'رد شده';
-    ordersHistory[orderIndex].status = 'رد شده';
-    
-    saveToLocalStorage();
-    showNotification('رسید رد شد', 'warning');
-    renderAdminOrders();
-}
-
-function renderAdminUsers() {
-    const container = document.getElementById('admin-users-list');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    if (userState.users.length === 0) {
-        container.innerHTML = '<p class="empty-message">هیچ کاربری ثبت‌نام نکرده است</p>';
+    if (!message) {
+        showNotification('لطفاً متن پاسخ را وارد کنید', 'warning');
         return;
     }
     
-    userState.users.forEach(user => {
-        // نمایش همه کاربران به جز ادمین
-        if (user.phone === adminInfo.phone) return;
+    try {
+        const replyData = {
+            isAdmin: true,
+            message: message
+        };
         
-        const item = document.createElement('div');
-        item.className = 'admin-item';
+        const result = await window.supabaseFunctions.addTicketReply(ticketId, replyData);
         
-        const userOrders = ordersHistory.filter(order => order.userId === user.id);
-        const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
-        const successfulOrders = userOrders.filter(order => order.receipt?.status === 'تأیید شده').length;
-        
-        item.innerHTML = `
-            <div style="flex: 1;">
-                <h4>${user.firstName || 'کاربر'} ${user.lastName || ''}</h4>
-                <p><strong>شماره:</strong> ${user.phone}</p>
-                <p><strong>تعداد سفارشات:</strong> ${userOrders.length} سفارش</p>
-                <p><strong>سفارشات موفق:</strong> ${successfulOrders} سفارش</p>
-                <p><strong>مجموع خرید:</strong> ${formatNumber(totalSpent)} تومان</p>
-                <p><strong>عضویت از:</strong> ${formatDate(user.registeredAt)}</p>
-            </div>
-            <div class="admin-item-actions">
-                <button class="btn btn-primary" onclick="viewUserOrders(${user.id})">
-                    <i class="fas fa-shopping-cart"></i> سفارشات
-                </button>
-                <button class="btn btn-secondary" onclick="viewUserTickets(${user.id})">
-                    <i class="fas fa-ticket-alt"></i> تیکت‌ها
-                </button>
-            </div>
-        `;
-        
-        container.appendChild(item);
-    });
-}
-
-// مشاهده سفارشات کاربر
-function viewUserOrders(userId) {
-    const user = userState.users.find(u => u.id === userId);
-    const userOrders = ordersHistory.filter(order => order.userId === userId);
-    
-    if (!user) return;
-    
-    let ordersHtml = '';
-    userOrders.forEach(order => {
-        const itemsText = order.items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ');
-        
-        ordersHtml += `
-            <div class="user-order-item">
-                <h5>سفارش #${order.id}</h5>
-                <p><strong>تاریخ:</strong> ${formatDate(order.date)}</p>
-                <p><strong>محصولات:</strong> ${itemsText}</p>
-                <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
-                <p><strong>وضعیت:</strong> ${order.status}</p>
-                <p><strong>وضعیت رسید:</strong> ${order.receipt?.status || 'نامشخص'}</p>
-            </div>
-        `;
-    });
-    
-    const modalHtml = `
-        <div class="modal-overlay" id="view-user-orders-overlay"></div>
-        <div class="modal modal-lg" id="view-user-orders-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-shopping-cart"></i> سفارشات ${user.firstName || 'کاربر'}</h3>
-                <button class="close-modal" onclick="closeModal('view-user-orders-modal', 'view-user-orders-overlay')">&times;</button>
-            </div>
+        if (result.success) {
+            messageInput.value = '';
+            showNotification('پاسخ شما ارسال شد', 'success');
             
-            <div class="modal-body">
-                <div class="user-info">
-                    <p><strong>نام:</strong> ${user.firstName || 'نامشخص'} ${user.lastName || ''}</p>
-                    <p><strong>شماره:</strong> ${user.phone}</p>
-                    <p><strong>تعداد کل سفارشات:</strong> ${userOrders.length}</p>
-                </div>
-                
-                <div class="user-orders-list">
-                    ${userOrders.length > 0 ? ordersHtml : '<p class="empty-message">این کاربر هنوز سفارشی ثبت نکرده است</p>'}
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // اضافه کردن مودال به صفحه
-    const existingModal = document.getElementById('view-user-orders-modal');
-    if (existingModal) existingModal.remove();
-    
-    const existingOverlay = document.getElementById('view-user-orders-overlay');
-    if (existingOverlay) existingOverlay.remove();
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // باز کردن مودال
-    openModal('view-user-orders-modal', 'view-user-orders-overlay');
-}
-
-// مشاهده تیکت‌های کاربر
-function viewUserTickets(userId) {
-    const user = userState.users.find(u => u.id === userId);
-    const userTickets = userState.tickets.filter(ticket => ticket.userId === userId);
-    
-    if (!user) return;
-    
-    let ticketsHtml = '';
-    userTickets.forEach(ticket => {
-        ticketsHtml += `
-            <div class="user-ticket-item">
-                <h5>تیکت #${ticket.id} - ${ticket.subject}</h5>
-                <p><strong>تاریخ:</strong> ${formatDate(ticket.date)}</p>
-                <p><strong>پیام:</strong> ${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
-                <p><strong>وضعیت:</strong> ${ticket.status}</p>
-                <p><strong>تعداد پاسخ‌ها:</strong> ${ticket.replies?.length || 0}</p>
-            </div>
-        `;
-    });
-    
-    const modalHtml = `
-        <div class="modal-overlay" id="view-user-tickets-overlay"></div>
-        <div class="modal modal-lg" id="view-user-tickets-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-ticket-alt"></i> تیکت‌های ${user.firstName || 'کاربر'}</h3>
-                <button class="close-modal" onclick="closeModal('view-user-tickets-modal', 'view-user-tickets-overlay')">&times;</button>
-            </div>
+            // بستن مودال و باز کردن مجدد برای نمایش پاسخ جدید
+            closeModal('admin-ticket-view-modal', 'admin-ticket-view-overlay');
+            setTimeout(() => viewTicketAdmin(ticketId), 300);
             
-            <div class="modal-body">
-                <div class="user-info">
-                    <p><strong>نام:</strong> ${user.firstName || 'نامشخص'} ${user.lastName || ''}</p>
-                    <p><strong>شماره:</strong> ${user.phone}</p>
-                    <p><strong>تعداد کل تیکت‌ها:</strong> ${userTickets.length}</p>
-                </div>
-                
-                <div class="user-tickets-list">
-                    ${userTickets.length > 0 ? ticketsHtml : '<p class="empty-message">این کاربر هنوز تیکتی ارسال نکرده است</p>'}
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // اضافه کردن مودال به صفحه
-    const existingModal = document.getElementById('view-user-tickets-modal');
-    if (existingModal) existingModal.remove();
-    
-    const existingOverlay = document.getElementById('view-user-tickets-overlay');
-    if (existingOverlay) existingOverlay.remove();
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // باز کردن مودال
-    openModal('view-user-tickets-modal', 'view-user-tickets-overlay');
+            // بروزرسانی لیست تیکت‌ها
+            await renderAdminTickets();
+        } else {
+            showNotification('خطا در ارسال پاسخ', 'error');
+        }
+    } catch (error) {
+        console.error('خطا در ارسال پاسخ:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+    }
 }
 
-function renderAdminProducts() {
-    const container = document.getElementById('admin-products-list');
+// علامت زدن تیکت به عنوان حل شده
+async function markTicketAsSolved(ticketId) {
+    try {
+        const result = await window.supabaseFunctions.updateTicketStatus(ticketId, 'حل شده');
+        
+        if (result.success) {
+            showNotification('تیکت به عنوان حل شده علامت زده شد', 'success');
+            await renderAdminTickets();
+        } else {
+            showNotification('خطا در بروزرسانی تیکت', 'error');
+        }
+    } catch (error) {
+        console.error('خطا در بروزرسانی تیکت:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+    }
+}
+
+// نمایش تیکت‌های کاربر
+async function renderUserTickets() {
+    const container = document.getElementById('user-tickets-list');
     if (!container) return;
     
     container.innerHTML = '';
     
-    products.forEach(product => {
-        const item = document.createElement('div');
-        item.className = 'admin-item';
-        
-        // تعداد فروش این محصول
-        const salesCount = ordersHistory.reduce((count, order) => {
-            const productInOrder = order.items.find(item => item.id === product.id);
-            return count + (productInOrder ? productInOrder.quantity : 0);
-        }, 0);
-        
-        // درآمد از این محصول
-        const productRevenue = salesCount * product.price;
-        
-        item.innerHTML = `
-            <div style="flex: 1;">
-                <h4>${product.name}</h4>
-                <p>${product.description}</p>
-                <p><strong>دسته‌بندی:</strong> ${product.category}</p>
-                <p><strong>قیمت:</strong> ${formatNumber(product.price)} تومان</p>
+    if (!userState.isLoggedIn) {
+        container.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>لطفاً ابتدا وارد شوید</p>
             </div>
-            <div class="admin-item-actions">
-                <div class="product-stats">
-                    <p><strong>تعداد فروش:</strong> ${salesCount}</p>
-                    <p><strong>درآمد کل:</strong> ${formatNumber(productRevenue)} تومان</p>
+        `;
+        return;
+    }
+    
+    showNotification('در حال بارگذاری تیکت‌ها...', 'info');
+    
+    try {
+        const result = await window.supabaseFunctions.getUserTickets(userState.currentUser.id);
+        
+        if (result.success && result.tickets && result.tickets.length > 0) {
+            result.tickets.forEach(ticket => {
+                const ticketElement = document.createElement('div');
+                ticketElement.className = 'user-ticket-item';
+                
+                ticketElement.innerHTML = `
+                    <div class="ticket-summary">
+                        <h4>${ticket.subject}</h4>
+                        <p>${ticket.message.substring(0, 150)}${ticket.message.length > 150 ? '...' : ''}</p>
+                        <div class="ticket-meta">
+                            <span class="status-badge status-${ticket.status === 'جدید' ? 'new' : ticket.status === 'در حال بررسی' ? 'pending' : 'solved'}">
+                                ${ticket.status}
+                            </span>
+                            <span class="ticket-date">${formatDate(ticket.created_at)}</span>
+                            <span class="reply-count">${ticket.replies ? ticket.replies.length : 0} پاسخ</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="viewUserTicketDetails(${ticket.id})">
+                            مشاهده جزئیات
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(ticketElement);
+            });
+        } else {
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-ticket-alt"></i>
+                    <p>شما هنوز تیکتی ارسال نکرده‌اید</p>
                 </div>
-                <button class="btn btn-secondary" onclick="editProduct(${product.id})">
-                    <i class="fas fa-edit"></i> ویرایش
-                </button>
+            `;
+        }
+    } catch (error) {
+        console.error('خطا در دریافت تیکت‌های کاربر:', error);
+        container.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>خطا در بارگذاری تیکت‌ها</p>
+            </div>
+        `;
+    }
+}
+
+// مشاهده جزئیات تیکت کاربر
+async function viewUserTicketDetails(ticketId) {
+    try {
+        const result = await window.supabaseFunctions.getUserTickets(userState.currentUser.id);
+        if (!result.success) return;
+        
+        const ticket = result.tickets.find(t => t.id === ticketId);
+        if (!ticket) return;
+        
+        const modalHtml = `
+            <div class="modal-overlay" id="user-ticket-details-overlay"></div>
+            <div class="modal modal-lg" id="user-ticket-details-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-ticket-alt"></i> تیکت #${ticket.id}</h3>
+                    <button class="close-modal" onclick="closeModal('user-ticket-details-modal', 'user-ticket-details-overlay')">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="ticket-info-user">
+                        <p><strong>موضوع:</strong> ${ticket.subject}</p>
+                        <p><strong>تاریخ ارسال:</strong> ${formatDate(ticket.created_at)}</p>
+                        <p><strong>وضعیت:</strong> ${ticket.status}</p>
+                    </div>
+                    
+                    <div class="ticket-message-user">
+                        <h4>پیام شما:</h4>
+                        <div class="message-content">${ticket.message}</div>
+                    </div>
+                    
+                    <div class="ticket-replies-user">
+                        <h4>پاسخ‌ها:</h4>
+                        ${ticket.replies && ticket.replies.length > 0 ? 
+                            ticket.replies.map(reply => `
+                                <div class="reply-item ${reply.isAdmin ? 'admin-reply' : 'user-reply'}">
+                                    <div class="reply-header">
+                                        <strong>${reply.isAdmin ? '👮 ادمین' : '👤 شما'}</strong>
+                                        <span>${formatDate(reply.date)}</span>
+                                    </div>
+                                    <div class="reply-content">${reply.message}</div>
+                                </div>
+                            `).join('') : 
+                            '<p class="no-replies">هنوز پاسخی دریافت نکرده‌اید</p>'
+                        }
+                    </div>
+                </div>
             </div>
         `;
         
-        container.appendChild(item);
-    });
+        // اضافه کردن مودال
+        const existingModal = document.getElementById('user-ticket-details-modal');
+        if (existingModal) existingModal.remove();
+        
+        const existingOverlay = document.getElementById('user-ticket-details-overlay');
+        if (existingOverlay) existingOverlay.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // باز کردن مودال
+        openModal('user-ticket-details-modal', 'user-ticket-details-overlay');
+        
+    } catch (error) {
+        console.error('خطا در مشاهده تیکت:', error);
+        showNotification('خطا در بارگذاری تیکت', 'error');
+    }
 }
 
-// مدیریت مودال‌ها
+// ========== مدیریت مودال‌ها ==========
+
 function openModal(modalId, overlayId) {
     const modal = document.getElementById(modalId);
     const overlay = document.getElementById(overlayId);
@@ -1125,326 +1116,16 @@ function toggleCart() {
     }
 }
 
-// ========== سیستم مدیریت تیکت‌ها ==========
+// ========== رویدادهای اولیه ==========
 
-// نمایش تیکت‌ها در پنل ادمین
-function renderAdminTickets(filter = 'all') {
-    const container = document.getElementById('admin-tickets-list');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    if (userState.tickets.length === 0) {
-        container.innerHTML = '<p class="empty-message">هیچ تیکتی ارسال نشده است</p>';
-        return;
-    }
-    
-    // مرتب کردن تیکت‌ها از جدید به قدیم
-    const sortedTickets = [...userState.tickets].sort((a, b) => b.id - a.id);
-    
-    // فیلتر کردن
-    let filteredTickets = sortedTickets;
-    if (filter === 'new') {
-        filteredTickets = sortedTickets.filter(ticket => ticket.status === 'جدید');
-    } else if (filter === 'pending') {
-        filteredTickets = sortedTickets.filter(ticket => ticket.status === 'در حال بررسی');
-    } else if (filter === 'solved') {
-        filteredTickets = sortedTickets.filter(ticket => ticket.status === 'حل شده');
-    }
-    
-    if (filteredTickets.length === 0) {
-        container.innerHTML = `<p class="empty-message">تیکتی با وضعیت "${filter}" وجود ندارد</p>`;
-        return;
-    }
-    
-    filteredTickets.forEach(ticket => {
-        const item = document.createElement('div');
-        item.className = 'admin-item ticket-item';
-        
-        // یافتن اطلاعات کاربر
-        const user = userState.users.find(u => u.id === ticket.userId);
-        
-        item.innerHTML = `
-            <div style="flex: 1;">
-                <div class="ticket-header">
-                    <h4>${ticket.subject}</h4>
-                    <span class="ticket-id">#${ticket.id}</span>
-                </div>
-                <div class="ticket-info">
-                    <p><strong>ارسال کننده:</strong> ${ticket.userName || 'نامشخص'} (${ticket.userPhone})</p>
-                    <p><strong>تاریخ:</strong> ${formatDate(ticket.date)}</p>
-                    <p><strong>پیام:</strong> ${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
-                </div>
-                <div class="ticket-meta">
-                    <span class="status-badge status-${getStatusClass(ticket.status)}">
-                        ${ticket.status}
-                    </span>
-                    <span class="reply-count">${ticket.replies ? ticket.replies.length : 0} پاسخ</span>
-                </div>
-            </div>
-            <div class="admin-item-actions">
-                <button class="btn btn-primary" onclick="viewTicketDetails(${ticket.id})">
-                    <i class="fas fa-eye"></i> مشاهده
-                </button>
-                <button class="btn btn-secondary" onclick="changeTicketStatus(${ticket.id}, 'در حال بررسی')">
-                    <i class="fas fa-spinner"></i> بررسی
-                </button>
-                <button class="btn btn-success" onclick="changeTicketStatus(${ticket.id}, 'حل شده')">
-                    <i class="fas fa-check"></i> حل شد
-                </button>
-            </div>
-        `;
-        
-        container.appendChild(item);
-    });
-}
-
-// کلاس وضعیت تیکت
-function getStatusClass(status) {
-    switch(status) {
-        case 'جدید': return 'new';
-        case 'در حال بررسی': return 'pending';
-        case 'حل شده': return 'solved';
-        default: return 'new';
-    }
-}
-
-// فیلتر تیکت‌ها
-function filterTickets(type) {
-    // آپدیت دکمه‌های فیلتر
-    document.querySelectorAll('.ticket-filters .filter-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    renderAdminTickets(type);
-}
-
-// تغییر وضعیت تیکت
-function changeTicketStatus(ticketId, newStatus) {
-    const ticketIndex = userState.tickets.findIndex(t => t.id === ticketId);
-    if (ticketIndex !== -1) {
-        userState.tickets[ticketIndex].status = newStatus;
-        saveToLocalStorage();
-        showNotification(`وضعیت تیکت به "${newStatus}" تغییر یافت`, 'success');
-        renderAdminTickets();
-    }
-}
-
-// مشاهده جزئیات تیکت و پاسخ دادن
-function viewTicketDetails(ticketId) {
-    const ticket = userState.tickets.find(t => t.id === ticketId);
-    if (!ticket) {
-        showNotification('تیکت یافت نشد', 'error');
-        return;
-    }
-    
-    const modalHtml = `
-        <div class="modal-overlay" id="ticket-details-overlay"></div>
-        <div class="modal modal-lg" id="ticket-details-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-ticket-alt"></i> تیکت #${ticket.id}</h3>
-                <button class="close-modal" onclick="closeModal('ticket-details-modal', 'ticket-details-overlay')">&times;</button>
-            </div>
-            
-            <div class="modal-body">
-                <div class="ticket-details-view">
-                    <!-- اطلاعات تیکت -->
-                    <div class="ticket-info-section">
-                        <div class="ticket-header-info">
-                            <h4>${ticket.subject}</h4>
-                            <span class="status-badge status-${getStatusClass(ticket.status)}">
-                                ${ticket.status}
-                            </span>
-                        </div>
-                        
-                        <div class="ticket-user-info">
-                            <p><i class="fas fa-user"></i> <strong>ارسال کننده:</strong> ${ticket.userName}</p>
-                            <p><i class="fas fa-phone"></i> <strong>شماره تماس:</strong> ${ticket.userPhone}</p>
-                            <p><i class="fas fa-calendar"></i> <strong>تاریخ ارسال:</strong> ${formatDate(ticket.date)}</p>
-                        </div>
-                        
-                        <div class="ticket-message-box">
-                            <h5>پیام کاربر:</h5>
-                            <div class="message-content">
-                                ${ticket.message}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- پاسخ‌های قبلی -->
-                    <div class="ticket-replies-section" id="ticket-replies-${ticket.id}">
-                        <h5>پاسخ‌ها (${ticket.replies ? ticket.replies.length : 0})</h5>
-                        ${renderTicketReplies(ticket)}
-                    </div>
-                    
-                    <!-- فرم پاسخ ادمین -->
-                    <div class="admin-reply-section">
-                        <h5>پاسخ ادمین</h5>
-                        <div class="form-group">
-                            <textarea id="admin-reply-text-${ticket.id}" rows="4" placeholder="پاسخ خود را اینجا بنویسید..."></textarea>
-                        </div>
-                        <div class="reply-actions">
-                            <button class="btn btn-primary" onclick="submitAdminReply(${ticket.id})">
-                                <i class="fas fa-paper-plane"></i> ارسال پاسخ
-                            </button>
-                            <div class="status-controls">
-                                <label>تغییر وضعیت:</label>
-                                <select id="ticket-status-select-${ticket.id}" onchange="updateTicketStatusFromSelect(${ticket.id})">
-                                    <option value="جدید" ${ticket.status === 'جدید' ? 'selected' : ''}>جدید</option>
-                                    <option value="در حال بررسی" ${ticket.status === 'در حال بررسی' ? 'selected' : ''}>در حال بررسی</option>
-                                    <option value="حل شده" ${ticket.status === 'حل شده' ? 'selected' : ''}>حل شده</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // حذف مودال قبلی اگر وجود دارد
-    const existingModal = document.getElementById('ticket-details-modal');
-    if (existingModal) existingModal.remove();
-    
-    const existingOverlay = document.getElementById('ticket-details-overlay');
-    if (existingOverlay) existingOverlay.remove();
-    
-    // اضافه کردن مودال جدید
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // باز کردن مودال
-    openModal('ticket-details-modal', 'ticket-details-overlay');
-}
-
-// نمایش پاسخ‌های تیکت
-function renderTicketReplies(ticket) {
-    if (!ticket.replies || ticket.replies.length === 0) {
-        return '<p class="no-replies">هنوز پاسخی داده نشده است</p>';
-    }
-    
-    let repliesHtml = '';
-    ticket.replies.forEach(reply => {
-        repliesHtml += `
-            <div class="reply-item ${reply.isAdmin ? 'admin-reply' : 'user-reply'}">
-                <div class="reply-header">
-                    <div class="reply-sender">
-                        <i class="fas ${reply.isAdmin ? 'fa-user-shield' : 'fa-user'}"></i>
-                        <strong>${reply.isAdmin ? '👮 ادمین' : '👤 کاربر'}</strong>
-                    </div>
-                    <span class="reply-date">${formatDate(reply.date)}</span>
-                </div>
-                <div class="reply-content">
-                    ${reply.message}
-                </div>
-            </div>
-        `;
-    });
-    
-    return repliesHtml;
-}
-
-// ارسال پاسخ ادمین
-function submitAdminReply(ticketId) {
-    const replyText = document.getElementById(`admin-reply-text-${ticketId}`).value.trim();
-    
-    if (!replyText) {
-        showNotification('لطفاً متن پاسخ را وارد کنید', 'warning');
-        return;
-    }
-    
-    const ticketIndex = userState.tickets.findIndex(t => t.id === ticketId);
-    if (ticketIndex === -1) return;
-    
-    // ایجاد پاسخ جدید
-    const newReply = {
-        id: Date.now(),
-        isAdmin: true,
-        message: replyText,
-        date: new Date().toISOString()
-    };
-    
-    // اضافه کردن پاسخ به تیکت
-    if (!userState.tickets[ticketIndex].replies) {
-        userState.tickets[ticketIndex].replies = [];
-    }
-    
-    userState.tickets[ticketIndex].replies.push(newReply);
-    
-    // تغییر وضعیت به "در حال بررسی" اگر هنوز "جدید" است
-    if (userState.tickets[ticketIndex].status === 'جدید') {
-        userState.tickets[ticketIndex].status = 'در حال بررسی';
-    }
-    
-    saveToLocalStorage();
-    
-    // پاک کردن فیلد متن
-    document.getElementById(`admin-reply-text-${ticketId}`).value = '';
-    
-    // نمایش پیام موفقیت
-    showNotification('پاسخ شما با موفقیت ارسال شد', 'success');
-    
-    // بروزرسانی نمایش تیکت
-    viewTicketDetails(ticketId);
-    
-    // بروزرسانی لیست تیکت‌ها
-    renderAdminTickets();
-}
-
-// بروزرسانی وضعیت تیکت از انتخابگر
-function updateTicketStatusFromSelect(ticketId) {
-    const selectElement = document.getElementById(`ticket-status-select-${ticketId}`);
-    const newStatus = selectElement.value;
-    
-    const ticketIndex = userState.tickets.findIndex(t => t.id === ticketId);
-    if (ticketIndex !== -1) {
-        userState.tickets[ticketIndex].status = newStatus;
-        saveToLocalStorage();
-        showNotification(`وضعیت تیکت به "${newStatus}" تغییر یافت`, 'success');
-        
-        // بروزرسانی نمایش
-        const statusBadge = document.querySelector(`#ticket-details-modal .status-badge`);
-        if (statusBadge) {
-            statusBadge.textContent = newStatus;
-            statusBadge.className = `status-badge status-${getStatusClass(newStatus)}`;
-        }
-        
-        // بروزرسانی لیست تیکت‌ها
-        renderAdminTickets();
-    }
-}
-
-// ========== آپدیت تابع renderAdminPanel ==========
-
-function renderAdminPanel() {
-    // آمار
-    document.getElementById('stats-users-count').textContent = userState.users.length;
-    document.getElementById('stats-orders-count').textContent = ordersHistory.length;
-    
-    const totalIncome = ordersHistory.reduce((sum, order) => sum + order.total, 0);
-    document.getElementById('stats-total-income').textContent = formatNumber(totalIncome) + " تومان";
-    
-    // تیکت‌ها
-    renderAdminTickets();
-    
-    // سفارشات
-    renderAdminOrders();
-    
-    // کاربران
-    renderAdminUsers();
-    
-    // محصولات
-    renderAdminProducts();
-}
-
-// رویدادهای اولیه
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // مقداردهی اولیه
-    renderProducts();
-    renderPricingTable();
-    renderCartItems();
     updateCartCount();
+    renderCartItems();
     updateUserUI();
+    
+    // بارگذاری محصولات
+    await loadProducts();
     
     // فیلتر محصولات
     const filterButtons = document.querySelectorAll('.filter-btn');
@@ -1454,15 +1135,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             const filter = this.getAttribute('data-filter');
             renderProducts(filter);
-        });
-    });
-    
-    // مدیریت تب‌های ادمین
-    const adminTabButtons = document.querySelectorAll('.tab-btn');
-    adminTabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const tabId = this.getAttribute('data-tab');
-            switchAdminTab(tabId);
         });
     });
     
@@ -1492,7 +1164,6 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             if (userState.isLoggedIn) {
-                // نمایش دراپ‌داون
                 const userDropdown = document.getElementById('user-dropdown');
                 if (window.innerWidth <= 992) {
                     userDropdown.classList.toggle('active');
@@ -1521,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ارسال فرم ورود
     const submitLogin = document.getElementById('submit-login');
     if (submitLogin) {
-        submitLogin.addEventListener('click', function() {
+        submitLogin.addEventListener('click', async function() {
             const phoneInput = document.getElementById('phone');
             const phone = phoneInput.value.trim();
             
@@ -1530,9 +1201,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            loginUser(phone);
-            phoneInput.value = '';
-            closeModal('login-modal', 'login-overlay');
+            const success = await loginUser(phone);
+            if (success) {
+                phoneInput.value = '';
+                closeModal('login-modal', 'login-overlay');
+            }
         });
     }
     
@@ -1561,8 +1234,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // پر کردن خودکار اطلاعات کاربر
             if (userState.currentUser) {
-                document.getElementById('first-name').value = userState.currentUser.firstName || '';
-                document.getElementById('last-name').value = userState.currentUser.lastName || '';
+                document.getElementById('first-name').value = userState.currentUser.first_name || '';
+                document.getElementById('last-name').value = userState.currentUser.last_name || '';
                 document.getElementById('checkout-phone').value = userState.currentUser.phone || '';
             }
             
@@ -1631,9 +1304,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // سابقه خرید
     const ordersLink = document.querySelector('a[href="#orders"]');
     if (ordersLink) {
-        ordersLink.addEventListener('click', function(e) {
+        ordersLink.addEventListener('click', async function(e) {
             e.preventDefault();
-            renderOrdersHistory();
+            await renderOrdersHistory();
             openModal('orders-modal', 'orders-overlay');
         });
     }
@@ -1679,6 +1352,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (profileOverlay) {
         profileOverlay.addEventListener('click', function() {
             closeModal('profile-modal', 'profile-overlay');
+        });
+    }
+    
+    // تیکت‌های من
+    const myTicketsBtn = document.querySelector('a[href="#mytickets"]');
+    if (myTicketsBtn) {
+        myTicketsBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            await renderUserTickets();
+            openModal('mytickets-modal', 'mytickets-overlay');
         });
     }
     
