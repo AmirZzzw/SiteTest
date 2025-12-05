@@ -339,189 +339,260 @@ async function getAllProducts() {
 }
 
 // 5. ایجاد سفارش جدید
+// 5. ایجاد سفارش جدید
 async function createNewOrder(orderData) {
     try {
-        console.log('🛒 Creating order...');
+        console.log('🛒 Creating order for user:', orderData.userId);
         
-        if (!supabase) {
-            // ذخیره در localStorage به عنوان fallback
-            const orders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-            const order = {
-                id: Date.now(),
-                ...orderData,
-                created_at: new Date().toISOString(),
-                status: 'در انتظار تأیید'
-            };
-            orders.push(order);
-            localStorage.setItem('local_orders', JSON.stringify(orders));
-            
-            return {
-                success: true,
-                order: order
-            };
-        }
-        
-        const order = {
+        // همیشه در localStorage ذخیره کن
+        const orders = JSON.parse(localStorage.getItem('local_orders') || '[]');
+        const localOrder = {
+            id: orderData.id || Date.now(),
+            userId: orderData.userId,
             user_id: orderData.userId,
             total: orderData.total,
             status: 'در انتظار تأیید',
             customer_info: orderData.customerInfo,
             receipt_info: orderData.receipt,
-            items: orderData.items
+            items: orderData.items,
+            created_at: new Date().toISOString()
         };
         
-        const { data, error } = await supabase
-            .from('orders')
-            .insert([order])
-            .select()
-            .single();
+        orders.push(localOrder);
+        localStorage.setItem('local_orders', JSON.stringify(orders));
         
-        if (error) {
-            console.error('❌ Error creating order:', error);
-            
-            // Fallback به localStorage
-            const orders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-            const fallbackOrder = {
-                id: Date.now(),
-                ...orderData,
-                created_at: new Date().toISOString(),
-                status: 'در انتظار تأیید'
-            };
-            orders.push(fallbackOrder);
-            localStorage.setItem('local_orders', JSON.stringify(orders));
-            
+        console.log('✅ Order saved to localStorage:', localOrder.id);
+        
+        // خالی کردن سبد خرید
+        localStorage.removeItem('sidka_cart');
+        
+        // اگر Supabase وصل نیست، برگرد
+        if (!supabase) {
             return {
                 success: true,
-                order: fallbackOrder
+                order: localOrder,
+                message: 'سفارش با موفقیت ثبت شد (ذخیره محلی)'
             };
         }
         
-        console.log('✅ Order created:', data.id);
-        return {
-            success: true,
-            order: data
-        };
+        // سعی کن در Supabase هم ذخیره کنی
+        try {
+            const supabaseOrder = {
+                user_id: orderData.userId,
+                total: orderData.total,
+                status: 'در انتظار تأیید',
+                customer_info: orderData.customerInfo,
+                receipt_info: orderData.receipt,
+                items: orderData.items
+            };
+            
+            const { data, error } = await supabase
+                .from('orders')
+                .insert([supabaseOrder])
+                .select()
+                .single();
+            
+            if (error) {
+                console.warn('⚠️ Error creating order in Supabase:', error);
+                return {
+                    success: true,
+                    order: localOrder,
+                    message: 'سفارش ثبت شد (ذخیره محلی)'
+                };
+            }
+            
+            console.log('✅ Order created in Supabase:', data.id);
+            return {
+                success: true,
+                order: data,
+                message: 'سفارش با موفقیت ثبت شد'
+            };
+            
+        } catch (supabaseError) {
+            console.warn('⚠️ Supabase error:', supabaseError);
+            return {
+                success: true,
+                order: localOrder,
+                message: 'سفارش ثبت شد (ذخیره محلی)'
+            };
+        }
         
     } catch (error) {
         console.error('❌ Error in createNewOrder:', error);
         
-        // حالت fallback
-        const orders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-        const order = {
+        // در بدترین حالت
+        const fallbackOrder = {
             id: Date.now(),
-            ...orderData,
-            created_at: new Date().toISOString(),
-            status: 'در انتظار تأیید'
+            userId: orderData.userId,
+            total: orderData.total || 0,
+            status: 'در انتظار تأیید',
+            created_at: new Date().toISOString()
         };
-        orders.push(order);
-        localStorage.setItem('local_orders', JSON.stringify(orders));
         
         return {
             success: true,
-            order: order
+            order: fallbackOrder,
+            message: 'سفارش ثبت شد (حالت اضطراری)'
         };
     }
 }
 
 // 6. دریافت سفارشات کاربر
+// 6. دریافت سفارشات کاربر
 async function getUserOrders(userId) {
     try {
+        console.log('📋 Getting orders for user:', userId);
+        
+        // اول از localStorage بگیر
+        const localOrders = JSON.parse(localStorage.getItem('local_orders') || '[]');
+        const userLocalOrders = localOrders.filter(order => 
+            order.userId == userId || order.user_id == userId
+        );
+        
+        console.log('Found orders in localStorage:', userLocalOrders.length);
+        
+        // اگر Supabase وصل نیست
         if (!supabase) {
-            const orders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-            const userOrders = orders.filter(o => o.userId === userId);
-            return { success: true, orders: userOrders };
+            return {
+                success: true,
+                orders: userLocalOrders
+            };
         }
         
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-        
-        if (error) {
-            console.warn('⚠️ Error getting orders:', error);
-            const orders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-            const userOrders = orders.filter(o => o.userId === userId);
-            return { success: true, orders: userOrders };
+        // سعی کن از Supabase هم بگیر
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.warn('⚠️ Error getting orders from Supabase:', error);
+                return {
+                    success: true,
+                    orders: userLocalOrders
+                };
+            }
+            
+            // اگر سفارشی در Supabase هست
+            if (data && data.length > 0) {
+                console.log('Found orders in Supabase:', data.length);
+                
+                // ادغام با سفارشات محلی
+                const allOrders = [...data, ...userLocalOrders];
+                
+                // حذف duplicate ها (بر اساس id)
+                const uniqueOrders = allOrders.filter((order, index, self) =>
+                    index === self.findIndex((o) => o.id === order.id)
+                );
+                
+                return {
+                    success: true,
+                    orders: uniqueOrders
+                };
+            }
+            
+            // اگر نه، از localStorage برگردون
+            return {
+                success: true,
+                orders: userLocalOrders
+            };
+            
+        } catch (supabaseError) {
+            console.warn('⚠️ Supabase error:', supabaseError);
+            return {
+                success: true,
+                orders: userLocalOrders
+            };
         }
-        
-        return { success: true, orders: data || [] };
         
     } catch (error) {
-        console.error('❌ Error getting orders:', error);
+        console.error('❌ Error getting user orders:', error);
+        
+        // در هر صورت از localStorage برگردون
         const orders = JSON.parse(localStorage.getItem('local_orders') || '[]');
-        const userOrders = orders.filter(o => o.userId === userId);
-        return { success: true, orders: userOrders };
+        const userOrders = orders.filter(order => order.userId == userId);
+        
+        return {
+            success: true,
+            orders: userOrders
+        };
     }
 }
 
 // 7. ایجاد تیکت جدید
+// 7. ایجاد تیکت جدید
 async function createNewTicket(ticketData) {
     try {
         console.log('🎫 Creating ticket:', ticketData.subject);
+        console.log('Ticket data:', ticketData); // برای دیباگ
         
-        if (!supabase) {
-            // ذخیره در localStorage
-            const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
-            const ticket = {
-                id: Date.now(),
-                ...ticketData,
-                created_at: new Date().toISOString(),
-                status: 'جدید'
-            };
-            tickets.push(ticket);
-            localStorage.setItem('local_tickets', JSON.stringify(tickets));
-            
-            return { success: true, ticket: ticket };
-        }
-        
-        const ticket = {
+        // ذخیره در localStorage (همیشه)
+        const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+        const localTicket = {
+            id: Date.now(),
+            userId: ticketData.userId,
             user_id: ticketData.userId,
             subject: ticketData.subject,
             message: ticketData.message,
+            created_at: new Date().toISOString(),
             status: 'جدید'
         };
+        tickets.push(localTicket);
+        localStorage.setItem('local_tickets', JSON.stringify(tickets));
         
-        const { data, error } = await supabase
-            .from('tickets')
-            .insert([ticket])
-            .select()
-            .single();
+        console.log('✅ Ticket saved to localStorage:', localTicket.id);
         
-        if (error) {
-            console.warn('⚠️ Error creating ticket, using fallback:', error);
-            
-            const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
-            const fallbackTicket = {
-                id: Date.now(),
-                ...ticketData,
-                created_at: new Date().toISOString(),
-                status: 'جدید'
-            };
-            tickets.push(fallbackTicket);
-            localStorage.setItem('local_tickets', JSON.stringify(tickets));
-            
-            return { success: true, ticket: fallbackTicket };
+        // اگر Supabase وصل نیست، برگرد
+        if (!supabase) {
+            return { success: true, ticket: localTicket };
         }
         
-        console.log('✅ Ticket created:', data.id);
-        return { success: true, ticket: data };
+        // سعی کن در Supabase هم ذخیره کنی
+        try {
+            const ticket = {
+                user_id: ticketData.userId,
+                subject: ticketData.subject,
+                message: ticketData.message,
+                status: 'جدید'
+            };
+            
+            console.log('Sending to Supabase:', ticket);
+            
+            const { data, error } = await supabase
+                .from('tickets')
+                .insert([ticket])
+                .select()
+                .single();
+            
+            if (error) {
+                console.warn('⚠️ Error creating ticket in Supabase:', error);
+                return { success: true, ticket: localTicket };
+            }
+            
+            console.log('✅ Ticket created in Supabase:', data.id);
+            return { success: true, ticket: data };
+            
+        } catch (supabaseError) {
+            console.warn('⚠️ Supabase error, using local storage:', supabaseError);
+            return { success: true, ticket: localTicket };
+        }
         
     } catch (error) {
         console.error('❌ Error creating ticket:', error);
         
-        // Fallback
-        const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
-        const ticket = {
+        // در بدترین حالت
+        const fallbackTicket = {
             id: Date.now(),
-            ...ticketData,
+            userId: ticketData.userId,
+            subject: ticketData.subject || 'بدون موضوع',
+            message: ticketData.message || 'بدون پیام',
             created_at: new Date().toISOString(),
             status: 'جدید'
         };
-        tickets.push(ticket);
-        localStorage.setItem('local_tickets', JSON.stringify(tickets));
         
-        return { success: true, ticket: ticket };
+        return { success: true, ticket: fallbackTicket };
     }
 }
 
@@ -550,25 +621,112 @@ async function getAllOrders() {
     }
 }
 
-async function getAllTickets() {
+// دریافت تیکت‌های کاربر
+async function getUserTickets(userId) {
     try {
+        console.log('📨 Getting tickets for user:', userId);
+        
         if (!supabase) {
+            // از localStorage بگیر
             const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
-            return { success: true, tickets: tickets };
+            const userTickets = tickets.filter(ticket => ticket.userId == userId);
+            
+            console.log('Found tickets in localStorage:', userTickets.length);
+            
+            return {
+                success: true,
+                tickets: userTickets
+            };
         }
         
+        // از Supabase بگیر
         const { data, error } = await supabase
             .from('tickets')
-            .select('*, users(phone, first_name, last_name)')
+            .select('*')
+            .eq('user_id', userId)
             .order('created_at', { ascending: false });
         
         if (error) {
+            console.warn('⚠️ Error getting tickets from Supabase:', error);
+            
+            // Fallback به localStorage
             const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
-            return { success: true, tickets: tickets };
+            const userTickets = tickets.filter(ticket => ticket.userId == userId);
+            
+            return {
+                success: true,
+                tickets: userTickets
+            };
         }
         
-        return { success: true, tickets: data || [] };
+        console.log('Found tickets in Supabase:', data?.length || 0);
+        
+        // اگر تیکتی در Supabase نیست، از localStorage بگیر
+        if (!data || data.length === 0) {
+            const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+            const userTickets = tickets.filter(ticket => ticket.userId == userId);
+            
+            return {
+                success: true,
+                tickets: userTickets
+            };
+        }
+        
+        return {
+            success: true,
+            tickets: data || []
+        };
+        
     } catch (error) {
+        console.error('❌ Error getting user tickets:', error);
+        
+        // در هر صورت، از localStorage برگردون
+        const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+        const userTickets = tickets.filter(ticket => ticket.userId == userId);
+        
+        return {
+            success: true,
+            tickets: userTickets
+        };
+    }
+}
+
+async function getAllTickets() {
+    try {
+        // اول از localStorage بگیر (برای مطمئن بودن)
+        const localTickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
+        
+        if (!supabase) {
+            return { success: true, tickets: localTickets };
+        }
+        
+        // سعی کن از Supabase هم بگیر
+        try {
+            const { data, error } = await supabase
+                .from('tickets')
+                .select('*, users(phone, first_name, last_name)')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.warn('⚠️ Error getting tickets from Supabase:', error);
+                return { success: true, tickets: localTickets };
+            }
+            
+            // اگر تیکتی در Supabase هست، برگردون
+            if (data && data.length > 0) {
+                return { success: true, tickets: data };
+            }
+            
+            // اگر نه، از localStorage برگردون
+            return { success: true, tickets: localTickets };
+            
+        } catch (supabaseError) {
+            console.warn('⚠️ Supabase error, using local storage:', supabaseError);
+            return { success: true, tickets: localTickets };
+        }
+        
+    } catch (error) {
+        console.error('❌ Error getting all tickets:', error);
         const tickets = JSON.parse(localStorage.getItem('local_tickets') || '[]');
         return { success: true, tickets: tickets };
     }
@@ -715,6 +873,7 @@ const supabaseFunctions = {
     
     // تیکت‌ها
     createNewTicket,
+    getUserTickets, // این خط رو اضافه کن
     getAllTickets,
     addTicketReply,
     updateTicketStatus,
