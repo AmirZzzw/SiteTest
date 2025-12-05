@@ -85,12 +85,9 @@ function formatDate(dateString) {
     try {
         if (!dateString) return '---';
         
-        // اگر رشته تاریخ باشه
         const date = new Date(dateString);
         
-        // اگر تاریخ معتبر نبود
         if (isNaN(date.getTime())) {
-            // شاید timestamp باشه
             const timestamp = parseInt(dateString);
             if (!isNaN(timestamp)) {
                 return new Date(timestamp).toLocaleDateString('fa-IR');
@@ -109,7 +106,6 @@ function formatDate(dateString) {
         return '---';
     }
 }
-
 function showNotification(message, type = 'info') {
     try {
         const existing = document.querySelector('.notification');
