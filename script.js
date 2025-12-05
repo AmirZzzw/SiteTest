@@ -96,12 +96,20 @@ const pricingData = [
     { name: "پروفایل چنل", description: "طراحی پروفایل چنل", price: "۵۰,۰۰۰" }
 ];
 
+// اطلاعات ادمین اصلی
+const adminInfo = {
+    phone: "09021707830",
+    name: "امیرمحمد یوسفی",
+    cardNumber: "603799822276759",
+    telegramId: "7549513123",
+    botToken: "7408423935:AAH9nkoZg7ykqQMGKDeitIiOtu6uYZl0Vxg"
+};
+
 // مدیریت وضعیت کاربر
 const userState = {
     isLoggedIn: false,
     currentUser: null,
     users: JSON.parse(localStorage.getItem('users')) || [],
-    currentOrders: JSON.parse(localStorage.getItem('orders')) || [],
     tickets: JSON.parse(localStorage.getItem('tickets')) || []
 };
 
@@ -113,15 +121,6 @@ const cartState = {
 
 // مدیریت سفارشات
 const ordersHistory = JSON.parse(localStorage.getItem('ordersHistory')) || [];
-
-// اطلاعات ادمین اصلی
-const adminInfo = {
-    phone: "09021707830",
-    name: "امیرمحمد یوسفی",
-    cardNumber: "603799822276759",
-    telegramId: "7549513123",
-    botToken: "7408423935:AAH9nkoZg7ykqQMGKDeitIiOtu6uYZl0Vxg"
-};
 
 // فرمت اعداد به فارسی
 function formatNumber(num) {
@@ -138,7 +137,6 @@ function formatDate(date) {
 // ذخیره اطلاعات در localStorage
 function saveToLocalStorage() {
     localStorage.setItem('users', JSON.stringify(userState.users));
-    localStorage.setItem('orders', JSON.stringify(userState.currentOrders));
     localStorage.setItem('ordersHistory', JSON.stringify(ordersHistory));
     localStorage.setItem('tickets', JSON.stringify(userState.tickets));
     localStorage.setItem('cart', JSON.stringify(cartState.items));
@@ -350,7 +348,14 @@ function copyToClipboard(text) {
         })
         .catch(err => {
             console.error('خطا در کپی کردن:', err);
-            showNotification('خطا در کپی کردن', 'error');
+            // روش جایگزین برای مرورگرهای قدیمی
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showNotification('متن کپی شد!', 'success');
         });
 }
 
@@ -517,97 +522,72 @@ function completeOrder() {
         return;
     }
     
-    // ایجاد سفارش
-    const order = {
-        id: Date.now(),
-        userId: userState.currentUser.id,
-        items: [...cartState.items],
-        total: cartState.total,
-        customerInfo: {
-            firstName,
-            lastName,
-            phone
-        },
-        receipt: {
-            fileName: receiptFile.name,
-            note: receiptNote,
-            uploadTime: new Date().toISOString()
-        },
-        date: new Date().toISOString(),
-        status: 'در انتظار تأیید'
+    // خواندن فایل به عنوان Data URL
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const receiptImage = e.target.result;
+        
+        // ایجاد سفارش
+        const order = {
+            id: Date.now(),
+            userId: userState.currentUser.id,
+            items: [...cartState.items],
+            total: cartState.total,
+            customerInfo: {
+                firstName,
+                lastName,
+                phone
+            },
+            receipt: {
+                image: receiptImage,
+                fileName: receiptFile.name,
+                note: receiptNote,
+                uploadTime: new Date().toISOString(),
+                status: 'در انتظار تأیید' // وضعیت جدید
+            },
+            date: new Date().toISOString(),
+            status: 'در انتظار تأیید رسید'
+        };
+        
+        // افزودن به تاریخچه سفارشات
+        ordersHistory.push(order);
+        
+        // به روزرسانی اطلاعات کاربر
+        const user = userState.currentUser;
+        user.firstName = firstName;
+        user.lastName = lastName;
+        user.phone = phone;
+        
+        const userIndex = userState.users.findIndex(u => u.id === user.id);
+        if (userIndex !== -1) {
+            userState.users[userIndex] = user;
+        }
+        
+        // خالی کردن سبد خرید
+        cartState.items = [];
+        
+        // ذخیره همه چیز
+        saveToLocalStorage();
+        updateCartCount();
+        renderCartItems();
+        renderProducts();
+        renderPricingTable();
+        
+        // بستن مودال پرداخت
+        closeModal('checkout-modal', 'checkout-overlay');
+        
+        // نمایش پیام موفقیت
+        showNotification(`سفارش شما با موفقیت ثبت شد. کد پیگیری: ${order.id}`, 'success');
+        
+        // ریست فرم
+        document.getElementById('first-name').value = '';
+        document.getElementById('last-name').value = '';
+        document.getElementById('checkout-phone').value = '';
+        document.getElementById('receipt-file').value = '';
+        document.getElementById('receipt-note').value = '';
     };
     
-    // افزودن به تاریخچه سفارشات
-    ordersHistory.push(order);
-    
-    // به روزرسانی اطلاعات کاربر
-    const user = userState.currentUser;
-    user.firstName = firstName;
-    user.lastName = lastName;
-    user.phone = phone;
-    
-    const userIndex = userState.users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-        userState.users[userIndex] = user;
-    }
-    
-    // خالی کردن سبد خرید
-    cartState.items = [];
-    
-    // ذخیره همه چیز
-    saveToLocalStorage();
-    updateCartCount();
-    renderCartItems();
-    renderProducts();
-    renderPricingTable();
-    
-    // بستن مودال پرداخت
-    closeModal('checkout-modal', 'checkout-overlay');
-    
-    // نمایش پیام موفقیت
-    showNotification(`سفارش شما با موفقیت ثبت شد. کد پیگیری: ${order.id}`, 'success');
-    
-    // ارسال به تلگرام (شبیه‌سازی)
-    sendToTelegram(order);
-    
-    // ریست فرم
-    document.getElementById('first-name').value = '';
-    document.getElementById('last-name').value = '';
-    document.getElementById('checkout-phone').value = '';
-    document.getElementById('receipt-file').value = '';
-    document.getElementById('receipt-note').value = '';
-}
-
-// ارسال اطلاعات به تلگرام
-function sendToTelegram(order) {
-    const message = `🚨 سفارش جدید!\n\n`
-        + `📦 کد سفارش: ${order.id}\n`
-        + `👤 مشتری: ${order.customerInfo.firstName} ${order.customerInfo.lastName}\n`
-        + `📱 شماره: ${order.customerInfo.phone}\n`
-        + `💰 مبلغ: ${formatNumber(order.total)} تومان\n`
-        + `📅 تاریخ: ${formatDate(order.date)}\n\n`
-        + `🛒 محصولات:\n`;
-    
-    order.items.forEach(item => {
-        message += `• ${item.name} (${item.quantity} عدد) - ${formatNumber(item.price * item.quantity)} تومان\n`;
-    });
-    
-    message += `\n📝 توضیحات: ${order.receipt.note || 'بدون توضیح'}`;
-    
-    // شبیه‌سازی ارسال به تلگرام
-    console.log('ارسال به تلگرام:', message);
-    
-    // در نسخه واقعی:
-    // fetch(`https://api.telegram.org/bot${adminInfo.botToken}/sendMessage`, {
-    //     method: 'POST',
-    //     headers: {'Content-Type': 'application/json'},
-    //     body: JSON.stringify({
-    //         chat_id: adminInfo.telegramId,
-    //         text: message
-    //     })
-    // });
-    
-    showNotification('اطلاعات سفارش به تلگرام ارسال شد', 'success');
+    reader.readAsDataURL(receiptFile);
 }
 
 // ارسال تیکت پشتیبانی
@@ -640,17 +620,6 @@ function submitSupportTicket() {
     
     userState.tickets.push(ticket);
     saveToLocalStorage();
-    
-    // ارسال به تلگرام
-    const telegramMessage = `📨 تیکت جدید پشتیبانی!\n\n`
-        + `🆔 کد تیکت: ${ticket.id}\n`
-        + `👤 ارسال کننده: ${ticket.userName}\n`
-        + `📱 شماره: ${ticket.userPhone}\n`
-        + `📌 موضوع: ${ticket.subject}\n`
-        + `📝 پیام:\n${ticket.message}\n`
-        + `📅 تاریخ: ${formatDate(ticket.date)}`;
-    
-    console.log('ارسال تیکت به تلگرام:', telegramMessage);
     
     // بستن مودال و ریست فرم
     closeModal('ticket-modal', 'ticket-overlay');
@@ -711,7 +680,7 @@ function renderOrdersHistory() {
                 ${itemsList}
             </div>
             <div class="order-history-footer">
-                <span>وضعیت: <strong>${order.status}</strong></span>
+                <span>وضعیت: <strong class="status-${order.status === 'تأیید شده' ? 'success' : order.status === 'رد شده' ? 'danger' : 'warning'}">${order.status}</strong></span>
                 <span class="order-history-total">${formatNumber(order.total)} تومان</span>
             </div>
         `;
@@ -739,7 +708,7 @@ function renderAdminPanel() {
     const totalIncome = ordersHistory.reduce((sum, order) => sum + order.total, 0);
     document.getElementById('stats-total-income').textContent = formatNumber(totalIncome) + " تومان";
     
-    // سفارشات
+    // سفارشات (با رسید)
     renderAdminOrders();
     
     // کاربران
@@ -747,6 +716,28 @@ function renderAdminPanel() {
     
     // محصولات
     renderAdminProducts();
+}
+
+// مدیریت تب‌های ادمین
+function switchAdminTab(tabId) {
+    // مخفی کردن همه تب‌ها
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // حذف active از همه دکمه‌ها
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // نمایش تب انتخاب شده
+    const selectedTab = document.getElementById(tabId);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // آپدیت دکمه
+    event.target.classList.add('active');
 }
 
 function renderAdminOrders() {
@@ -771,21 +762,116 @@ function renderAdminOrders() {
         const itemsText = order.items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ');
         
         item.innerHTML = `
-            <div>
+            <div style="flex: 1;">
                 <h4>سفارش #${order.id}</h4>
-                <p>مشتری: ${order.customerInfo?.firstName || 'نامشخص'} ${order.customerInfo?.lastName || ''}</p>
-                <p>شماره: ${order.customerInfo?.phone || 'نامشخص'}</p>
-                <p>محصولات: ${itemsText}</p>
-                <p>توضیحات رسید: ${order.receipt?.note || 'بدون توضیح'}</p>
-                <small>تاریخ: ${formatDate(order.date)} | مبلغ: ${formatNumber(order.total)} تومان</small>
+                <p><strong>مشتری:</strong> ${order.customerInfo?.firstName || 'نامشخص'} ${order.customerInfo?.lastName || ''}</p>
+                <p><strong>شماره:</strong> ${order.customerInfo?.phone || 'نامشخص'}</p>
+                <p><strong>محصولات:</strong> ${itemsText}</p>
+                <p><strong>توضیحات رسید:</strong> ${order.receipt?.note || 'بدون توضیح'}</p>
+                <p><strong>تاریخ:</strong> ${formatDate(order.date)}</p>
+                <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
+                <p><strong>وضعیت رسید:</strong> 
+                    <span class="status-badge status-${order.receipt?.status === 'تأیید شده' ? 'success' : order.receipt?.status === 'رد شده' ? 'danger' : 'warning'}">
+                        ${order.receipt?.status || 'در انتظار تأیید'}
+                    </span>
+                </p>
             </div>
             <div class="admin-item-actions">
-                <span class="status-badge">${order.status}</span>
+                ${order.receipt?.image ? 
+                    `<button class="btn btn-primary" onclick="viewReceipt(${order.id})">
+                        <i class="fas fa-receipt"></i> مشاهده رسید
+                    </button>` : 
+                    `<span class="badge-warning">بدون رسید</span>`
+                }
+                <button class="btn btn-success" onclick="approveReceipt(${order.id})">
+                    <i class="fas fa-check"></i> تأیید رسید
+                </button>
+                <button class="btn btn-danger" onclick="rejectReceipt(${order.id})">
+                    <i class="fas fa-times"></i> رد رسید
+                </button>
             </div>
         `;
         
         container.appendChild(item);
     });
+}
+
+// مشاهده رسید
+function viewReceipt(orderId) {
+    const order = ordersHistory.find(o => o.id === orderId);
+    if (!order || !order.receipt?.image) {
+        showNotification('رسید یافت نشد', 'error');
+        return;
+    }
+    
+    const modalHtml = `
+        <div class="modal-overlay" id="view-receipt-overlay"></div>
+        <div class="modal modal-lg" id="view-receipt-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-receipt"></i> رسید سفارش #${order.id}</h3>
+                <button class="close-modal" onclick="closeModal('view-receipt-modal', 'view-receipt-overlay')">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="receipt-view">
+                    <div class="receipt-info">
+                        <p><strong>مشتری:</strong> ${order.customerInfo.firstName} ${order.customerInfo.lastName}</p>
+                        <p><strong>شماره تماس:</strong> ${order.customerInfo.phone}</p>
+                        <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
+                        <p><strong>تاریخ:</strong> ${formatDate(order.date)}</p>
+                        <p><strong>وضعیت:</strong> ${order.receipt.status}</p>
+                    </div>
+                    
+                    <div class="receipt-image-container">
+                        <img src="${order.receipt.image}" alt="رسید پرداخت" class="receipt-image">
+                    </div>
+                    
+                    <div class="receipt-notes">
+                        <h4>توضیحات مشتری:</h4>
+                        <p>${order.receipt.note || 'بدون توضیح'}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // اضافه کردن مودال به صفحه
+    const existingModal = document.getElementById('view-receipt-modal');
+    if (existingModal) existingModal.remove();
+    
+    const existingOverlay = document.getElementById('view-receipt-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // باز کردن مودال
+    openModal('view-receipt-modal', 'view-receipt-overlay');
+}
+
+// تأیید رسید
+function approveReceipt(orderId) {
+    const orderIndex = ordersHistory.findIndex(o => o.id === orderId);
+    if (orderIndex === -1) return;
+    
+    ordersHistory[orderIndex].receipt.status = 'تأیید شده';
+    ordersHistory[orderIndex].status = 'تأیید شده';
+    
+    saveToLocalStorage();
+    showNotification('رسید تأیید شد', 'success');
+    renderAdminOrders();
+}
+
+// رد رسید
+function rejectReceipt(orderId) {
+    const orderIndex = ordersHistory.findIndex(o => o.id === orderId);
+    if (orderIndex === -1) return;
+    
+    ordersHistory[orderIndex].receipt.status = 'رد شده';
+    ordersHistory[orderIndex].status = 'رد شده';
+    
+    saveToLocalStorage();
+    showNotification('رسید رد شد', 'warning');
+    renderAdminOrders();
 }
 
 function renderAdminUsers() {
@@ -808,23 +894,142 @@ function renderAdminUsers() {
         
         const userOrders = ordersHistory.filter(order => order.userId === user.id);
         const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
+        const successfulOrders = userOrders.filter(order => order.receipt?.status === 'تأیید شده').length;
         
         item.innerHTML = `
-            <div>
+            <div style="flex: 1;">
                 <h4>${user.firstName || 'کاربر'} ${user.lastName || ''}</h4>
-                <p>شماره: ${user.phone}</p>
-                <p>تعداد سفارشات: ${userOrders.length} | مجموع خرید: ${formatNumber(totalSpent)} تومان</p>
-                <small>عضویت از: ${formatDate(user.registeredAt)}</small>
+                <p><strong>شماره:</strong> ${user.phone}</p>
+                <p><strong>تعداد سفارشات:</strong> ${userOrders.length} سفارش</p>
+                <p><strong>سفارشات موفق:</strong> ${successfulOrders} سفارش</p>
+                <p><strong>مجموع خرید:</strong> ${formatNumber(totalSpent)} تومان</p>
+                <p><strong>عضویت از:</strong> ${formatDate(user.registeredAt)}</p>
             </div>
             <div class="admin-item-actions">
-                ${userOrders.length > 0 ? 
-                    `<span class="badge-success">مشتری وفادار</span>` : 
-                    `<span class="badge-warning">بدون سفارش</span>`}
+                <button class="btn btn-primary" onclick="viewUserOrders(${user.id})">
+                    <i class="fas fa-shopping-cart"></i> سفارشات
+                </button>
+                <button class="btn btn-secondary" onclick="viewUserTickets(${user.id})">
+                    <i class="fas fa-ticket-alt"></i> تیکت‌ها
+                </button>
             </div>
         `;
         
         container.appendChild(item);
     });
+}
+
+// مشاهده سفارشات کاربر
+function viewUserOrders(userId) {
+    const user = userState.users.find(u => u.id === userId);
+    const userOrders = ordersHistory.filter(order => order.userId === userId);
+    
+    if (!user) return;
+    
+    let ordersHtml = '';
+    userOrders.forEach(order => {
+        const itemsText = order.items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ');
+        
+        ordersHtml += `
+            <div class="user-order-item">
+                <h5>سفارش #${order.id}</h5>
+                <p><strong>تاریخ:</strong> ${formatDate(order.date)}</p>
+                <p><strong>محصولات:</strong> ${itemsText}</p>
+                <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
+                <p><strong>وضعیت:</strong> ${order.status}</p>
+                <p><strong>وضعیت رسید:</strong> ${order.receipt?.status || 'نامشخص'}</p>
+            </div>
+        `;
+    });
+    
+    const modalHtml = `
+        <div class="modal-overlay" id="view-user-orders-overlay"></div>
+        <div class="modal modal-lg" id="view-user-orders-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> سفارشات ${user.firstName || 'کاربر'}</h3>
+                <button class="close-modal" onclick="closeModal('view-user-orders-modal', 'view-user-orders-overlay')">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="user-info">
+                    <p><strong>نام:</strong> ${user.firstName || 'نامشخص'} ${user.lastName || ''}</p>
+                    <p><strong>شماره:</strong> ${user.phone}</p>
+                    <p><strong>تعداد کل سفارشات:</strong> ${userOrders.length}</p>
+                </div>
+                
+                <div class="user-orders-list">
+                    ${userOrders.length > 0 ? ordersHtml : '<p class="empty-message">این کاربر هنوز سفارشی ثبت نکرده است</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // اضافه کردن مودال به صفحه
+    const existingModal = document.getElementById('view-user-orders-modal');
+    if (existingModal) existingModal.remove();
+    
+    const existingOverlay = document.getElementById('view-user-orders-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // باز کردن مودال
+    openModal('view-user-orders-modal', 'view-user-orders-overlay');
+}
+
+// مشاهده تیکت‌های کاربر
+function viewUserTickets(userId) {
+    const user = userState.users.find(u => u.id === userId);
+    const userTickets = userState.tickets.filter(ticket => ticket.userId === userId);
+    
+    if (!user) return;
+    
+    let ticketsHtml = '';
+    userTickets.forEach(ticket => {
+        ticketsHtml += `
+            <div class="user-ticket-item">
+                <h5>تیکت #${ticket.id} - ${ticket.subject}</h5>
+                <p><strong>تاریخ:</strong> ${formatDate(ticket.date)}</p>
+                <p><strong>پیام:</strong> ${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
+                <p><strong>وضعیت:</strong> ${ticket.status}</p>
+                <p><strong>تعداد پاسخ‌ها:</strong> ${ticket.replies?.length || 0}</p>
+            </div>
+        `;
+    });
+    
+    const modalHtml = `
+        <div class="modal-overlay" id="view-user-tickets-overlay"></div>
+        <div class="modal modal-lg" id="view-user-tickets-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-ticket-alt"></i> تیکت‌های ${user.firstName || 'کاربر'}</h3>
+                <button class="close-modal" onclick="closeModal('view-user-tickets-modal', 'view-user-tickets-overlay')">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="user-info">
+                    <p><strong>نام:</strong> ${user.firstName || 'نامشخص'} ${user.lastName || ''}</p>
+                    <p><strong>شماره:</strong> ${user.phone}</p>
+                    <p><strong>تعداد کل تیکت‌ها:</strong> ${userTickets.length}</p>
+                </div>
+                
+                <div class="user-tickets-list">
+                    ${userTickets.length > 0 ? ticketsHtml : '<p class="empty-message">این کاربر هنوز تیکتی ارسال نکرده است</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // اضافه کردن مودال به صفحه
+    const existingModal = document.getElementById('view-user-tickets-modal');
+    if (existingModal) existingModal.remove();
+    
+    const existingOverlay = document.getElementById('view-user-tickets-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // باز کردن مودال
+    openModal('view-user-tickets-modal', 'view-user-tickets-overlay');
 }
 
 function renderAdminProducts() {
@@ -847,16 +1052,20 @@ function renderAdminProducts() {
         const productRevenue = salesCount * product.price;
         
         item.innerHTML = `
-            <div>
+            <div style="flex: 1;">
                 <h4>${product.name}</h4>
                 <p>${product.description}</p>
-                <small>دسته‌بندی: ${product.category} | قیمت: ${formatNumber(product.price)} تومان</small>
+                <p><strong>دسته‌بندی:</strong> ${product.category}</p>
+                <p><strong>قیمت:</strong> ${formatNumber(product.price)} تومان</p>
             </div>
             <div class="admin-item-actions">
                 <div class="product-stats">
-                    <span>فروش: ${salesCount}</span>
-                    <span>درآمد: ${formatNumber(productRevenue)} تومان</span>
+                    <p><strong>تعداد فروش:</strong> ${salesCount}</p>
+                    <p><strong>درآمد کل:</strong> ${formatNumber(productRevenue)} تومان</p>
                 </div>
+                <button class="btn btn-secondary" onclick="editProduct(${product.id})">
+                    <i class="fas fa-edit"></i> ویرایش
+                </button>
             </div>
         `;
         
@@ -933,6 +1142,15 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             const filter = this.getAttribute('data-filter');
             renderProducts(filter);
+        });
+    });
+    
+    // مدیریت تب‌های ادمین
+    const adminTabButtons = document.querySelectorAll('.tab-btn');
+    adminTabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            switchAdminTab(tabId);
         });
     });
     
@@ -1200,7 +1418,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // دکمه‌های کپی
     document.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const text = this.parentElement.querySelector('span').textContent.replace(/\s/g, '');
             copyToClipboard(text);
         });
@@ -1212,7 +1431,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const href = this.getAttribute('href');
             
             if (href === '#cart' || href === '#login' || href === '#profile' || 
-                href === '#orders' || href === '#admin' || href === '#ticket') {
+                href === '#orders' || href === '#admin' || href === '#ticket' ||
+                href === '#mytickets') {
                 return;
             }
             
