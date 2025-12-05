@@ -1125,6 +1125,318 @@ function toggleCart() {
     }
 }
 
+// ========== سیستم مدیریت تیکت‌ها ==========
+
+// نمایش تیکت‌ها در پنل ادمین
+function renderAdminTickets(filter = 'all') {
+    const container = document.getElementById('admin-tickets-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (userState.tickets.length === 0) {
+        container.innerHTML = '<p class="empty-message">هیچ تیکتی ارسال نشده است</p>';
+        return;
+    }
+    
+    // مرتب کردن تیکت‌ها از جدید به قدیم
+    const sortedTickets = [...userState.tickets].sort((a, b) => b.id - a.id);
+    
+    // فیلتر کردن
+    let filteredTickets = sortedTickets;
+    if (filter === 'new') {
+        filteredTickets = sortedTickets.filter(ticket => ticket.status === 'جدید');
+    } else if (filter === 'pending') {
+        filteredTickets = sortedTickets.filter(ticket => ticket.status === 'در حال بررسی');
+    } else if (filter === 'solved') {
+        filteredTickets = sortedTickets.filter(ticket => ticket.status === 'حل شده');
+    }
+    
+    if (filteredTickets.length === 0) {
+        container.innerHTML = `<p class="empty-message">تیکتی با وضعیت "${filter}" وجود ندارد</p>`;
+        return;
+    }
+    
+    filteredTickets.forEach(ticket => {
+        const item = document.createElement('div');
+        item.className = 'admin-item ticket-item';
+        
+        // یافتن اطلاعات کاربر
+        const user = userState.users.find(u => u.id === ticket.userId);
+        
+        item.innerHTML = `
+            <div style="flex: 1;">
+                <div class="ticket-header">
+                    <h4>${ticket.subject}</h4>
+                    <span class="ticket-id">#${ticket.id}</span>
+                </div>
+                <div class="ticket-info">
+                    <p><strong>ارسال کننده:</strong> ${ticket.userName || 'نامشخص'} (${ticket.userPhone})</p>
+                    <p><strong>تاریخ:</strong> ${formatDate(ticket.date)}</p>
+                    <p><strong>پیام:</strong> ${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
+                </div>
+                <div class="ticket-meta">
+                    <span class="status-badge status-${getStatusClass(ticket.status)}">
+                        ${ticket.status}
+                    </span>
+                    <span class="reply-count">${ticket.replies ? ticket.replies.length : 0} پاسخ</span>
+                </div>
+            </div>
+            <div class="admin-item-actions">
+                <button class="btn btn-primary" onclick="viewTicketDetails(${ticket.id})">
+                    <i class="fas fa-eye"></i> مشاهده
+                </button>
+                <button class="btn btn-secondary" onclick="changeTicketStatus(${ticket.id}, 'در حال بررسی')">
+                    <i class="fas fa-spinner"></i> بررسی
+                </button>
+                <button class="btn btn-success" onclick="changeTicketStatus(${ticket.id}, 'حل شده')">
+                    <i class="fas fa-check"></i> حل شد
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(item);
+    });
+}
+
+// کلاس وضعیت تیکت
+function getStatusClass(status) {
+    switch(status) {
+        case 'جدید': return 'new';
+        case 'در حال بررسی': return 'pending';
+        case 'حل شده': return 'solved';
+        default: return 'new';
+    }
+}
+
+// فیلتر تیکت‌ها
+function filterTickets(type) {
+    // آپدیت دکمه‌های فیلتر
+    document.querySelectorAll('.ticket-filters .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    renderAdminTickets(type);
+}
+
+// تغییر وضعیت تیکت
+function changeTicketStatus(ticketId, newStatus) {
+    const ticketIndex = userState.tickets.findIndex(t => t.id === ticketId);
+    if (ticketIndex !== -1) {
+        userState.tickets[ticketIndex].status = newStatus;
+        saveToLocalStorage();
+        showNotification(`وضعیت تیکت به "${newStatus}" تغییر یافت`, 'success');
+        renderAdminTickets();
+    }
+}
+
+// مشاهده جزئیات تیکت و پاسخ دادن
+function viewTicketDetails(ticketId) {
+    const ticket = userState.tickets.find(t => t.id === ticketId);
+    if (!ticket) {
+        showNotification('تیکت یافت نشد', 'error');
+        return;
+    }
+    
+    const modalHtml = `
+        <div class="modal-overlay" id="ticket-details-overlay"></div>
+        <div class="modal modal-lg" id="ticket-details-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-ticket-alt"></i> تیکت #${ticket.id}</h3>
+                <button class="close-modal" onclick="closeModal('ticket-details-modal', 'ticket-details-overlay')">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="ticket-details-view">
+                    <!-- اطلاعات تیکت -->
+                    <div class="ticket-info-section">
+                        <div class="ticket-header-info">
+                            <h4>${ticket.subject}</h4>
+                            <span class="status-badge status-${getStatusClass(ticket.status)}">
+                                ${ticket.status}
+                            </span>
+                        </div>
+                        
+                        <div class="ticket-user-info">
+                            <p><i class="fas fa-user"></i> <strong>ارسال کننده:</strong> ${ticket.userName}</p>
+                            <p><i class="fas fa-phone"></i> <strong>شماره تماس:</strong> ${ticket.userPhone}</p>
+                            <p><i class="fas fa-calendar"></i> <strong>تاریخ ارسال:</strong> ${formatDate(ticket.date)}</p>
+                        </div>
+                        
+                        <div class="ticket-message-box">
+                            <h5>پیام کاربر:</h5>
+                            <div class="message-content">
+                                ${ticket.message}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- پاسخ‌های قبلی -->
+                    <div class="ticket-replies-section" id="ticket-replies-${ticket.id}">
+                        <h5>پاسخ‌ها (${ticket.replies ? ticket.replies.length : 0})</h5>
+                        ${renderTicketReplies(ticket)}
+                    </div>
+                    
+                    <!-- فرم پاسخ ادمین -->
+                    <div class="admin-reply-section">
+                        <h5>پاسخ ادمین</h5>
+                        <div class="form-group">
+                            <textarea id="admin-reply-text-${ticket.id}" rows="4" placeholder="پاسخ خود را اینجا بنویسید..."></textarea>
+                        </div>
+                        <div class="reply-actions">
+                            <button class="btn btn-primary" onclick="submitAdminReply(${ticket.id})">
+                                <i class="fas fa-paper-plane"></i> ارسال پاسخ
+                            </button>
+                            <div class="status-controls">
+                                <label>تغییر وضعیت:</label>
+                                <select id="ticket-status-select-${ticket.id}" onchange="updateTicketStatusFromSelect(${ticket.id})">
+                                    <option value="جدید" ${ticket.status === 'جدید' ? 'selected' : ''}>جدید</option>
+                                    <option value="در حال بررسی" ${ticket.status === 'در حال بررسی' ? 'selected' : ''}>در حال بررسی</option>
+                                    <option value="حل شده" ${ticket.status === 'حل شده' ? 'selected' : ''}>حل شده</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // حذف مودال قبلی اگر وجود دارد
+    const existingModal = document.getElementById('ticket-details-modal');
+    if (existingModal) existingModal.remove();
+    
+    const existingOverlay = document.getElementById('ticket-details-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    // اضافه کردن مودال جدید
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // باز کردن مودال
+    openModal('ticket-details-modal', 'ticket-details-overlay');
+}
+
+// نمایش پاسخ‌های تیکت
+function renderTicketReplies(ticket) {
+    if (!ticket.replies || ticket.replies.length === 0) {
+        return '<p class="no-replies">هنوز پاسخی داده نشده است</p>';
+    }
+    
+    let repliesHtml = '';
+    ticket.replies.forEach(reply => {
+        repliesHtml += `
+            <div class="reply-item ${reply.isAdmin ? 'admin-reply' : 'user-reply'}">
+                <div class="reply-header">
+                    <div class="reply-sender">
+                        <i class="fas ${reply.isAdmin ? 'fa-user-shield' : 'fa-user'}"></i>
+                        <strong>${reply.isAdmin ? '👮 ادمین' : '👤 کاربر'}</strong>
+                    </div>
+                    <span class="reply-date">${formatDate(reply.date)}</span>
+                </div>
+                <div class="reply-content">
+                    ${reply.message}
+                </div>
+            </div>
+        `;
+    });
+    
+    return repliesHtml;
+}
+
+// ارسال پاسخ ادمین
+function submitAdminReply(ticketId) {
+    const replyText = document.getElementById(`admin-reply-text-${ticketId}`).value.trim();
+    
+    if (!replyText) {
+        showNotification('لطفاً متن پاسخ را وارد کنید', 'warning');
+        return;
+    }
+    
+    const ticketIndex = userState.tickets.findIndex(t => t.id === ticketId);
+    if (ticketIndex === -1) return;
+    
+    // ایجاد پاسخ جدید
+    const newReply = {
+        id: Date.now(),
+        isAdmin: true,
+        message: replyText,
+        date: new Date().toISOString()
+    };
+    
+    // اضافه کردن پاسخ به تیکت
+    if (!userState.tickets[ticketIndex].replies) {
+        userState.tickets[ticketIndex].replies = [];
+    }
+    
+    userState.tickets[ticketIndex].replies.push(newReply);
+    
+    // تغییر وضعیت به "در حال بررسی" اگر هنوز "جدید" است
+    if (userState.tickets[ticketIndex].status === 'جدید') {
+        userState.tickets[ticketIndex].status = 'در حال بررسی';
+    }
+    
+    saveToLocalStorage();
+    
+    // پاک کردن فیلد متن
+    document.getElementById(`admin-reply-text-${ticketId}`).value = '';
+    
+    // نمایش پیام موفقیت
+    showNotification('پاسخ شما با موفقیت ارسال شد', 'success');
+    
+    // بروزرسانی نمایش تیکت
+    viewTicketDetails(ticketId);
+    
+    // بروزرسانی لیست تیکت‌ها
+    renderAdminTickets();
+}
+
+// بروزرسانی وضعیت تیکت از انتخابگر
+function updateTicketStatusFromSelect(ticketId) {
+    const selectElement = document.getElementById(`ticket-status-select-${ticketId}`);
+    const newStatus = selectElement.value;
+    
+    const ticketIndex = userState.tickets.findIndex(t => t.id === ticketId);
+    if (ticketIndex !== -1) {
+        userState.tickets[ticketIndex].status = newStatus;
+        saveToLocalStorage();
+        showNotification(`وضعیت تیکت به "${newStatus}" تغییر یافت`, 'success');
+        
+        // بروزرسانی نمایش
+        const statusBadge = document.querySelector(`#ticket-details-modal .status-badge`);
+        if (statusBadge) {
+            statusBadge.textContent = newStatus;
+            statusBadge.className = `status-badge status-${getStatusClass(newStatus)}`;
+        }
+        
+        // بروزرسانی لیست تیکت‌ها
+        renderAdminTickets();
+    }
+}
+
+// ========== آپدیت تابع renderAdminPanel ==========
+
+function renderAdminPanel() {
+    // آمار
+    document.getElementById('stats-users-count').textContent = userState.users.length;
+    document.getElementById('stats-orders-count').textContent = ordersHistory.length;
+    
+    const totalIncome = ordersHistory.reduce((sum, order) => sum + order.total, 0);
+    document.getElementById('stats-total-income').textContent = formatNumber(totalIncome) + " تومان";
+    
+    // تیکت‌ها
+    renderAdminTickets();
+    
+    // سفارشات
+    renderAdminOrders();
+    
+    // کاربران
+    renderAdminUsers();
+    
+    // محصولات
+    renderAdminProducts();
+}
+
 // رویدادهای اولیه
 document.addEventListener('DOMContentLoaded', function() {
     // مقداردهی اولیه
