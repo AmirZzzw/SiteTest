@@ -20,131 +20,8 @@
     <!-- پیش‌بارگذاری فونت‌ها -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" as="style">
     
-    <!-- بارگذاری ایمن اسکریپت‌ها -->
-    <script>
-        // تابع نمایش خطا برای کاربر
-        function showErrorToUser(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: #e74c3c;
-                color: white;
-                padding: 15px;
-                text-align: center;
-                z-index: 99999;
-                font-family: Vazirmatn, sans-serif;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            `;
-            errorDiv.innerHTML = `
-                <strong>⚠️ خطا:</strong> ${message}
-                <button onclick="this.parentElement.remove()" style="
-                    background: transparent;
-                    border: 1px solid white;
-                    color: white;
-                    margin-right: 15px;
-                    padding: 5px 10px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                ">بستن</button>
-            `;
-            document.body.appendChild(errorDiv);
-        }
-        
-        // بارگذاری پویا اسکریپت‌ها
-        function loadScript(src, isModule = false) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                if (isModule) script.type = 'module';
-                script.onload = resolve;
-                script.onerror = () => {
-                    console.error(`Failed to load script: ${src}`);
-                    reject(new Error(`Failed to load ${src}`));
-                };
-                document.head.appendChild(script);
-            });
-        }
-        
-        // بارگذاری همه اسکریپت‌ها
-        async function loadAllScripts() {
-            try {
-                console.log('🔧 شروع بارگذاری اسکریپت‌ها...');
-                
-                // اول Supabase از CDN
-                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
-                console.log('✅ Supabase library loaded');
-                
-                // سپس کانفیگ
-                await loadScript('supabase-config.js');
-                console.log('✅ Config loaded');
-                
-                // ایجاد کلاینت Supabase
-                if (window.SUPABASE_CONFIG && window.supabase) {
-                    window.supabaseClient = window.supabase.createClient(
-                        window.SUPABASE_CONFIG.URL,
-                        window.SUPABASE_CONFIG.ANON_KEY,
-                        {
-                            auth: {
-                                persistSession: true,
-                                autoRefreshToken: true
-                            }
-                        }
-                    );
-                    console.log('✅ Supabase client created');
-                }
-                
-                // سرویس Supabase
-                try {
-                    await loadScript('supabase-service.js');
-                    console.log('✅ Service loaded');
-                } catch (serviceError) {
-                    console.warn('Service failed, loading fallback:', serviceError);
-                    await loadScript('fallback-data.js');
-                    console.log('✅ Fallback loaded');
-                }
-                
-                // منطق اصلی
-                try {
-                    await loadScript('main.js');
-                    console.log('✅ Main script loaded');
-                    
-                    // راه‌اندازی برنامه
-                    if (window.initializeApp) {
-                        if (document.readyState === 'loading') {
-                            document.addEventListener('DOMContentLoaded', window.initializeApp);
-                        } else {
-                            window.initializeApp();
-                        }
-                    }
-                } catch (mainError) {
-                    console.error('Failed to load main script:', mainError);
-                    showErrorToUser('خطا در بارگذاری برنامه. لطفاً صفحه را رفرش کنید.');
-                }
-                
-            } catch (error) {
-                console.error('❌ Critical loading error:', error);
-                showErrorToUser('خطا در بارگذاری. اینترنت خود را بررسی کنید.');
-                
-                // تلاش مجدد بعد از 5 ثانیه
-                setTimeout(() => {
-                    location.reload();
-                }, 5000);
-            }
-        }
-        
-        // شروع بارگذاری
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadAllScripts);
-        } else {
-            loadAllScripts();
-        }
-    </script>
-    
+    <!-- استایل‌های اولیه -->
     <style>
         /* استایل‌های موقت هنگام لودینگ */
         .loading-screen {
@@ -160,18 +37,27 @@
             align-items: center;
             z-index: 9999;
             font-family: Vazirmatn, sans-serif;
+            transition: opacity 0.5s ease;
         }
         
         .loading-logo {
             font-size: 3rem;
             color: #3498db;
             margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.7; transform: scale(1); }
         }
         
         .loading-text {
             color: #f5f5f5;
             font-size: 1.2rem;
             margin-bottom: 30px;
+            text-align: center;
         }
         
         .loading-spinner {
@@ -188,28 +74,237 @@
             100% { transform: rotate(360deg); }
         }
         
-        .loading-progress {
-            width: 200px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            margin-top: 20px;
-            overflow: hidden;
+        /* نوتیفیکیشن */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 9998;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-family: Vazirmatn, sans-serif;
+            text-align: center;
+            min-width: 300px;
+            max-width: 90vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease;
         }
         
-        .loading-progress-bar {
-            height: 100%;
+        @keyframes slideDown {
+            from {
+                top: -100px;
+                opacity: 0;
+            }
+            to {
+                top: 20px;
+                opacity: 1;
+            }
+        }
+        
+        .notification-success {
+            background-color: #2ecc71;
+        }
+        
+        .notification-error {
+            background-color: #e74c3c;
+        }
+        
+        .notification-warning {
+            background-color: #f39c12;
+        }
+        
+        .notification-info {
+            background-color: #3498db;
+        }
+        
+        /* اسکرول‌بار */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        
+        ::-webkit-scrollbar-thumb {
             background: #3498db;
-            width: 0%;
-            animation: progress 2s ease-in-out infinite;
+            border-radius: 4px;
         }
         
-        @keyframes progress {
-            0% { width: 0%; }
-            50% { width: 70%; }
-            100% { width: 100%; }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2980b9;
+        }
+        
+        /* بهبود نمایش در موبایل */
+        @media (max-width: 768px) {
+            .notification {
+                min-width: 90%;
+                font-size: 0.9rem;
+                padding: 12px 20px;
+            }
+            
+            .loading-logo {
+                font-size: 2.5rem;
+            }
+            
+            .loading-text {
+                font-size: 1rem;
+                padding: 0 20px;
+            }
         }
     </style>
+    
+    <!-- بارگذاری ایمن اسکریپت‌ها -->
+    <script>
+        // تابع بارگذاری اسکریپت
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    console.log(`✅ Loaded: ${src}`);
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error(`❌ Failed to load: ${src}`);
+                    reject(new Error(`Failed to load ${src}`));
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // تابع نمایش خطا به کاربر
+        function showErrorToUser(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'notification notification-error';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" style="
+                    background: transparent;
+                    border: 1px solid white;
+                    color: white;
+                    margin-right: 15px;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-family: Vazirmatn, sans-serif;
+                ">بستن</button>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // حذف خودکار بعد از 10 ثانیه
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 10000);
+        }
+        
+        // تابع نمایش نوتیفیکیشن
+        window.showNotification = function(message, type = 'info') {
+            // حذف نوتیفیکیشن قبلی
+            const existing = document.querySelector('.notification:not(.notification-error)');
+            if (existing) existing.remove();
+            
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // حذف خودکار بعد از 5 ثانیه
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => notification.remove(), 500);
+                }
+            }, 5000);
+        };
+        
+        // بارگذاری همه اسکریپت‌ها
+        async function loadAllScripts() {
+            console.log('🚀 شروع بارگذاری برنامه...');
+            
+            try {
+                // مرحله ۱: بارگذاری Supabase از CDN
+                console.log('📦 بارگذاری Supabase...');
+                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
+                
+                // مرحله ۲: بارگذاری سرویس‌ها
+                console.log('🔧 بارگذاری سرویس‌ها...');
+                try {
+                    await loadScript('supabase-service.js');
+                } catch (serviceError) {
+                    console.warn('خطا در بارگذاری سرویس اصلی:', serviceError);
+                    // بارگذاری سرویس جایگزین
+                    try {
+                        await loadScript('supabase-service-fixed.js');
+                    } catch (fixedError) {
+                        console.warn('خطا در بارگذاری سرویس جایگزین:', fixedError);
+                        // بارگذاری fallback
+                        await loadScript('fallback-data.js');
+                    }
+                }
+                
+                // مرحله ۳: بارگذاری منطق اصلی
+                console.log('💻 بارگذاری منطق اصلی...');
+                try {
+                    await loadScript('main.js');
+                } catch (mainError) {
+                    console.error('خطا در بارگذاری منطق اصلی:', mainError);
+                    showErrorToUser('خطا در بارگذاری برنامه. لطفاً صفحه را رفرش کنید.');
+                    return;
+                }
+                
+                // مرحله ۴: راه‌اندازی برنامه
+                console.log('🎉 برنامه در حال راه‌اندازی...');
+                if (window.initializeApp) {
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', window.initializeApp);
+                    } else {
+                        setTimeout(() => window.initializeApp(), 100);
+                    }
+                } else {
+                    console.error('تابع initializeApp پیدا نشد');
+                    showErrorToUser('برنامه به درستی بارگذاری نشد.');
+                }
+                
+            } catch (error) {
+                console.error('❌ خطای بحرانی در بارگذاری:', error);
+                showErrorToUser('خطا در بارگذاری برنامه. لطفاً اینترنت خود را بررسی کنید.');
+                
+                // تلاش برای بارگذاری fallback
+                try {
+                    await loadScript('fallback-data.js');
+                    await loadScript('main.js');
+                    if (window.initializeApp) {
+                        setTimeout(() => window.initializeApp(), 100);
+                    }
+                } catch (fallbackError) {
+                    console.error('خطا در بارگذاری fallback:', fallbackError);
+                }
+            }
+        }
+        
+        // شروع بارگذاری
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadAllScripts);
+        } else {
+            setTimeout(loadAllScripts, 100);
+        }
+    </script>
 </head>
 <body>
     <!-- صفحه لودینگ -->
@@ -217,11 +312,8 @@
         <div class="loading-logo">
             <i class="fas fa-store"></i>
         </div>
-        <div class="loading-text">در حال بارگذاری فروشگاه...</div>
+        <div class="loading-text">فروشگاه خدمات دیجیتال SidkaShop<br>در حال راه‌اندازی...</div>
         <div class="loading-spinner"></div>
-        <div class="loading-progress">
-            <div class="loading-progress-bar"></div>
-        </div>
     </div>
 
     <!-- هدر سایت -->
@@ -465,6 +557,9 @@
                 <p style="margin-top: 15px; text-align: center; color: #aaa;">
                     با ورود، قوانین فروشگاه را پذیرفته‌اید
                 </p>
+                <p style="margin-top: 10px; text-align: center;">
+                    <a href="#" id="show-register">ثبت‌نام کامل (با نام و رمز)</a>
+                </p>
             </div>
         </div>
     </div>
@@ -547,7 +642,7 @@
                     <p><strong>لطفاً مبلغ <span id="payment-amount">۰</span> تومان را به شماره کارت زیر واریز کنید:</strong></p>
                     <div class="card-number-large">
                         <i class="fas fa-credit-card"></i>
-                        <span>6037 9982 2227 6759</span>
+                        <span id="card-number-large-text">6037 9982 2227 6759</span>
                         <button class="copy-btn" id="copy-card-large-btn">
                             <i class="fas fa-copy"></i> کپی
                         </button>
@@ -561,7 +656,7 @@
                     <div class="form-group">
                         <label>رسید پرداخت (تصویر) *</label>
                         <input type="file" id="receipt-file" accept="image/*,.jpg,.jpeg,.png,.webp" capture="environment">
-                        <p class="note">می‌توانید با دوربین موبایل عکس بگیرید</p>
+                        <p class="note">می‌توانید با دوربین موبایل عکس بگیرید (حداکثر ۵MB)</p>
                     </div>
                     <div class="form-group">
                         <label for="receipt-note">توضیحات (اختیاری)</label>
@@ -689,7 +784,7 @@
                 <h4>اطلاعات ادمین</h4>
                 <p><strong>نام:</strong> امیرمحمد یوسفی</p>
                 <p><strong>شماره تماس:</strong> 09021707830</p>
-                <p><strong>شماره کارت:</strong> 6037-9982-2227-6759</p>
+                <p><strong>شماره کارت:</strong> <span id="admin-card-number">6037-9982-2227-6759</span></p>
             </div>
             
             <!-- آمار کلی -->
