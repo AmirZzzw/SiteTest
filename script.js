@@ -1,4 +1,4 @@
-// داده‌های محصولات
+// اطلاعات محصولات
 const products = [
     {
         id: 1,
@@ -82,7 +82,7 @@ const products = [
     }
 ];
 
-// داده‌های قیمت‌گذاری
+// اطلاعات قیمت‌گذاری
 const pricingData = [
     { name: "ساخت پنل", description: "ساخت پنل شخصی با امکانات کامل", price: "۹۰۰,۰۰۰" },
     { name: "آپدیت پنل", description: "بروزرسانی پنل به آخرین نسخه", price: "۲۳۵,۰۰۰" },
@@ -101,7 +101,8 @@ const userState = {
     isLoggedIn: false,
     currentUser: null,
     users: JSON.parse(localStorage.getItem('users')) || [],
-    currentOrders: JSON.parse(localStorage.getItem('orders')) || []
+    currentOrders: JSON.parse(localStorage.getItem('orders')) || [],
+    tickets: JSON.parse(localStorage.getItem('tickets')) || []
 };
 
 // مدیریت سبد خرید
@@ -110,8 +111,17 @@ const cartState = {
     total: 0
 };
 
-// مدیریت سابقه سفارشات
+// مدیریت سفارشات
 const ordersHistory = JSON.parse(localStorage.getItem('ordersHistory')) || [];
+
+// اطلاعات ادمین اصلی
+const adminInfo = {
+    phone: "09021707830",
+    name: "امیرمحمد یوسفی",
+    cardNumber: "603799822276759",
+    telegramId: "7549513123",
+    botToken: "7408423935:AAH9nkoZg7ykqQMGKDeitIiOtu6uYZl0Vxg"
+};
 
 // فرمت اعداد به فارسی
 function formatNumber(num) {
@@ -120,24 +130,18 @@ function formatNumber(num) {
 
 // فرمت تاریخ به فارسی
 function formatDate(date) {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(date).toLocaleDateString('fa-IR', options);
+    const d = new Date(date);
+    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return d.toLocaleDateString('fa-IR', options);
 }
 
-// ذخیره سبد خرید در localStorage
-function saveCartToLocalStorage() {
-    localStorage.setItem('cart', JSON.stringify(cartState.items));
-}
-
-// ذخیره کاربران در localStorage
-function saveUsersToLocalStorage() {
+// ذخیره اطلاعات در localStorage
+function saveToLocalStorage() {
     localStorage.setItem('users', JSON.stringify(userState.users));
-}
-
-// ذخیره سفارشات در localStorage
-function saveOrdersToLocalStorage() {
     localStorage.setItem('orders', JSON.stringify(userState.currentOrders));
     localStorage.setItem('ordersHistory', JSON.stringify(ordersHistory));
+    localStorage.setItem('tickets', JSON.stringify(userState.tickets));
+    localStorage.setItem('cart', JSON.stringify(cartState.items));
 }
 
 // به روزرسانی تعداد سبد خرید
@@ -146,7 +150,6 @@ function updateCartCount() {
     const totalItems = cartState.items.reduce((sum, item) => sum + item.quantity, 0);
     cartCount.textContent = totalItems;
     
-    // به روزرسانی کل مبلغ سبد خرید
     cartState.total = cartState.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const cartTotalPrice = document.getElementById('cart-total-price');
     if (cartTotalPrice) {
@@ -202,7 +205,6 @@ function renderPricingTable() {
     pricingData.forEach(item => {
         const row = document.createElement('tr');
         
-        // پیدا کردن محصول مرتبط برای دسترسی به id
         const product = products.find(p => p.name === item.name);
         const isInCart = product ? cartState.items.find(cartItem => cartItem.id === product.id) : false;
         
@@ -241,13 +243,12 @@ function addToCart(productId) {
         });
     }
     
-    saveCartToLocalStorage();
+    saveToLocalStorage();
     updateCartCount();
     renderProducts();
     renderPricingTable();
     renderCartItems();
     
-    // نمایش پیام موفقیت
     showNotification(`${product.name} به سبد خرید اضافه شد`, 'success');
 }
 
@@ -257,13 +258,12 @@ function removeFromCart(productId) {
     
     if (itemIndex !== -1) {
         cartState.items.splice(itemIndex, 1);
-        saveCartToLocalStorage();
+        saveToLocalStorage();
         updateCartCount();
         renderProducts();
         renderPricingTable();
         renderCartItems();
         
-        // نمایش پیام موفقیت
         const product = products.find(p => p.id === productId);
         if (product) {
             showNotification(`${product.name} از سبد خرید حذف شد`, 'warning');
@@ -274,25 +274,19 @@ function removeFromCart(productId) {
 // نمایش آیتم‌های سبد خرید
 function renderCartItems() {
     const cartItems = document.getElementById('cart-items');
-    const emptyCart = document.getElementById('empty-cart');
-    const orderSummaryItems = document.getElementById('order-summary-items');
-    
-    if (!cartItems || !emptyCart) return;
+    if (!cartItems) return;
     
     cartItems.innerHTML = '';
     
     if (cartState.items.length === 0) {
-        emptyCart.style.display = 'block';
-        cartItems.appendChild(emptyCart);
-        
-        if (orderSummaryItems) {
-            orderSummaryItems.innerHTML = '<p class="empty-cart-message">سبد خرید خالی است</p>';
-        }
-        
+        cartItems.innerHTML = `
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <p>سبد خرید شما خالی است</p>
+            </div>
+        `;
         return;
     }
-    
-    emptyCart.style.display = 'none';
     
     cartState.items.forEach(item => {
         const cartItem = document.createElement('div');
@@ -313,33 +307,56 @@ function renderCartItems() {
         
         cartItems.appendChild(cartItem);
     });
+}
+
+// نمایش خلاصه سفارش
+function renderOrderSummary() {
+    const orderSummaryItems = document.getElementById('order-summary-items');
+    const orderTotalPrice = document.getElementById('order-total-price');
+    const paymentAmount = document.getElementById('payment-amount');
     
-    // به روزرسانی خلاصه سفارش
-    if (orderSummaryItems) {
-        orderSummaryItems.innerHTML = '';
-        
-        cartState.items.forEach(item => {
-            const orderItem = document.createElement('div');
-            orderItem.className = 'order-summary-item';
-            
-            orderItem.innerHTML = `
-                <span>${item.name} (${item.quantity} عدد)</span>
-                <span>${formatNumber(item.price * item.quantity)} تومان</span>
-            `;
-            
-            orderSummaryItems.appendChild(orderItem);
-        });
-        
-        const orderTotalPrice = document.getElementById('order-total-price');
-        if (orderTotalPrice) {
-            orderTotalPrice.textContent = `${formatNumber(cartState.total)} تومان`;
-        }
+    if (!orderSummaryItems || !orderTotalPrice || !paymentAmount) return;
+    
+    orderSummaryItems.innerHTML = '';
+    
+    if (cartState.items.length === 0) {
+        orderSummaryItems.innerHTML = '<p class="empty-cart-message">سبد خرید خالی است</p>';
+        orderTotalPrice.textContent = '۰ تومان';
+        paymentAmount.textContent = '۰';
+        return;
     }
+    
+    cartState.items.forEach(item => {
+        const orderItem = document.createElement('div');
+        orderItem.className = 'order-summary-item';
+        
+        orderItem.innerHTML = `
+            <span>${item.name} (${item.quantity} عدد)</span>
+            <span>${formatNumber(item.price * item.quantity)} تومان</span>
+        `;
+        
+        orderSummaryItems.appendChild(orderItem);
+    });
+    
+    orderTotalPrice.textContent = `${formatNumber(cartState.total)} تومان`;
+    paymentAmount.textContent = formatNumber(cartState.total);
+}
+
+// کپی متن به کلیپ‌بورد
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            showNotification('متن کپی شد!', 'success');
+        })
+        .catch(err => {
+            console.error('خطا در کپی کردن:', err);
+            showNotification('خطا در کپی کردن', 'error');
+        });
 }
 
 // نمایش پیام
 function showNotification(message, type = 'info') {
-    // حذف نوتیفیکیشن قبلی اگر وجود دارد
+    // حذف نوتیفیکیشن قبلی
     const existingNotification = document.querySelector('.notification');
     if (existingNotification) {
         existingNotification.remove();
@@ -349,7 +366,7 @@ function showNotification(message, type = 'info') {
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
     
-    // استایل‌های نوتیفیکیشن
+    // استایل نوتیفیکیشن
     notification.style.position = 'fixed';
     notification.style.top = '20px';
     notification.style.left = '50%';
@@ -373,7 +390,7 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // حذف خودکار پس از 3 ثانیه
+    // حذف خودکار
     setTimeout(() => {
         notification.style.opacity = '0';
         notification.style.transition = 'opacity 0.5s ease';
@@ -387,32 +404,44 @@ function showNotification(message, type = 'info') {
 
 // مدیریت ورود/عضویت
 function loginUser(phone) {
-    // بررسی اینکه آیا کاربر قبلاً ثبت‌نام کرده است
+    // بررسی ادمین
+    if (phone === adminInfo.phone) {
+        userState.isLoggedIn = true;
+        userState.currentUser = {
+            id: 0,
+            phone: adminInfo.phone,
+            firstName: adminInfo.name.split(' ')[0],
+            lastName: adminInfo.name.split(' ')[1],
+            isAdmin: true,
+            registeredAt: new Date().toISOString()
+        };
+        
+        updateUserUI();
+        showNotification(`خوش آمدید ادمین!`, 'success');
+        return;
+    }
+    
+    // کاربر عادی
     let user = userState.users.find(u => u.phone === phone);
     
     if (!user) {
-        // ایجاد کاربر جدید
         user = {
             id: Date.now(),
             phone,
             firstName: '',
             lastName: '',
+            isAdmin: false,
             registeredAt: new Date().toISOString()
         };
         
         userState.users.push(user);
-        saveUsersToLocalStorage();
+        saveToLocalStorage();
     }
     
     userState.isLoggedIn = true;
     userState.currentUser = user;
     
-    // به روزرسانی رابط کاربری
     updateUserUI();
-    
-    // بستن مودال ورود
-    closeModal('login-modal', 'login-overlay');
-    
     showNotification(`خوش آمدید ${user.firstName || 'کاربر'}!`, 'success');
 }
 
@@ -421,67 +450,77 @@ function logoutUser() {
     userState.isLoggedIn = false;
     userState.currentUser = null;
     
-    // به روزرسانی رابط کاربری
     updateUserUI();
-    
     showNotification('با موفقیت خارج شدید', 'info');
 }
 
 // به روزرسانی رابط کاربری بر اساس وضعیت ورود
 function updateUserUI() {
     const loginBtn = document.getElementById('login-btn');
-    const userDropdown = document.getElementById('user-dropdown');
+    const adminNavItem = document.getElementById('admin-nav-item');
     
     if (userState.isLoggedIn && userState.currentUser) {
         loginBtn.innerHTML = `<i class="fas fa-user"></i> ${userState.currentUser.firstName || 'پروفایل'}`;
-        loginBtn.href = '#profile';
+        
+        // نمایش لینک ادمین برای ادمین اصلی
+        if (userState.currentUser.phone === adminInfo.phone) {
+            adminNavItem.style.display = 'block';
+        } else {
+            adminNavItem.style.display = 'none';
+        }
         
         // به روزرسانی اطلاعات پروفایل
-        document.getElementById('profile-name').textContent = userState.currentUser.firstName || '---';
-        document.getElementById('profile-lastname').textContent = userState.currentUser.lastName || '---';
-        document.getElementById('profile-phone').textContent = userState.currentUser.phone || '---';
-        
-        // تعداد سفارشات کاربر
-        const userOrders = ordersHistory.filter(order => order.userId === userState.currentUser.id);
-        document.getElementById('profile-orders-count').textContent = userOrders.length;
+        if (document.getElementById('profile-name')) {
+            document.getElementById('profile-name').textContent = userState.currentUser.firstName || '---';
+            document.getElementById('profile-lastname').textContent = userState.currentUser.lastName || '---';
+            document.getElementById('profile-phone').textContent = userState.currentUser.phone || '---';
+        }
         
     } else {
         loginBtn.innerHTML = '<i class="fas fa-user"></i> ورود';
-        loginBtn.href = '#login';
+        adminNavItem.style.display = 'none';
     }
 }
 
 // تکمیل فرآیند خرید
-function completeOrder(firstName, lastName, phone) {
+function completeOrder() {
     if (cartState.items.length === 0) {
         showNotification('سبد خرید شما خالی است', 'warning');
         return;
     }
     
-    // اگر کاربر وارد سیستم نباشد، ابتدا ثبت‌نام/ورود انجام شود
     if (!userState.isLoggedIn) {
         showNotification('لطفاً ابتدا وارد شوید', 'warning');
         openModal('login-modal', 'login-overlay');
         return;
     }
     
-    // به روزرسانی اطلاعات کاربر
-    const user = userState.currentUser;
-    user.firstName = firstName;
-    user.lastName = lastName;
-    user.phone = phone;
+    const firstName = document.getElementById('first-name').value.trim();
+    const lastName = document.getElementById('last-name').value.trim();
+    const phone = document.getElementById('checkout-phone').value.trim();
+    const receiptFile = document.getElementById('receipt-file').files[0];
+    const receiptNote = document.getElementById('receipt-note').value.trim();
     
-    // ذخیره اطلاعات کاربر
-    const userIndex = userState.users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-        userState.users[userIndex] = user;
-        saveUsersToLocalStorage();
+    // اعتبارسنجی
+    if (!firstName || !lastName) {
+        showNotification('لطفاً نام و نام خانوادگی خود را وارد کنید', 'warning');
+        return;
+    }
+    
+    if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
+        showNotification('لطفاً شماره موبایل معتبر وارد کنید', 'warning');
+        return;
+    }
+    
+    if (!receiptFile) {
+        showNotification('لطفاً تصویر رسید پرداخت را آپلود کنید', 'warning');
+        return;
     }
     
     // ایجاد سفارش
     const order = {
         id: Date.now(),
-        userId: user.id,
+        userId: userState.currentUser.id,
         items: [...cartState.items],
         total: cartState.total,
         customerInfo: {
@@ -489,17 +528,34 @@ function completeOrder(firstName, lastName, phone) {
             lastName,
             phone
         },
+        receipt: {
+            fileName: receiptFile.name,
+            note: receiptNote,
+            uploadTime: new Date().toISOString()
+        },
         date: new Date().toISOString(),
-        status: 'completed'
+        status: 'در انتظار تأیید'
     };
     
     // افزودن به تاریخچه سفارشات
     ordersHistory.push(order);
-    saveOrdersToLocalStorage();
+    
+    // به روزرسانی اطلاعات کاربر
+    const user = userState.currentUser;
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.phone = phone;
+    
+    const userIndex = userState.users.findIndex(u => u.id === user.id);
+    if (userIndex !== -1) {
+        userState.users[userIndex] = user;
+    }
     
     // خالی کردن سبد خرید
     cartState.items = [];
-    saveCartToLocalStorage();
+    
+    // ذخیره همه چیز
+    saveToLocalStorage();
     updateCartCount();
     renderCartItems();
     renderProducts();
@@ -511,26 +567,113 @@ function completeOrder(firstName, lastName, phone) {
     // نمایش پیام موفقیت
     showNotification(`سفارش شما با موفقیت ثبت شد. کد پیگیری: ${order.id}`, 'success');
     
-    // به روزرسانی رابط کاربری
-    updateUserUI();
+    // ارسال به تلگرام (شبیه‌سازی)
+    sendToTelegram(order);
+    
+    // ریست فرم
+    document.getElementById('first-name').value = '';
+    document.getElementById('last-name').value = '';
+    document.getElementById('checkout-phone').value = '';
+    document.getElementById('receipt-file').value = '';
+    document.getElementById('receipt-note').value = '';
+}
+
+// ارسال اطلاعات به تلگرام
+function sendToTelegram(order) {
+    const message = `🚨 سفارش جدید!\n\n`
+        + `📦 کد سفارش: ${order.id}\n`
+        + `👤 مشتری: ${order.customerInfo.firstName} ${order.customerInfo.lastName}\n`
+        + `📱 شماره: ${order.customerInfo.phone}\n`
+        + `💰 مبلغ: ${formatNumber(order.total)} تومان\n`
+        + `📅 تاریخ: ${formatDate(order.date)}\n\n`
+        + `🛒 محصولات:\n`;
+    
+    order.items.forEach(item => {
+        message += `• ${item.name} (${item.quantity} عدد) - ${formatNumber(item.price * item.quantity)} تومان\n`;
+    });
+    
+    message += `\n📝 توضیحات: ${order.receipt.note || 'بدون توضیح'}`;
+    
+    // شبیه‌سازی ارسال به تلگرام
+    console.log('ارسال به تلگرام:', message);
+    
+    // در نسخه واقعی:
+    // fetch(`https://api.telegram.org/bot${adminInfo.botToken}/sendMessage`, {
+    //     method: 'POST',
+    //     headers: {'Content-Type': 'application/json'},
+    //     body: JSON.stringify({
+    //         chat_id: adminInfo.telegramId,
+    //         text: message
+    //     })
+    // });
+    
+    showNotification('اطلاعات سفارش به تلگرام ارسال شد', 'success');
+}
+
+// ارسال تیکت پشتیبانی
+function submitSupportTicket() {
+    if (!userState.isLoggedIn) {
+        showNotification('لطفاً ابتدا وارد شوید', 'warning');
+        openModal('login-modal', 'login-overlay');
+        return;
+    }
+    
+    const subject = document.getElementById('ticket-subject').value.trim();
+    const message = document.getElementById('ticket-message').value.trim();
+    
+    if (!subject || !message) {
+        showNotification('لطفاً موضوع و پیام را وارد کنید', 'warning');
+        return;
+    }
+    
+    const ticket = {
+        id: Date.now(),
+        userId: userState.currentUser.id,
+        userPhone: userState.currentUser.phone,
+        userName: `${userState.currentUser.firstName || ''} ${userState.currentUser.lastName || ''}`.trim(),
+        subject,
+        message,
+        date: new Date().toISOString(),
+        status: 'جدید',
+        replies: []
+    };
+    
+    userState.tickets.push(ticket);
+    saveToLocalStorage();
+    
+    // ارسال به تلگرام
+    const telegramMessage = `📨 تیکت جدید پشتیبانی!\n\n`
+        + `🆔 کد تیکت: ${ticket.id}\n`
+        + `👤 ارسال کننده: ${ticket.userName}\n`
+        + `📱 شماره: ${ticket.userPhone}\n`
+        + `📌 موضوع: ${ticket.subject}\n`
+        + `📝 پیام:\n${ticket.message}\n`
+        + `📅 تاریخ: ${formatDate(ticket.date)}`;
+    
+    console.log('ارسال تیکت به تلگرام:', telegramMessage);
+    
+    // بستن مودال و ریست فرم
+    closeModal('ticket-modal', 'ticket-overlay');
+    document.getElementById('ticket-subject').value = '';
+    document.getElementById('ticket-message').value = '';
+    
+    showNotification('تیکت شما با موفقیت ارسال شد. به زودی پاسخ می‌دهیم.', 'success');
 }
 
 // نمایش سابقه خرید
 function renderOrdersHistory() {
     const ordersList = document.getElementById('orders-list');
-    const emptyOrders = document.getElementById('empty-orders');
-    
-    if (!ordersList || !emptyOrders) return;
+    if (!ordersList) return;
     
     ordersList.innerHTML = '';
     
     if (!userState.isLoggedIn) {
-        emptyOrders.innerHTML = `
-            <i class="fas fa-exclamation-circle"></i>
-            <p>برای مشاهده سابقه خرید، لطفاً وارد شوید</p>
+        ordersList.innerHTML = `
+            <div class="empty-orders">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>برای مشاهده سابقه خرید، لطفاً وارد شوید</p>
+            </div>
         `;
-        emptyOrders.style.display = 'block';
-        ordersList.appendChild(emptyOrders);
         return;
     }
     
@@ -538,12 +681,14 @@ function renderOrdersHistory() {
     const userOrders = ordersHistory.filter(order => order.userId === userState.currentUser.id);
     
     if (userOrders.length === 0) {
-        emptyOrders.style.display = 'block';
-        ordersList.appendChild(emptyOrders);
+        ordersList.innerHTML = `
+            <div class="empty-orders">
+                <i class="fas fa-history"></i>
+                <p>شما تاکنون خریدی انجام نداده‌اید</p>
+            </div>
+        `;
         return;
     }
-    
-    emptyOrders.style.display = 'none';
     
     // نمایش سفارشات از جدید به قدیم
     userOrders.sort((a, b) => b.id - a.id).forEach(order => {
@@ -565,13 +710,157 @@ function renderOrdersHistory() {
             <div class="order-history-products">
                 ${itemsList}
             </div>
-            <div class="order-history-total">
-                <span>مجموع:</span>
-                <span>${formatNumber(order.total)} تومان</span>
+            <div class="order-history-footer">
+                <span>وضعیت: <strong>${order.status}</strong></span>
+                <span class="order-history-total">${formatNumber(order.total)} تومان</span>
             </div>
         `;
         
         ordersList.appendChild(orderItem);
+    });
+}
+
+// پنل ادمین
+function openAdminPanel() {
+    if (!userState.isLoggedIn || userState.currentUser.phone !== adminInfo.phone) {
+        showNotification('شما دسترسی ادمین ندارید', 'error');
+        return;
+    }
+    
+    renderAdminPanel();
+    openModal('admin-modal', 'admin-overlay');
+}
+
+function renderAdminPanel() {
+    // آمار
+    document.getElementById('stats-users-count').textContent = userState.users.length;
+    document.getElementById('stats-orders-count').textContent = ordersHistory.length;
+    
+    const totalIncome = ordersHistory.reduce((sum, order) => sum + order.total, 0);
+    document.getElementById('stats-total-income').textContent = formatNumber(totalIncome) + " تومان";
+    
+    // سفارشات
+    renderAdminOrders();
+    
+    // کاربران
+    renderAdminUsers();
+    
+    // محصولات
+    renderAdminProducts();
+}
+
+function renderAdminOrders() {
+    const container = document.getElementById('admin-orders-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (ordersHistory.length === 0) {
+        container.innerHTML = '<p class="empty-message">هنوز سفارشی ثبت نشده است</p>';
+        return;
+    }
+    
+    // مرتب کردن سفارشات از جدید به قدیم
+    const sortedOrders = [...ordersHistory].sort((a, b) => b.id - a.id);
+    
+    sortedOrders.forEach(order => {
+        const user = userState.users.find(u => u.id === order.userId);
+        const item = document.createElement('div');
+        item.className = 'admin-item';
+        
+        const itemsText = order.items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ');
+        
+        item.innerHTML = `
+            <div>
+                <h4>سفارش #${order.id}</h4>
+                <p>مشتری: ${order.customerInfo?.firstName || 'نامشخص'} ${order.customerInfo?.lastName || ''}</p>
+                <p>شماره: ${order.customerInfo?.phone || 'نامشخص'}</p>
+                <p>محصولات: ${itemsText}</p>
+                <p>توضیحات رسید: ${order.receipt?.note || 'بدون توضیح'}</p>
+                <small>تاریخ: ${formatDate(order.date)} | مبلغ: ${formatNumber(order.total)} تومان</small>
+            </div>
+            <div class="admin-item-actions">
+                <span class="status-badge">${order.status}</span>
+            </div>
+        `;
+        
+        container.appendChild(item);
+    });
+}
+
+function renderAdminUsers() {
+    const container = document.getElementById('admin-users-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (userState.users.length === 0) {
+        container.innerHTML = '<p class="empty-message">هیچ کاربری ثبت‌نام نکرده است</p>';
+        return;
+    }
+    
+    userState.users.forEach(user => {
+        // نمایش همه کاربران به جز ادمین
+        if (user.phone === adminInfo.phone) return;
+        
+        const item = document.createElement('div');
+        item.className = 'admin-item';
+        
+        const userOrders = ordersHistory.filter(order => order.userId === user.id);
+        const totalSpent = userOrders.reduce((sum, order) => sum + order.total, 0);
+        
+        item.innerHTML = `
+            <div>
+                <h4>${user.firstName || 'کاربر'} ${user.lastName || ''}</h4>
+                <p>شماره: ${user.phone}</p>
+                <p>تعداد سفارشات: ${userOrders.length} | مجموع خرید: ${formatNumber(totalSpent)} تومان</p>
+                <small>عضویت از: ${formatDate(user.registeredAt)}</small>
+            </div>
+            <div class="admin-item-actions">
+                ${userOrders.length > 0 ? 
+                    `<span class="badge-success">مشتری وفادار</span>` : 
+                    `<span class="badge-warning">بدون سفارش</span>`}
+            </div>
+        `;
+        
+        container.appendChild(item);
+    });
+}
+
+function renderAdminProducts() {
+    const container = document.getElementById('admin-products-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    products.forEach(product => {
+        const item = document.createElement('div');
+        item.className = 'admin-item';
+        
+        // تعداد فروش این محصول
+        const salesCount = ordersHistory.reduce((count, order) => {
+            const productInOrder = order.items.find(item => item.id === product.id);
+            return count + (productInOrder ? productInOrder.quantity : 0);
+        }, 0);
+        
+        // درآمد از این محصول
+        const productRevenue = salesCount * product.price;
+        
+        item.innerHTML = `
+            <div>
+                <h4>${product.name}</h4>
+                <p>${product.description}</p>
+                <small>دسته‌بندی: ${product.category} | قیمت: ${formatNumber(product.price)} تومان</small>
+            </div>
+            <div class="admin-item-actions">
+                <div class="product-stats">
+                    <span>فروش: ${salesCount}</span>
+                    <span>درآمد: ${formatNumber(productRevenue)} تومان</span>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(item);
     });
 }
 
@@ -583,8 +872,6 @@ function openModal(modalId, overlayId) {
     if (modal && overlay) {
         modal.style.display = 'block';
         overlay.style.display = 'block';
-        
-        // جلوگیری از اسکرول بدنه
         document.body.style.overflow = 'hidden';
     }
 }
@@ -596,8 +883,6 @@ function closeModal(modalId, overlayId) {
     if (modal && overlay) {
         modal.style.display = 'none';
         overlay.style.display = 'none';
-        
-        // بازگرداندن اسکرول بدنه
         document.body.style.overflow = 'auto';
     }
 }
@@ -644,11 +929,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
-            // حذف کلاس active از همه دکمه‌ها
             filterButtons.forEach(btn => btn.classList.remove('active'));
-            // افزودن کلاس active به دکمه کلیک شده
             this.classList.add('active');
-            // فیلتر محصولات
             const filter = this.getAttribute('data-filter');
             renderProducts(filter);
         });
@@ -680,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             if (userState.isLoggedIn) {
-                // اگر کاربر وارد شده باشد، دراپ‌داون را نمایش می‌دهیم
+                // نمایش دراپ‌داون
                 const userDropdown = document.getElementById('user-dropdown');
                 if (window.innerWidth <= 992) {
                     userDropdown.classList.toggle('active');
@@ -720,6 +1002,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             loginUser(phone);
             phoneInput.value = '';
+            closeModal('login-modal', 'login-overlay');
         });
     }
     
@@ -741,6 +1024,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            if (!userState.isLoggedIn) {
+                openModal('login-modal', 'login-overlay');
+                return;
+            }
+            
+            // پر کردن خودکار اطلاعات کاربر
+            if (userState.currentUser) {
+                document.getElementById('first-name').value = userState.currentUser.firstName || '';
+                document.getElementById('last-name').value = userState.currentUser.lastName || '';
+                document.getElementById('checkout-phone').value = userState.currentUser.phone || '';
+            }
+            
+            renderOrderSummary();
             openModal('checkout-modal', 'checkout-overlay');
         });
     }
@@ -760,39 +1056,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // تایید سفارش
-    const confirmOrder = document.getElementById('confirm-order');
-    if (confirmOrder) {
-        confirmOrder.addEventListener('click', function() {
-            const firstName = document.getElementById('first-name').value.trim();
-            const lastName = document.getElementById('last-name').value.trim();
-            const phone = document.getElementById('checkout-phone').value.trim();
-            
-            if (!firstName || !lastName) {
-                showNotification('لطفاً نام و نام خانوادگی خود را وارد کنید', 'warning');
-                return;
-            }
-            
-            if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
-                showNotification('لطفاً شماره موبایل معتبر وارد کنید', 'warning');
-                return;
-            }
-            
-            completeOrder(firstName, lastName, phone);
+    const finalSubmitBtn = document.getElementById('final-submit-btn');
+    if (finalSubmitBtn) {
+        finalSubmitBtn.addEventListener('click', completeOrder);
+    }
+    
+    // مدیریت تیکت پشتیبانی
+    const ticketBtn = document.getElementById('ticket-btn');
+    if (ticketBtn) {
+        ticketBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModal('ticket-modal', 'ticket-overlay');
         });
     }
     
-    // مدیریت سابقه خرید
+    const openTicketMain = document.getElementById('open-ticket-main');
+    if (openTicketMain) {
+        openTicketMain.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModal('ticket-modal', 'ticket-overlay');
+        });
+    }
+    
+    const closeTicket = document.getElementById('close-ticket');
+    if (closeTicket) {
+        closeTicket.addEventListener('click', function() {
+            closeModal('ticket-modal', 'ticket-overlay');
+        });
+    }
+    
+    const ticketOverlay = document.getElementById('ticket-overlay');
+    if (ticketOverlay) {
+        ticketOverlay.addEventListener('click', function() {
+            closeModal('ticket-modal', 'ticket-overlay');
+        });
+    }
+    
+    // ارسال تیکت
+    const submitTicketBtn = document.getElementById('submit-ticket-btn');
+    if (submitTicketBtn) {
+        submitTicketBtn.addEventListener('click', submitSupportTicket);
+    }
+    
+    // سابقه خرید
     const ordersLink = document.querySelector('a[href="#orders"]');
     if (ordersLink) {
         ordersLink.addEventListener('click', function(e) {
             e.preventDefault();
-            
-            if (!userState.isLoggedIn) {
-                showNotification('لطفاً ابتدا وارد شوید', 'warning');
-                openModal('login-modal', 'login-overlay');
-                return;
-            }
-            
             renderOrdersHistory();
             openModal('orders-modal', 'orders-overlay');
         });
@@ -812,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // مدیریت پروفایل
+    // پروفایل
     const profileLink = document.querySelector('a[href="#profile"]');
     if (profileLink) {
         profileLink.addEventListener('click', function(e) {
@@ -842,6 +1152,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // پنل ادمین
+    const adminBtn = document.getElementById('admin-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openAdminPanel();
+        });
+    }
+    
+    const closeAdmin = document.getElementById('close-admin');
+    if (closeAdmin) {
+        closeAdmin.addEventListener('click', function() {
+            closeModal('admin-modal', 'admin-overlay');
+        });
+    }
+    
+    const adminOverlay = document.getElementById('admin-overlay');
+    if (adminOverlay) {
+        adminOverlay.addEventListener('click', function() {
+            closeModal('admin-modal', 'admin-overlay');
+        });
+    }
+    
     // مدیریت منوی موبایل
     const menuToggle = document.getElementById('menu-toggle');
     if (menuToggle) {
@@ -859,20 +1192,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const menuToggle = document.getElementById('menu-toggle');
                 menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
                 
-                // بستن دراپ‌داون کاربر در حالت موبایل
                 const userDropdown = document.getElementById('user-dropdown');
                 userDropdown.classList.remove('active');
             }
         });
     });
     
-    // پیش‌پر کردن اطلاعات کاربر در فرم خرید اگر وارد سیستم باشد
-    document.getElementById('checkout-phone').addEventListener('focus', function() {
-        if (userState.isLoggedIn && userState.currentUser) {
-            document.getElementById('first-name').value = userState.currentUser.firstName || '';
-            document.getElementById('last-name').value = userState.currentUser.lastName || '';
-            this.value = userState.currentUser.phone || '';
-        }
+    // دکمه‌های کپی
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const text = this.parentElement.querySelector('span').textContent.replace(/\s/g, '');
+            copyToClipboard(text);
+        });
     });
     
     // اسکرول نرم برای لینک‌های داخلی
@@ -880,8 +1211,8 @@ document.addEventListener('DOMContentLoaded', function() {
         anchor.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
             
-            // اگر لینک برای مودال‌ها یا سبد خرید است، از اسکرول جلوگیری کن
-            if (href === '#cart' || href === '#login' || href === '#profile' || href === '#orders') {
+            if (href === '#cart' || href === '#login' || href === '#profile' || 
+                href === '#orders' || href === '#admin' || href === '#ticket') {
                 return;
             }
             
@@ -897,7 +1228,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         behavior: 'smooth'
                     });
                     
-                    // بستن منوی موبایل
                     if (window.innerWidth <= 992) {
                         const navLinksContainer = document.querySelector('.nav-links');
                         navLinksContainer.classList.remove('active');
@@ -910,11 +1240,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // باز کردن لینک‌های خارجی در تب جدید
-    document.querySelectorAll('a[href^="http"]').forEach(link => {
-        if (!link.getAttribute('target')) {
-            link.setAttribute('target', '_blank');
-            link.setAttribute('rel', 'noopener noreferrer');
-        }
-    });
+    // ورود اتوماتیک ادمین برای تست
+    // برای تست سریع، این خط رو غیرفعال کن:
+    // loginUser(adminInfo.phone);
 });
