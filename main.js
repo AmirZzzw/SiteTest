@@ -571,21 +571,22 @@ async function handleLogin() {
     const phone = phoneInput.value.trim();
     const password = passwordInput.value.trim();
     
+    // اعتبارسنجی
     if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
         showNotification('شماره موبایل معتبر وارد کنید (09xxxxxxxxx)', 'warning');
+        return;
+    }
+    
+    // پسورد اجباری
+    if (!password || password.length < 6) {
+        showNotification('رمز عبور الزامی است (حداقل ۶ کاراکتر)', 'warning');
         return;
     }
     
     showNotification('در حال ورود...', 'info');
     
     try {
-        let result;
-        
-        if (password) {
-            result = await window.supabaseFunctions.loginUser(phone, password);
-        } else {
-            result = await window.supabaseFunctions.loginOrRegisterUser(phone);
-        }
+        const result = await window.supabaseFunctions.loginUser(phone, password);
         
         if (result.success) {
             userState.isLoggedIn = true;
@@ -604,9 +605,9 @@ async function handleLogin() {
             
             phoneInput.value = '';
             passwordInput.value = '';
-            
+             
         } else {
-            showNotification('خطا در ورود: ' + (result.error || 'مشکل در ارتباط'), 'error');
+            showNotification(result.error || 'خطا در ورود', 'error');
         }
         
     } catch (error) {
@@ -1679,6 +1680,7 @@ window.initializeApp = function() {
         }
         
         loadCart();
+        renderCartItems()
         updateUserUI();
         updateCartUI();
         renderCartItems();
