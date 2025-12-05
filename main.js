@@ -1,5 +1,5 @@
 // main.js - فروشگاه خدمات دیجیتال SidkaShop
-// Complete Version - Mobile & Desktop Compatible
+// Complete Fixed Version
 
 console.log('🚀 Initializing SidkaShop...');
 
@@ -7,8 +7,7 @@ console.log('🚀 Initializing SidkaShop...');
 let products = [];
 let userState = {
     isLoggedIn: false,
-    currentUser: null,
-    sessionExpiry: null
+    currentUser: null
 };
 
 let cartState = {
@@ -29,7 +28,7 @@ const sessionManager = {
         try {
             const sessionData = {
                 user: user,
-                expiry: Date.now() + (24 * 60 * 60 * 1000), // 24 ساعت
+                expiry: Date.now() + (24 * 60 * 60 * 1000),
                 savedAt: Date.now()
             };
             
@@ -51,7 +50,6 @@ const sessionManager = {
             
             const sessionData = JSON.parse(sessionStr);
             
-            // بررسی انقضا
             if (sessionData.expiry && sessionData.expiry > Date.now()) {
                 console.log('Valid session found for:', sessionData.user.phone);
                 return sessionData.user;
@@ -75,15 +73,6 @@ const sessionManager = {
         } catch (error) {
             console.error('Error clearing session:', error);
         }
-    },
-    
-    refreshSession: function() {
-        const user = this.loadSession();
-        if (user) {
-            this.saveSession(user);
-            return user;
-        }
-        return null;
     }
 };
 
@@ -95,14 +84,13 @@ function formatNumber(num) {
 function formatDate(dateString) {
     try {
         const date = new Date(dateString);
-        const options = { 
+        return date.toLocaleDateString('fa-IR', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
-        };
-        return date.toLocaleDateString('fa-IR', options);
+        });
     } catch {
         return '---';
     }
@@ -110,7 +98,6 @@ function formatDate(dateString) {
 
 function showNotification(message, type = 'info') {
     try {
-        // حذف نوتیفیکیشن قبلی
         const existing = document.querySelector('.notification');
         if (existing) existing.remove();
         
@@ -123,7 +110,6 @@ function showNotification(message, type = 'info') {
             </div>
         `;
         
-        // استایل‌ها
         Object.assign(notification.style, {
             position: 'fixed',
             top: '20px',
@@ -150,7 +136,6 @@ function showNotification(message, type = 'info') {
         
         document.body.appendChild(notification);
         
-        // حذف خودکار
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.opacity = '0';
@@ -161,7 +146,7 @@ function showNotification(message, type = 'info') {
         
     } catch (error) {
         console.error('Error showing notification:', error);
-        alert(message); // Fallback
+        alert(message);
     }
 }
 
@@ -174,7 +159,6 @@ function copyToClipboard(text) {
                     resolve(true);
                 })
                 .catch(() => {
-                    // Fallback
                     const textArea = document.createElement('textarea');
                     textArea.value = text;
                     textArea.style.position = 'fixed';
@@ -187,7 +171,6 @@ function copyToClipboard(text) {
                     resolve(true);
                 });
         } else {
-            // Fallback for older browsers
             const textArea = document.createElement('textarea');
             textArea.value = text;
             document.body.appendChild(textArea);
@@ -231,7 +214,6 @@ function updateCartTotal() {
 }
 
 function updateCartUI() {
-    // آپدیت تعداد
     const cartCount = document.querySelector('.cart-count');
     if (cartCount) {
         const totalItems = cartState.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -239,7 +221,6 @@ function updateCartUI() {
         cartCount.style.display = totalItems > 0 ? 'flex' : 'none';
     }
     
-    // آپدیت قیمت کل
     const cartTotalEl = document.getElementById('cart-total-price');
     if (cartTotalEl) {
         cartTotalEl.textContent = `${formatNumber(cartState.total)} تومان`;
@@ -353,7 +334,6 @@ async function loadProducts() {
     try {
         showLoadingProducts(true);
         
-        // اگر توابع Supabase وجود ندارن، از fallback استفاده کن
         if (!window.supabaseFunctions || !window.supabaseFunctions.getAllProducts) {
             console.warn('Supabase functions not available, using fallback');
             products = getFallbackProducts();
@@ -554,7 +534,7 @@ async function handleLogin() {
     const password = passwordInput.value.trim();
     
     if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
-        showNotification('شماره موبایل معتبر وارد کنید', 'warning');
+        showNotification('شماره موبایل معتبر وارد کنید (09xxxxxxxxx)', 'warning');
         return;
     }
     
@@ -564,10 +544,8 @@ async function handleLogin() {
         let result;
         
         if (password) {
-            // ورود با رمز
-            result = await window.supabaseFunctions.loginOrRegisterUser(phone, '', '', password);
+            result = await window.supabaseFunctions.loginUser(phone, password);
         } else {
-            // ورود/ثبت‌نام ساده
             result = await window.supabaseFunctions.loginOrRegisterUser(phone);
         }
         
@@ -575,21 +553,17 @@ async function handleLogin() {
             userState.isLoggedIn = true;
             userState.currentUser = result.user;
             
-            // ذخیره سشن
             sessionManager.saveSession(result.user);
             
             updateUserUI();
             showNotification(`خوش آمدید ${result.user.first_name || 'کاربر'}!`, 'success');
             
-            // بررسی ادمین
-            if (phone === adminInfo.phone) {
+            if (phone === adminInfo.phone || result.user.is_admin) {
                 document.getElementById('admin-nav-item').style.display = 'block';
             }
             
-            // بستن مودال
             closeModal('login-modal', 'login-overlay');
             
-            // پاک کردن فیلدها
             phoneInput.value = '';
             passwordInput.value = '';
             
@@ -610,7 +584,6 @@ async function handleRegister() {
     const password = document.getElementById('reg-password').value;
     const confirmPassword = document.getElementById('reg-confirm-password').value;
     
-    // اعتبارسنجی
     if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
         showNotification('شماره موبایل معتبر وارد کنید', 'warning');
         return;
@@ -640,13 +613,11 @@ async function handleRegister() {
             userState.isLoggedIn = true;
             userState.currentUser = result.user;
             
-            // ذخیره سشن
             sessionManager.saveSession(result.user);
             
             updateUserUI();
             showNotification('ثبت‌نام موفقیت‌آمیز! خوش آمدید.', 'success');
             
-            // بستن مودال
             closeModal('register-modal', 'register-overlay');
             
         } else {
@@ -666,7 +637,6 @@ function handleLogout() {
     sessionManager.clearSession();
     updateUserUI();
     
-    // مخفی کردن پنل ادمین
     document.getElementById('admin-nav-item').style.display = 'none';
     
     showNotification('با موفقیت خارج شدید', 'info');
@@ -680,7 +650,6 @@ function updateUserUI() {
         const userName = userState.currentUser.first_name || 'کاربر';
         loginBtn.innerHTML = `<i class="fas fa-user"></i> ${userName}`;
         
-        // آپدیت اطلاعات پروفایل
         if (document.getElementById('profile-name')) {
             document.getElementById('profile-name').textContent = userState.currentUser.first_name || '---';
             document.getElementById('profile-lastname').textContent = userState.currentUser.last_name || '---';
@@ -702,7 +671,6 @@ function openModal(modalId, overlayId) {
         overlay.style.display = 'block';
         document.body.style.overflow = 'hidden';
         
-        // برای موبایل، اسکرول به بالا
         if (window.innerWidth <= 768) {
             modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -752,7 +720,6 @@ function toggleCart() {
 
 // ========== مدیریت سفارشات ==========
 async function completeOrder() {
-    // اعتبارسنجی اولیه
     if (cartState.items.length === 0) {
         showNotification('سبد خرید شما خالی است', 'warning');
         return;
@@ -764,7 +731,6 @@ async function completeOrder() {
         return;
     }
     
-    // اعتبارسنجی فیلدها
     const firstName = document.getElementById('first-name').value.trim();
     const lastName = document.getElementById('last-name').value.trim();
     const phone = document.getElementById('checkout-phone').value.trim();
@@ -786,16 +752,13 @@ async function completeOrder() {
         return;
     }
     
-    // محدودیت حجم فایل (5MB)
     if (receiptFile.size > 5 * 1024 * 1024) {
         showNotification('حجم تصویر باید کمتر از ۵ مگابایت باشد', 'warning');
         return;
     }
     
-    // نمایش وضعیت
     showNotification('در حال ثبت سفارش...', 'info');
     
-    // تبدیل فایل به base64
     const reader = new FileReader();
     reader.onload = async function(e) {
         try {
@@ -823,7 +786,6 @@ async function completeOrder() {
             const result = await window.supabaseFunctions.createNewOrder(orderData);
             
             if (result.success) {
-                // خالی کردن سبد خرید
                 cartState.items = [];
                 saveCart();
                 updateCartTotal();
@@ -831,20 +793,16 @@ async function completeOrder() {
                 renderProducts();
                 renderPricingTable();
                 
-                // بستن مودال
                 closeModal('checkout-modal', 'checkout-overlay');
                 
-                // ریست فرم
                 document.getElementById('first-name').value = '';
                 document.getElementById('last-name').value = '';
                 document.getElementById('checkout-phone').value = '';
                 document.getElementById('receipt-file').value = '';
                 document.getElementById('receipt-note').value = '';
                 
-                // نمایش پیام موفقیت
                 showNotification(`سفارش شما ثبت شد! کد پیگیری: #${orderData.id}`, 'success');
                 
-                // در صورت نیاز آپدیت اطلاعات کاربر
                 if (userState.currentUser.first_name !== firstName || userState.currentUser.last_name !== lastName) {
                     await window.supabaseFunctions.updateUserInfo(
                         userState.currentUser.id, 
@@ -933,10 +891,8 @@ async function submitSupportTicket() {
         const result = await window.supabaseFunctions.createNewTicket(ticketData);
         
         if (result.success) {
-            // بستن مودال
             closeModal('ticket-modal', 'ticket-overlay');
             
-            // ریست فرم
             document.getElementById('ticket-subject').value = '';
             document.getElementById('ticket-message').value = '';
             
@@ -952,9 +908,59 @@ async function submitSupportTicket() {
     }
 }
 
+// ========== مشاهده تیکت‌های کاربر ==========
+async function openUserTickets() {
+    if (!userState.isLoggedIn) {
+        showNotification('لطفاً ابتدا وارد شوید', 'warning');
+        return;
+    }
+    
+    try {
+        const result = await window.supabaseFunctions.getUserTickets(userState.currentUser.id);
+        const ticketsList = document.getElementById('user-tickets-list');
+        
+        if (result.success && result.tickets && result.tickets.length > 0) {
+            let html = '';
+            result.tickets.forEach(ticket => {
+                const statusClass = ticket.status === 'جدید' ? 'status-new' : 
+                                  ticket.status === 'در حال بررسی' ? 'status-pending' : 
+                                  'status-solved';
+                
+                html += `
+                    <div class="user-ticket-item">
+                        <div class="ticket-summary">
+                            <h4>${ticket.subject}</h4>
+                            <p>${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
+                        </div>
+                        <div class="ticket-meta">
+                            <span class="ticket-date">${formatDate(ticket.created_at)}</span>
+                            <span class="${statusClass}">${ticket.status}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            ticketsList.innerHTML = html;
+        } else {
+            ticketsList.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-ticket-alt"></i>
+                    <p>هنوز تیکتی ارسال نکرده‌اید</p>
+                </div>
+            `;
+        }
+        
+        openModal('mytickets-modal', 'mytickets-overlay');
+        
+    } catch (error) {
+        console.error('Error loading user tickets:', error);
+        showNotification('خطا در بارگذاری تیکت‌ها', 'error');
+    }
+}
+
 // ========== پنل ادمین ==========
 async function openAdminPanel() {
-    if (!userState.isLoggedIn || userState.currentUser.phone !== adminInfo.phone) {
+    if (!userState.isLoggedIn || !userState.currentUser.is_admin) {
         showNotification('شما دسترسی ادمین ندارید', 'error');
         return;
     }
@@ -967,7 +973,6 @@ async function renderAdminPanel() {
     showNotification('در حال بارگذاری پنل ادمین...', 'info');
     
     try {
-        // دریافت آمار
         const stats = await window.supabaseFunctions.getDashboardStats();
         if (stats.success) {
             document.getElementById('stats-users-count').textContent = stats.stats.users;
@@ -976,11 +981,9 @@ async function renderAdminPanel() {
             document.getElementById('stats-new-tickets').textContent = stats.stats.newTickets;
         }
         
-        // دریافت سفارشات
         await renderAdminOrders();
-        
-        // دریافت تیکت‌ها
         await renderAdminTickets();
+        await renderAdminUsers();
         
     } catch (error) {
         console.error('Error rendering admin panel:', error);
@@ -1001,13 +1004,14 @@ async function renderAdminOrders() {
                 const customer = order.customer_info || {};
                 const receipt = order.receipt_info || {};
                 const items = order.items || [];
+                const user = order.users || {};
                 
                 html += `
                     <div class="admin-item">
                         <div style="flex: 1;">
                             <h4>سفارش #${order.id}</h4>
-                            <p><strong>مشتری:</strong> ${customer.firstName || ''} ${customer.lastName || ''}</p>
-                            <p><strong>شماره:</strong> ${customer.phone || ''}</p>
+                            <p><strong>مشتری:</strong> ${customer.firstName || user.first_name || ''} ${customer.lastName || user.last_name || ''}</p>
+                            <p><strong>شماره:</strong> ${customer.phone || user.phone || ''}</p>
                             <p><strong>محصولات:</strong> ${items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ')}</p>
                             <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
                             <p><strong>تاریخ:</strong> ${formatDate(order.created_at)}</p>
@@ -1023,12 +1027,14 @@ async function renderAdminOrders() {
                                     <i class="fas fa-receipt"></i> مشاهده رسید
                                 </button>
                             ` : ''}
-                            <button class="btn btn-success" onclick="approveOrder(${order.id})">
-                                <i class="fas fa-check"></i> تأیید
-                            </button>
-                            <button class="btn btn-danger" onclick="rejectOrder(${order.id})">
-                                <i class="fas fa-times"></i> رد
-                            </button>
+                            ${order.status === 'در انتظار تأیید' ? `
+                                <button class="btn btn-success" onclick="approveOrder(${order.id})">
+                                    <i class="fas fa-check"></i> تأیید
+                                </button>
+                                <button class="btn btn-danger" onclick="rejectOrder(${order.id})">
+                                    <i class="fas fa-times"></i> رد
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -1045,13 +1051,105 @@ async function renderAdminOrders() {
     }
 }
 
+async function renderAdminTickets() {
+    const container = document.getElementById('admin-tickets-list');
+    if (!container) return;
+    
+    try {
+        const result = await window.supabaseFunctions.getAllTickets();
+        
+        if (result.success && result.tickets && result.tickets.length > 0) {
+            let html = '';
+            result.tickets.forEach(ticket => {
+                const user = ticket.users || {};
+                const statusClass = ticket.status === 'جدید' ? 'status-new' : 
+                                  ticket.status === 'در حال بررسی' ? 'status-pending' : 
+                                  'status-solved';
+                
+                html += `
+                    <div class="admin-item ticket-item">
+                        <div style="flex: 1;">
+                            <div class="ticket-header">
+                                <h4>${ticket.subject}</h4>
+                                <span class="ticket-id">#${ticket.id}</span>
+                            </div>
+                            <div class="ticket-info">
+                                <p><strong>کاربر:</strong> ${user.first_name || ''} ${user.last_name || ''} (${user.phone || ''})</p>
+                                <p><strong>پیام:</strong> ${ticket.message.substring(0, 150)}${ticket.message.length > 150 ? '...' : ''}</p>
+                                <p><strong>تاریخ:</strong> ${formatDate(ticket.created_at)}</p>
+                            </div>
+                            <div class="ticket-meta">
+                                <span class="${statusClass}">${ticket.status}</span>
+                                <button class="btn btn-sm btn-primary" onclick="replyToTicket(${ticket.id})">
+                                    <i class="fas fa-reply"></i> پاسخ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<p class="empty-message">هیچ تیکتی ارسال نشده است</p>';
+        }
+        
+    } catch (error) {
+        console.error('Error rendering admin tickets:', error);
+        container.innerHTML = '<p class="empty-message">خطا در بارگذاری تیکت‌ها</p>';
+    }
+}
+
+async function renderAdminUsers() {
+    const container = document.getElementById('admin-users-list');
+    if (!container) return;
+    
+    try {
+        const result = await window.supabaseFunctions.getAllUsers();
+        
+        if (result.success && result.users && result.users.length > 0) {
+            let html = '';
+            result.users.forEach(user => {
+                html += `
+                    <div class="admin-item">
+                        <div style="flex: 1;">
+                            <h4>${user.first_name || ''} ${user.last_name || ''}</h4>
+                            <p><strong>شماره موبایل:</strong> ${user.phone}</p>
+                            <p><strong>تاریخ ثبت‌نام:</strong> ${formatDate(user.created_at)}</p>
+                            <p><strong>نوع کاربر:</strong> ${user.is_admin ? '👑 ادمین' : '👤 کاربر عادی'}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<p class="empty-message">هنوز کاربری ثبت نکرده‌اید</p>';
+        }
+        
+    } catch (error) {
+        console.error('Error rendering admin users:', error);
+        container.innerHTML = '<p class="empty-message">خطا در بارگذاری کاربران</p>';
+    }
+}
+
 async function viewReceipt(orderId) {
     try {
         const result = await window.supabaseFunctions.getOrderReceipt(orderId);
         
-        if (result.success && result.receipt && result.receipt.url) {
-            // باز کردن در پنجره جدید
-            window.open(result.receipt.url, '_blank', 'noopener,noreferrer');
+        if (result.success && result.receipt) {
+            if (result.receipt.image) {
+                openReceiptModal(result.receipt.image, orderId);
+            }
+            else if (result.receipt.receipt_info && result.receipt.receipt_info.image) {
+                openReceiptModal(result.receipt.receipt_info.image, orderId);
+            }
+            else if (result.receipt.url) {
+                window.open(result.receipt.url, '_blank', 'noopener,noreferrer');
+            }
+            else {
+                showNotification('تصویر رسید موجود نیست', 'warning');
+            }
         } else {
             showNotification('رسید یافت نشد', 'warning');
         }
@@ -1059,6 +1157,48 @@ async function viewReceipt(orderId) {
         console.error('Error viewing receipt:', error);
         showNotification('خطا در مشاهده رسید', 'error');
     }
+}
+
+function openReceiptModal(imageBase64, orderId) {
+    const modalHtml = `
+        <div class="modal-overlay" id="receipt-overlay"></div>
+        <div class="modal modal-lg" id="receipt-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-receipt"></i> رسید سفارش #${orderId}</h3>
+                <button class="close-modal" onclick="closeModal('receipt-modal', 'receipt-overlay')">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <img src="${imageBase64}" 
+                     alt="رسید پرداخت" 
+                     style="max-width: 100%; max-height: 500px; border-radius: 8px;">
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="downloadReceipt('${imageBase64}', 'receipt-${orderId}.jpg')">
+                        <i class="fas fa-download"></i> دانلود تصویر
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const oldModal = document.getElementById('receipt-modal');
+    const oldOverlay = document.getElementById('receipt-overlay');
+    if (oldModal) oldModal.remove();
+    if (oldOverlay) oldOverlay.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    document.getElementById('receipt-modal').style.display = 'block';
+    document.getElementById('receipt-overlay').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function downloadReceipt(imageBase64, filename) {
+    const link = document.createElement('a');
+    link.href = imageBase64;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 async function approveOrder(orderId) {
@@ -1069,7 +1209,7 @@ async function approveOrder(orderId) {
             showNotification('سفارش تأیید شد', 'success');
             await renderAdminOrders();
         } else {
-            showNotification('خطا در تأیید سفارش', 'error');
+            showNotification('خطا در تأیید سفارش: ' + result.error, 'error');
         }
     } catch (error) {
         console.error('Error approving order:', error);
@@ -1085,10 +1225,32 @@ async function rejectOrder(orderId) {
             showNotification('سفارش رد شد', 'warning');
             await renderAdminOrders();
         } else {
-            showNotification('خطا در رد سفارش', 'error');
+            showNotification('خطا در رد سفارش: ' + result.error, 'error');
         }
     } catch (error) {
         console.error('Error rejecting order:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+    }
+}
+
+async function replyToTicket(ticketId) {
+    const replyMessage = prompt('پاسخ خود را وارد کنید:');
+    if (!replyMessage) return;
+    
+    try {
+        const result = await window.supabaseFunctions.addTicketReply(ticketId, {
+            message: replyMessage,
+            isAdmin: true
+        });
+        
+        if (result.success) {
+            showNotification('پاسخ ارسال شد', 'success');
+            await renderAdminTickets();
+        } else {
+            showNotification('خطا در ارسال پاسخ', 'error');
+        }
+    } catch (error) {
+        console.error('Error replying to ticket:', error);
         showNotification('خطا در ارتباط با سرور', 'error');
     }
 }
@@ -1097,13 +1259,13 @@ async function rejectOrder(orderId) {
 function setupEventListeners() {
     console.log('🔧 Setting up event listeners...');
     
-    // 1. مدیریت منوی موبایل
+    // منوی موبایل
     const menuToggle = document.getElementById('menu-toggle');
     if (menuToggle) {
         menuToggle.addEventListener('click', toggleMobileMenu);
     }
     
-    // 2. مدیریت سبد خرید
+    // سبد خرید
     const cartToggle = document.getElementById('cart-toggle');
     if (cartToggle) {
         cartToggle.addEventListener('click', function(e) {
@@ -1122,14 +1284,13 @@ function setupEventListeners() {
         cartOverlay.addEventListener('click', toggleCart);
     }
     
-    // 3. ورود/عضویت
+    // ورود/عضویت
     const loginBtn = document.getElementById('login-btn');
     if (loginBtn) {
         loginBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
             if (userState.isLoggedIn) {
-                // نمایش منوی کاربر در موبایل
                 if (window.innerWidth <= 992) {
                     const dropdown = document.getElementById('user-dropdown');
                     dropdown.classList.toggle('active');
@@ -1146,7 +1307,7 @@ function setupEventListeners() {
         submitLogin.addEventListener('click', handleLogin);
     }
     
-    // 4. ثبت‌نام کامل
+    // ثبت‌نام
     const switchToLogin = document.getElementById('switch-to-login');
     if (switchToLogin) {
         switchToLogin.addEventListener('click', function(e) {
@@ -1156,29 +1317,12 @@ function setupEventListeners() {
         });
     }
     
-    // اضافه کردن دکمه ثبت‌نام در مودال ورود
-    const loginForm = document.querySelector('.login-form');
-    if (loginForm && !document.getElementById('register-link')) {
-        const registerLink = document.createElement('p');
-        registerLink.id = 'register-link';
-        registerLink.style.marginTop = '15px';
-        registerLink.style.textAlign = 'center';
-        registerLink.innerHTML = '<a href="#" id="show-register">ثبت‌نام کامل</a>';
-        loginForm.appendChild(registerLink);
-        
-        document.getElementById('show-register').addEventListener('click', function(e) {
-            e.preventDefault();
-            closeModal('login-modal', 'login-overlay');
-            openModal('register-modal', 'register-overlay');
-        });
-    }
-    
     const submitRegister = document.getElementById('submit-register');
     if (submitRegister) {
         submitRegister.addEventListener('click', handleRegister);
     }
     
-    // 5. خروج
+    // خروج
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
@@ -1187,7 +1331,16 @@ function setupEventListeners() {
         });
     }
     
-    // 6. فرآیند خرید
+    // تیکت‌های من
+    const myticketsBtn = document.getElementById('mytickets-btn');
+    if (myticketsBtn) {
+        myticketsBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openUserTickets();
+        });
+    }
+    
+    // فرآیند خرید
     const checkoutBtn = document.getElementById('checkout-btn');
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', function() {
@@ -1202,7 +1355,6 @@ function setupEventListeners() {
                 return;
             }
             
-            // پر کردن خودکار اطلاعات کاربر
             if (userState.currentUser) {
                 document.getElementById('first-name').value = userState.currentUser.first_name || '';
                 document.getElementById('last-name').value = userState.currentUser.last_name || '';
@@ -1219,7 +1371,7 @@ function setupEventListeners() {
         finalSubmitBtn.addEventListener('click', completeOrder);
     }
     
-    // 7. تیکت پشتیبانی
+    // تیکت پشتیبانی
     const ticketBtn = document.getElementById('ticket-btn');
     if (ticketBtn) {
         ticketBtn.addEventListener('click', function(e) {
@@ -1241,7 +1393,7 @@ function setupEventListeners() {
         submitTicketBtn.addEventListener('click', submitSupportTicket);
     }
     
-    // 8. سابقه خرید
+    // سابقه خرید
     const ordersBtn = document.getElementById('orders-btn');
     if (ordersBtn) {
         ordersBtn.addEventListener('click', async function(e) {
@@ -1302,7 +1454,7 @@ function setupEventListeners() {
         });
     }
     
-    // 9. پروفایل
+    // پروفایل
     const profileBtn = document.getElementById('profile-btn');
     if (profileBtn) {
         profileBtn.addEventListener('click', function(e) {
@@ -1317,7 +1469,7 @@ function setupEventListeners() {
         });
     }
     
-    // 10. پنل ادمین
+    // پنل ادمین
     const adminBtn = document.getElementById('admin-btn');
     if (adminBtn) {
         adminBtn.addEventListener('click', function(e) {
@@ -1326,26 +1478,23 @@ function setupEventListeners() {
         });
     }
     
-    // 11. فیلتر محصولات
+    // فیلتر محصولات
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
-            // حذف کلاس active از همه
             filterButtons.forEach(btn => btn.classList.remove('active'));
-            // اضافه کردن به دکمه فعلی
             this.classList.add('active');
-            // اعمال فیلتر
             const filter = this.getAttribute('data-filter');
             renderProducts(filter);
         });
     });
     
-    // 12. دکمه‌های کپی
+    // دکمه‌های کپی
     document.getElementById('copy-card-btn')?.addEventListener('click', () => copyToClipboard(adminInfo.cardNumber));
     document.getElementById('copy-card-large-btn')?.addEventListener('click', () => copyToClipboard(adminInfo.cardNumber));
     document.getElementById('copy-phone-btn')?.addEventListener('click', () => copyToClipboard(adminInfo.phone));
     
-    // 13. بستن مودال‌ها
+    // بستن مودال‌ها
     const closeButtons = ['login', 'register', 'checkout', 'ticket', 'orders', 'profile', 'mytickets', 'admin'];
     closeButtons.forEach(modal => {
         const closeBtn = document.getElementById(`close-${modal}`);
@@ -1360,56 +1509,25 @@ function setupEventListeners() {
         }
     });
     
-    // 14. اسکرول نرم
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            const href = this.getAttribute('href');
-            
-            // نادیده گرفتن لینک‌های مودال
-            if (href === '#cart' || href === '#login' || href === '#profile' || 
-                href === '#orders' || href === '#admin' || href === '#ticket' ||
-                href === '#mytickets' || href === '#logout') {
-                return;
-            }
-            
-            if (href !== '#') {
-                e.preventDefault();
-                const targetId = href.substring(1);
-                const targetElement = document.getElementById(targetId);
-                
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                    
-                    // بستن منوی موبایل
-                    if (window.innerWidth <= 992) {
-                        const navLinks = document.querySelector('.nav-links');
-                        navLinks.classList.remove('active');
-                        document.getElementById('menu-toggle').innerHTML = '<i class="fas fa-bars"></i>';
-                        document.body.style.overflow = 'auto';
-                    }
-                }
-            }
-        });
-    });
-    
-    // 15. تب‌های ادمین
+    // تب‌های ادمین
     const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
             
-            // غیرفعال کردن همه
             tabButtons.forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             
-            // فعال کردن انتخاب شده
             this.classList.add('active');
             const tabContent = document.getElementById(tabId);
             if (tabContent) {
                 tabContent.classList.add('active');
+                
+                if (tabId === 'tickets-tab') {
+                    renderAdminTickets();
+                } else if (tabId === 'users-tab') {
+                    renderAdminUsers();
+                }
             }
         });
     });
@@ -1422,68 +1540,40 @@ window.initializeApp = function() {
     console.log('🚀 Starting SidkaShop application...');
     
     try {
-        // حذف صفحه لودینگ
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
             loadingScreen.style.opacity = '0';
             setTimeout(() => loadingScreen.remove(), 500);
         }
         
-        // بارگذاری سشن
         const savedUser = sessionManager.loadSession();
         if (savedUser) {
             userState.isLoggedIn = true;
             userState.currentUser = savedUser;
             
-            // بررسی ادمین
-            if (savedUser.phone === adminInfo.phone) {
+            if (savedUser.phone === adminInfo.phone || savedUser.is_admin) {
                 document.getElementById('admin-nav-item').style.display = 'block';
             }
         }
         
-        // بارگذاری سبد خرید
         loadCart();
-        
-        // آپدیت UI
         updateUserUI();
         updateCartUI();
         renderCartItems();
-        
-        // بارگذاری محصولات
         loadProducts();
-        
-        // تنظیم رویدادها
         setupEventListeners();
         
-        // تنظیم شماره کارت در جاهای مختلف
         document.querySelectorAll('#card-number-text, .card-number-large span').forEach(el => {
             el.textContent = adminInfo.formattedCard;
         });
         
-        // مانیتور وضعیت آنلاین
         window.addEventListener('online', () => {
             showNotification('اتصال برقرار شد', 'success');
-            loadProducts(); // تلاش مجدد برای بارگذاری محصولات
+            loadProducts();
         });
         
         window.addEventListener('offline', () => {
             showNotification('اتصال قطع شد', 'warning');
-        });
-        
-        // جلوگیری از لاگوت در رفرش
-        window.addEventListener('beforeunload', () => {
-            // ریفرش سشن
-            if (userState.isLoggedIn) {
-                sessionManager.saveSession(userState.currentUser);
-            }
-        });
-        
-        // مانیتور visibility برای موبایل
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && userState.isLoggedIn) {
-                // ریفرش سشن وقتی کاربر برگشت
-                sessionManager.refreshSession();
-            }
         });
         
         console.log('✅ Application initialized successfully');
@@ -1496,7 +1586,6 @@ window.initializeApp = function() {
 };
 
 // ========== اتصال توابع به window ==========
-// این توابع باید در window باشند تا از HTML قابل دسترسی باشند
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
 window.updateCartQuantity = updateCartQuantity;
@@ -1509,5 +1598,7 @@ window.copyToClipboard = copyToClipboard;
 window.viewReceipt = viewReceipt;
 window.approveOrder = approveOrder;
 window.rejectOrder = rejectOrder;
+window.replyToTicket = replyToTicket;
+window.openUserTickets = openUserTickets;
 
 console.log('✅ main.js loaded successfully');
