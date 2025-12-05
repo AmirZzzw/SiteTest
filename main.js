@@ -623,6 +623,7 @@ async function handleRegister() {
     const password = document.getElementById('reg-password').value;
     const confirmPassword = document.getElementById('reg-confirm-password').value;
     
+    // اعتبارسنجی
     if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
         showNotification('شماره موبایل معتبر وارد کنید', 'warning');
         return;
@@ -633,13 +634,27 @@ async function handleRegister() {
         return;
     }
     
+    // پسورد اجباری و قوی
     if (!password || password.length < 6) {
         showNotification('رمز عبور باید حداقل ۶ کاراکتر باشد', 'warning');
         return;
     }
     
+    // قوی بودن پسورد (اختیاری)
+    const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{6,}$/;
+    if (!strongPasswordRegex.test(password)) {
+        showNotification('رمز عبور باید شامل حروف و اعداد باشد', 'warning');
+        return;
+    }
+    
     if (password !== confirmPassword) {
         showNotification('رمز عبور و تکرار آن مطابقت ندارند', 'warning');
+        return;
+    }
+    
+    // بررسی شماره ادمین
+    if (phone === '09021707830') {
+        showNotification('این شماره مخصوص ادمین است. رمز عبور ادمین: SidkaShop1234', 'error');
         return;
     }
     
