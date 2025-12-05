@@ -1024,6 +1024,8 @@ async function renderAdminPanel() {
     }
 }
 
+// در main.js تابع renderAdminOrders را با این کد جایگزین کن:
+
 async function renderAdminOrders() {
     const container = document.getElementById('admin-orders-list');
     if (!container) return;
@@ -1034,40 +1036,55 @@ async function renderAdminOrders() {
         if (result.success && result.orders && result.orders.length > 0) {
             let html = '';
             result.orders.forEach(order => {
+                // اطلاعات مشتری
                 const customer = order.customer_info || {};
-                const receipt = order.receipt_info || {};
                 const items = order.items || [];
                 const user = order.users || {};
+                
+                // محاسبه مجموع اگر total وجود نداشت
+                let totalAmount = order.total;
+                if (!totalAmount && items.length > 0) {
+                    totalAmount = items.reduce((sum, item) => 
+                        sum + (item.price || 0) * (item.quantity || 1), 0);
+                }
+                
+                // فرمت تاریخ
+                const orderDate = order.created_at ? 
+                    new Date(order.created_at).toLocaleDateString('fa-IR') : 
+                    '---';
                 
                 html += `
                     <div class="admin-item">
                         <div style="flex: 1;">
                             <h4>سفارش #${order.id}</h4>
-                            <p><strong>مشتری:</strong> ${customer.firstName || user.first_name || ''} ${customer.lastName || user.last_name || ''}</p>
-                            <p><strong>شماره:</strong> ${customer.phone || user.phone || ''}</p>
-                            <p><strong>محصولات:</strong> ${items.map(item => `${item.name} (${item.quantity} عدد)`).join('، ')}</p>
-                            <p><strong>مبلغ:</strong> ${formatNumber(order.total)} تومان</p>
-                            <p><strong>تاریخ:</strong> ${formatDate(order.created_at)}</p>
+                            <p><strong>مشتری:</strong> ${customer.firstName || user.first_name || '---'} ${customer.lastName || user.last_name || ''}</p>
+                            <p><strong>شماره تماس:</strong> ${customer.phone || user.phone || '---'}</p>
+                            <p><strong>محصولات:</strong> 
+                                ${items.map(item => 
+                                    `${item.name || 'محصول'} (${item.quantity || 1} عدد)`
+                                ).join('، ')}
+                            </p>
+                            <p><strong>مبلغ:</strong> ${window.formatNumber ? window.formatNumber(totalAmount) : totalAmount} تومان</p>
+                            <p><strong>تاریخ سفارش:</strong> ${orderDate}</p>
                             <p><strong>وضعیت:</strong> 
-                                <span class="status-badge status-${order.status === 'تأیید شده' ? 'success' : order.status === 'رد شده' ? 'danger' : 'warning'}">
-                                    ${order.status}
+                                <span class="status-badge status-${order.status === 'تأیید شده' ? 'success' : 
+                                    order.status === 'رد شده' ? 'danger' : 'warning'}">
+                                    ${order.status || 'در انتظار تأیید'}
                                 </span>
                             </p>
                         </div>
                         <div class="admin-item-actions">
-                            ${receipt.image ? `
-                                <button class="btn btn-primary" onclick="viewReceipt(${order.id})">
-                                    <i class="fas fa-receipt"></i> مشاهده رسید
-                                </button>
-                            ` : ''}
-                            ${order.status === 'در انتظار تأیید' ? `
+                            ${order.status === 'در انتظار تأیید' || !order.status ? `
                                 <button class="btn btn-success" onclick="approveOrder(${order.id})">
-                                    <i class="fas fa-check"></i> تأیید
+                                    <i class="fas fa-check"></i> تأیید سفارش
                                 </button>
                                 <button class="btn btn-danger" onclick="rejectOrder(${order.id})">
-                                    <i class="fas fa-times"></i> رد
+                                    <i class="fas fa-times"></i> رد سفارش
                                 </button>
                             ` : ''}
+                            <button class="btn btn-info" onclick="viewReceipt(${order.id})">
+                                <i class="fas fa-receipt"></i> مشاهده رسید
+                            </button>
                         </div>
                     </div>
                 `;
@@ -1075,14 +1092,26 @@ async function renderAdminOrders() {
             
             container.innerHTML = html;
         } else {
-            container.innerHTML = '<p class="empty-message">هنوز سفارشی ثبت نشده است</p>';
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-box-open"></i>
+                    <p>هنوز سفارشی ثبت نشده است</p>
+                </div>
+            `;
         }
         
     } catch (error) {
         console.error('Error rendering admin orders:', error);
-        container.innerHTML = '<p class="empty-message">خطا در بارگذاری سفارشات</p>';
+        container.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>خطا در بارگذاری سفارشات</p>
+                <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+            </div>
+        `;
     }
 }
+// در main.js تابع renderAdminTickets را با این کد جایگزین کن:
 
 async function renderAdminTickets() {
     const container = document.getElementById('admin-tickets-list');
@@ -1093,28 +1122,60 @@ async function renderAdminTickets() {
         
         if (result.success && result.tickets && result.tickets.length > 0) {
             let html = '';
-            result.tickets.forEach(ticket => {
+            
+            // فیلتر تیکت‌های واقعی (نه خالی)
+            const validTickets = result.tickets.filter(ticket => 
+                ticket && ticket.subject && ticket.message
+            );
+            
+            if (validTickets.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-comments"></i>
+                        <p>هیچ تیکتی ارسال نشده است</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            validTickets.forEach(ticket => {
+                // اطلاعات کاربر
                 const user = ticket.users || {};
-                const statusClass = ticket.status === 'جدید' ? 'status-new' : 
-                                  ticket.status === 'در حال بررسی' ? 'status-pending' : 
+                const userName = user.first_name ? 
+                    `${user.first_name} ${user.last_name || ''}`.trim() : 
+                    'کاربر';
+                const userPhone = user.phone || '---';
+                
+                // وضعیت تیکت
+                const status = ticket.status || 'جدید';
+                const statusClass = status === 'جدید' ? 'status-new' : 
+                                  status === 'در حال بررسی' ? 'status-pending' : 
                                   'status-solved';
+                
+                // فرمت تاریخ
+                const ticketDate = ticket.created_at ? 
+                    new Date(ticket.created_at).toLocaleDateString('fa-IR') : 
+                    '---';
                 
                 html += `
                     <div class="admin-item ticket-item">
                         <div style="flex: 1;">
                             <div class="ticket-header">
-                                <h4>${ticket.subject}</h4>
-                                <span class="ticket-id">#${ticket.id}</span>
+                                <h4>${ticket.subject || 'بدون موضوع'}</h4>
+                                <span class="ticket-id">#${ticket.id || '---'}</span>
                             </div>
                             <div class="ticket-info">
-                                <p><strong>کاربر:</strong> ${user.first_name || ''} ${user.last_name || ''} (${user.phone || ''})</p>
-                                <p><strong>پیام:</strong> ${ticket.message.substring(0, 150)}${ticket.message.length > 150 ? '...' : ''}</p>
-                                <p><strong>تاریخ:</strong> ${formatDate(ticket.created_at)}</p>
+                                <p><strong>ارسال کننده:</strong> ${userName} (${userPhone})</p>
+                                <p><strong>پیام:</strong> ${(ticket.message || '').substring(0, 200)}${(ticket.message || '').length > 200 ? '...' : ''}</p>
+                                <p><strong>تاریخ ارسال:</strong> ${ticketDate}</p>
                             </div>
                             <div class="ticket-meta">
-                                <span class="${statusClass}">${ticket.status}</span>
+                                <span class="${statusClass}">${status}</span>
                                 <button class="btn btn-sm btn-primary" onclick="replyToTicket(${ticket.id})">
-                                    <i class="fas fa-reply"></i> پاسخ
+                                    <i class="fas fa-reply"></i> پاسخ به تیکت
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="changeTicketStatus(${ticket.id})">
+                                    <i class="fas fa-edit"></i> تغییر وضعیت
                                 </button>
                             </div>
                         </div>
@@ -1124,12 +1185,40 @@ async function renderAdminTickets() {
             
             container.innerHTML = html;
         } else {
-            container.innerHTML = '<p class="empty-message">هیچ تیکتی ارسال نشده است</p>';
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-comments"></i>
+                    <p>هیچ تیکتی ارسال نشده است</p>
+                </div>
+            `;
         }
         
     } catch (error) {
         console.error('Error rendering admin tickets:', error);
-        container.innerHTML = '<p class="empty-message">خطا در بارگذاری تیکت‌ها</p>';
+        container.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>خطا در بارگذاری تیکت‌ها</p>
+            </div>
+        `;
+    }
+}
+
+// اضافه کردن تابع تغییر وضعیت تیکت
+async function changeTicketStatus(ticketId) {
+    const statuses = ['جدید', 'در حال بررسی', 'پاسخ داده شده', 'بسته شده'];
+    const currentStatus = prompt('وضعیت جدید تیکت را انتخاب کنید:\n' + statuses.join('\n'));
+    
+    if (currentStatus && statuses.includes(currentStatus)) {
+        try {
+            const result = await window.supabaseFunctions.updateTicketStatus(ticketId, currentStatus);
+            if (result.success) {
+                showNotification(`وضعیت تیکت به "${currentStatus}" تغییر کرد`, 'success');
+                await renderAdminTickets();
+            }
+        } catch (error) {
+            showNotification('خطا در تغییر وضعیت', 'error');
+        }
     }
 }
 
