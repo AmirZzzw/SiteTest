@@ -1553,6 +1553,7 @@ async function openTicketDetails(ticketId) {
     }
 }
 // 2. تابع ارسال پاسخ به تیکت
+// 2. تابع ارسال پاسخ به تیکت
 async function submitTicketReply(ticketId, isAdmin = false) {
     const messageInput = document.getElementById('new-reply-message');
     const message = messageInput?.value.trim();
@@ -1583,18 +1584,14 @@ async function submitTicketReply(ticketId, isAdmin = false) {
         
         if (result.success) {
             if (isUserAdmin) {
-                showNotification('پاسخ ادمین ارسال شد و کاربر مطلع خواهد شد', 'success');
+                showNotification('✅ پاسخ ادمین ارسال شد (فقط برای ادمین‌ها قابل مشاهده)', 'success');
             } else {
-                showNotification('پاسخ شما ارسال شد و در انتظار پاسخ ادمین است', 'success');
+                showNotification('✅ پاسخ شما ارسال شد و در انتظار پاسخ ادمین است', 'success');
             }
             
             // رفرش لیست پاسخ‌ها
-            const replySection = document.querySelector('.ticket-replies-section');
-            if (replySection) {
-                // بستن مودال و باز کردن مجدد
-                closeModal('ticket-details-modal', 'ticket-details-overlay');
-                setTimeout(() => openTicketDetails(ticketId), 300);
-            }
+            closeModal('ticket-details-modal', 'ticket-details-overlay');
+            setTimeout(() => openTicketDetails(ticketId), 300);
             
             // پاک کردن فیلد
             if (messageInput) messageInput.value = '';
