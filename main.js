@@ -102,54 +102,67 @@ function formatDate(dateString) {
 
 function showNotification(message, type = 'info') {
     try {
-        const existing = document.querySelector('.notification');
-        if (existing) existing.remove();
+        // صبر کن تا DOM آماده شود
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                createNotification(message, type);
+            });
+        } else {
+            createNotification(message, type);
+        }
         
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <div class="notification-content">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
-                <span>${message}</span>
-            </div>
-        `;
-        
-        Object.assign(notification.style, {
-            position: 'fixed',
-            top: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '15px 25px',
-            borderRadius: '8px',
-            color: 'white',
-            fontWeight: '600',
-            zIndex: '9999',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            backgroundColor: type === 'success' ? '#2ecc71' : 
-                            type === 'warning' ? '#f39c12' : 
-                            type === 'error' ? '#e74c3c' : '#3498db',
-            fontFamily: 'Vazirmatn, sans-serif',
-            textAlign: 'center',
-            minWidth: '300px',
-            maxWidth: '90vw',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px'
-        });
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.style.opacity = '0';
-                notification.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => notification.remove(), 500);
-            }
-        }, 3000);
+        function createNotification(msg, typ) {
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${typ}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-${typ === 'success' ? 'check-circle' : typ === 'error' ? 'exclamation-circle' : typ === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${msg}</span>
+                </div>
+            `;
+            
+            // استایل‌ها
+            Object.assign(notification.style, {
+                position: 'fixed',
+                top: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                padding: '15px 25px',
+                borderRadius: '8px',
+                color: 'white',
+                fontWeight: '600',
+                zIndex: '9999',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                backgroundColor: typ === 'success' ? '#2ecc71' : 
+                                typ === 'warning' ? '#f39c12' : 
+                                typ === 'error' ? '#e74c3c' : '#3498db',
+                fontFamily: 'Vazirmatn, sans-serif',
+                textAlign: 'center',
+                minWidth: '300px',
+                maxWidth: '90vw',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px'
+            });
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => notification.remove(), 500);
+                }
+            }, 3000);
+        }
         
     } catch (error) {
         console.error('Error showing notification:', error);
+        // نمایش ساده
         alert(message);
     }
 }
@@ -717,6 +730,12 @@ window.initializeApp = function() {
 function updateUserUI() {
     const loginBtn = document.getElementById('login-btn');
     const userDropdown = document.getElementById('user-dropdown');
+    
+    // اگر عنصر وجود ندارد، خروج
+    if (!loginBtn) {
+        console.warn('⚠️ login-btn element not found');
+        return;
+    }
     
     if (userState.isLoggedIn && userState.currentUser) {
         const userName = userState.currentUser.first_name || 'کاربر';
@@ -1783,59 +1802,76 @@ window.initializeApp = function() {
     console.log('🚀 Starting SidkaShop application...');
     
     try {
+        // حذف صفحه لودینگ
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
             loadingScreen.style.opacity = '0';
             setTimeout(() => loadingScreen.remove(), 500);
         }
 
-                // پاکسازی localStorage اگر پر شده
-        try {
-            checkStorageSpace();
-            cleanupOldOrders();
-        } catch (e) {
-            console.warn('⚠️ Storage cleanup failed:', e);
-        }
+        // پاکسازی localStorage اگر پر شده (حذف خطا)
+        // try {
+        //     checkStorageSpace();
+        //     cleanupOldOrders();
+        // } catch (e) {
+        //     console.warn('⚠️ Storage cleanup failed:', e);
+        // }
         
+        // بارگذاری سشن
         const savedUser = sessionManager.loadSession();
         if (savedUser) {
             userState.isLoggedIn = true;
             userState.currentUser = savedUser;
             
-            if (savedUser.phone === adminInfo.phone || savedUser.is_admin) {
-                document.getElementById('admin-nav-item').style.display = 'block';
+            if (savedUser.phone === '09021707830' || savedUser.is_admin) {
+                const adminNav = document.getElementById('admin-nav-item');
+                if (adminNav) {
+                    adminNav.style.display = 'block';
+                }
             }
         }
         
-        loadCart();
-        updateUserUI();
-        updateCartUI();
-        renderCartItems();
-        loadProducts();
-        setupEventListeners();
-        
-        document.querySelectorAll('#card-number-text, .card-number-large span').forEach(el => {
-            el.textContent = adminInfo.formattedCard;
-        });
-        
-        // راه‌اندازی Choose File برای مودال پرداخت
-        const checkoutBtn = document.getElementById('checkout-btn');
-        if (checkoutBtn) {
-            checkoutBtn.addEventListener('click', function() {
-                setTimeout(setupFileInput, 300);
+        // صبر کن تا DOM کاملاً بارگذاری شود
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeAppComponents();
             });
+        } else {
+            initializeAppComponents();
         }
         
-        window.addEventListener('online', () => {
-            showNotification('اتصال برقرار شد', 'success');
-        });
-        
-        window.addEventListener('offline', () => {
-            showNotification('اتصال قطع شد', 'warning');
-        });
-        
-        console.log('✅ Application initialized successfully');
-        showNotification('فروشگاه آماده است!', 'success');
+        function initializeAppComponents() {
+            loadCart();
+            updateUserUI();
+            updateCartUI();
+            renderCartItems();
+            loadProducts();
+            setupEventListeners();
+            
+            // تنظیم شماره کارت
+            document.querySelectorAll('#card-number-text, .card-number-large span').forEach(el => {
+                if (el) el.textContent = adminInfo.formattedCard;
+            });
+            
+            // راه‌اندازی Choose File برای مودال پرداخت
+            const checkoutBtn = document.getElementById('checkout-btn');
+            if (checkoutBtn) {
+                checkoutBtn.addEventListener('click', function() {
+                    setTimeout(setupFileInput, 300);
+                });
+            }
+            
+            window.addEventListener('online', () => {
+                showNotification('اتصال برقرار شد', 'success');
+            });
+            
+            window.addEventListener('offline', () => {
+                showNotification('اتصال قطع شد', 'warning');
+            });
+            
+            console.log('✅ Application initialized successfully');
+            showNotification('فروشگاه آماده است!', 'success');
+        }
         
     } catch (error) {
         console.error('❌ Error initializing app:', error);
