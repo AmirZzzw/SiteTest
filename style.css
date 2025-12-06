@@ -1962,3 +1962,154 @@ input[type="file"] {
     clip: rect(0, 0, 0, 0);
     border: 0;
 }
+
+/* استایل‌های مودال جزئیات تیکت */
+.ticket-details-view {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.ticket-info-section {
+    background-color: var(--dark-lighter);
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+}
+
+.ticket-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ticket-header-info h4 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+.ticket-user-info {
+    margin-bottom: 20px;
+}
+
+.ticket-user-info p {
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ticket-user-info i {
+    color: var(--primary-color);
+    width: 20px;
+}
+
+.ticket-message-box {
+    background-color: var(--dark-color);
+    padding: 15px;
+    border-radius: var(--radius);
+    border-right: 4px solid var(--primary-color);
+}
+
+.ticket-message-box h5 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.message-content {
+    line-height: 1.8;
+    color: var(--text-color);
+}
+
+/* بخش پاسخ‌ها */
+.ticket-replies-section {
+    margin: 25px 0;
+    padding: 20px;
+    background-color: var(--dark-lighter);
+    border-radius: var(--radius);
+}
+
+.ticket-replies-section h5 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.no-replies {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px;
+    font-style: italic;
+}
+
+.reply-item {
+    background-color: var(--dark-color);
+    padding: 15px;
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    border-right: 4px solid transparent;
+}
+
+.reply-item.admin-reply {
+    border-right-color: var(--primary-color);
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.reply-item.user-reply {
+    border-right-color: var(--secondary-color);
+}
+
+.reply-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.reply-sender {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-color);
+}
+
+.reply-date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.reply-content {
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+/* فرم پاسخ جدید */
+.new-reply-section {
+    margin-top: 25px;
+    padding: 20px;
+    background-color: var(--dark-lighter);
+    border-radius: var(--radius);
+    border-top: 2px solid var(--primary-color);
+}
+
+.new-reply-section h5 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+/* استایل‌های دکمه مشاهده در لیست */
+.ticket-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.user-ticket-item .ticket-actions {
+    justify-content: flex-end;
+}
