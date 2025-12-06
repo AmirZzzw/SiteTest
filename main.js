@@ -2082,3 +2082,40 @@ window.openUserTickets = openUserTickets;
 window.setupFileInput = setupFileInput;
 
 console.log('✅ main.js loaded successfully');
+
+// خط آخر main.js اضافه کن:
+window.addEventListener('error', function(e) {
+    console.error('🚨 خطای جزئیات:', {
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error
+    });
+    
+    // نمایش خطا به کاربر
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'notification notification-error';
+    errorDiv.style.position = 'fixed';
+    errorDiv.style.top = '50%';
+    errorDiv.style.left = '50%';
+    errorDiv.style.transform = 'translate(-50%, -50%)';
+    errorDiv.style.zIndex = '99999';
+    errorDiv.innerHTML = `
+        <div style="padding: 20px; background: #e74c3c; color: white; border-radius: 10px;">
+            <h3>خطا در برنامه</h3>
+            <p>${e.message}</p>
+            <p>خط: ${e.lineno}</p>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: white;
+                color: #e74c3c;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                margin-top: 10px;
+                cursor: pointer;
+            ">بستن</button>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
+});
