@@ -350,7 +350,6 @@ async function getAllProductsFromSupabase() {
         const { data, error } = await supabase
             .from('products')
             .select('*')
-            .eq('active', true)
             .order('id');
         
         if (error) {
