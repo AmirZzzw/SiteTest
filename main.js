@@ -1980,10 +1980,6 @@ function setupEventListeners() {
 // ========== تابع اصلی راه‌اندازی ==========
 window.initializeApp = function() {
     console.log('🚀 Starting SidkaShop application...');
-
-    try {
-        // تمیزکاری سفارشات قدیمی
-        cleanupLocalStorageOrders();
     
     try {
         // حذف صفحه لودینگ
