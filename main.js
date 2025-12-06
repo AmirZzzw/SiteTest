@@ -1415,6 +1415,7 @@ async function replyToTicket(ticketId) {
 // در main.js این تابع‌ها را اضافه کن:
 
 // 1. تابع باز کردن مودال جزئیات تیکت
+// 1. تابع باز کردن مودال جزئیات تیکت
 async function openTicketDetails(ticketId) {
     try {
         const result = await window.supabaseFunctions.getTicketDetails(ticketId);
@@ -1424,10 +1425,16 @@ async function openTicketDetails(ticketId) {
             return;
         }
         
-        const { ticket, replies } = result;
+        const { ticket, replies, isAdmin, userPhone } = result;
         
-        // آیا کاربر ادمین است؟
-        const isAdmin = userState.currentUser?.is_admin || userState.currentUser?.phone === '09021707830';
+        // آیا کاربر دسترسی به این تیکت رو داره؟
+        const currentUserPhone = userState.currentUser?.phone;
+        const canViewTicket = isAdmin || ticket.user_phone === currentUserPhone || ticket.user_id === userState.currentUser?.id;
+        
+        if (!canViewTicket) {
+            showNotification('شما دسترسی به این تیکت را ندارید', 'error');
+            return;
+        }
         
         // ایجاد HTML مودال
         const modalHtml = `
@@ -1446,7 +1453,8 @@ async function openTicketDetails(ticketId) {
                                 <h4>${ticket.subject || 'بدون موضوع'}</h4>
                                 <span class="status-badge ${ticket.status === 'جدید' ? 'status-new' : 
                                     ticket.status === 'در حال بررسی' ? 'status-pending' : 
-                                    ticket.status === 'پاسخ داده شده' ? 'status-solved' : 'status-solved'}">
+                                    ticket.status === 'پاسخ داده شده' ? 'status-solved' : 
+                                    ticket.status === 'در انتظار پاسخ ادمین' ? 'status-pending' : 'status-solved'}">
                                     ${ticket.status || 'جدید'}
                                 </span>
                             </div>
@@ -1457,10 +1465,11 @@ async function openTicketDetails(ticketId) {
                                     (${ticket.user_phone || ticket.users?.phone || '---'})
                                 </p>
                                 <p><i class="fas fa-calendar"></i> تاریخ ارسال: ${formatDate(ticket.created_at)}</p>
+                                ${isAdmin ? `<p><i class="fas fa-id-badge"></i> سطح دسترسی: <strong>${isAdmin ? '👑 ادمین' : '👤 کاربر عادی'}</strong></p>` : ''}
                             </div>
                             
                             <div class="ticket-message-box">
-                                <h5><i class="fas fa-comment"></i> پیام:</h5>
+                                <h5><i class="fas fa-comment"></i> پیام اصلی:</h5>
                                 <div class="message-content">
                                     ${(ticket.message || '').replace(/\n/g, '<br>')}
                                 </div>
@@ -1478,24 +1487,32 @@ async function openTicketDetails(ticketId) {
                                 </div>
                             ` : ''}
                             
-                            ${replies.map(reply => `
-                                <div class="reply-item ${reply.is_admin || reply.responder_phone === '09021707830' ? 'admin-reply' : 'user-reply'}">
-                                    <div class="reply-header">
-                                        <div class="reply-sender">
-                                            <i class="fas ${reply.is_admin || reply.responder_phone === '09021707830' ? 'fa-user-shield' : 'fa-user'}"></i>
-                                            <span>${reply.is_admin || reply.responder_phone === '09021707830' ? '👑 ادمین' : '👤 کاربر'}</span>
+                            ${replies.map(reply => {
+                                // اگر پاسخ ادمین هست و کاربر ادمین نیست، نمایش نده
+                                if (reply.is_admin && !isAdmin) {
+                                    return ''; // پاسخ ادمین رو نشون نده
+                                }
+                                
+                                return `
+                                    <div class="reply-item ${reply.is_admin ? 'admin-reply' : 'user-reply'}">
+                                        <div class="reply-header">
+                                            <div class="reply-sender">
+                                                <i class="fas ${reply.is_admin ? 'fa-user-shield' : 'fa-user'}"></i>
+                                                <span>${reply.is_admin ? '👑 ادمین' : '👤 کاربر'}</span>
+                                                ${reply.responder_name ? `<small>(${reply.responder_name})</small>` : ''}
+                                            </div>
+                                            <span class="reply-date">${formatDate(reply.created_at)}</span>
                                         </div>
-                                        <span class="reply-date">${formatDate(reply.created_at)}</span>
+                                        <div class="reply-content">
+                                            ${(reply.message || '').replace(/\n/g, '<br>')}
+                                        </div>
                                     </div>
-                                    <div class="reply-content">
-                                        ${(reply.message || '').replace(/\n/g, '<br>')}
-                                    </div>
-                                </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                         
                         <!-- پاسخ جدید (برای ادمین و کاربر) -->
-                        ${isAdmin || ticket.user_phone === userState.currentUser?.phone ? `
+                        ${isAdmin || ticket.user_phone === currentUserPhone ? `
                             <div class="new-reply-section">
                                 <h5><i class="fas fa-plus-circle"></i> ${isAdmin ? 'پاسخ ادمین' : 'پاسخ شما'}</h5>
                                 <div class="form-group">
@@ -1504,6 +1521,11 @@ async function openTicketDetails(ticketId) {
                                 <button class="btn ${isAdmin ? 'btn-warning' : 'btn-primary'}" onclick="submitTicketReply(${ticketId}, ${isAdmin})">
                                     <i class="fas fa-paper-plane"></i> ${isAdmin ? 'ارسال پاسخ ادمین' : 'ارسال پاسخ'}
                                 </button>
+                                ${isAdmin ? `
+                                    <p class="note" style="margin-top: 10px; color: #f39c12; font-size: 0.9rem;">
+                                        <i class="fas fa-info-circle"></i> پاسخ شما فقط برای ادمین‌ها قابل مشاهده است
+                                    </p>
+                                ` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -1560,7 +1582,11 @@ async function submitTicketReply(ticketId, isAdmin = false) {
         const result = await window.supabaseFunctions.addTicketReply(ticketId, replyData);
         
         if (result.success) {
-            showNotification(isUserAdmin ? 'پاسخ ادمین ارسال شد' : 'پاسخ شما ارسال شد', 'success');
+            if (isUserAdmin) {
+                showNotification('پاسخ ادمین ارسال شد و کاربر مطلع خواهد شد', 'success');
+            } else {
+                showNotification('پاسخ شما ارسال شد و در انتظار پاسخ ادمین است', 'success');
+            }
             
             // رفرش لیست پاسخ‌ها
             const replySection = document.querySelector('.ticket-replies-section');
