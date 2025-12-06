@@ -1,68 +1,64 @@
-// supabase-service-complete.js - ذخیره کامل در Supabase
+// supabase-service-complete.js - کامل و رفع خطا
 console.log('🚀 Loading Complete Supabase Service...');
 
 // تنظیمات Supabase
 const SUPABASE_CONFIG = {
     URL: 'https://oudwditrdwugozxizehm.supabase.co',
-    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91ZHdkaXRyZHd1Z296eGl6ZWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4ODQzMTcsImV4cCI6MjA4MDQ2MDMxN30.BQxoJD-WnRQQvIaQQSTzKzXLxf2LdGuPkqBCKvDruGE',
-    SERVICE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91ZHdkaXRyZHd1Z296eGl6ZWhtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDg4NDMxNywiZXhwIjIwODA0NjAzMTd9.tdOH4sUcWbYf_cwH5_qiT-nP8z2P-_yDhsPSIyhzo-s'
+    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91ZHdkaXRyZHd1Z296eGl6ZWhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4ODQzMTcsImV4cCI6MjA4MDQ2MDMxN30.BQxoJD-WnRQQvIaQQSTzKzXLxf2LdGuPkqBCKvDruGE'
 };
 
-// ایجاد کلاینت‌های Supabase
+// ایجاد کلاینت Supabase
 let supabase;
-let supabaseAdmin; // برای عملیات ادمین
 
 try {
     if (window.supabase) {
-        // کلاینت عادی (با ANON_KEY)
         supabase = window.supabase.createClient(
             SUPABASE_CONFIG.URL,
-            SUPABASE_CONFIG.ANON_KEY
+            SUPABASE_CONFIG.ANON_KEY,
+            {
+                auth: {
+                    autoRefreshToken: true,
+                    persistSession: true,
+                    detectSessionInUrl: false
+                }
+            }
         );
-        
-        // کلاینت ادمین (با SERVICE_KEY) - برای عملیات خاص
-        supabaseAdmin = window.supabase.createClient(
-            SUPABASE_CONFIG.URL,
-            SUPABASE_CONFIG.SERVICE_KEY
-        );
-        
-        console.log('✅ Both Supabase clients created');
+        console.log('✅ Supabase client created successfully');
     } else {
         console.error('❌ Supabase library not loaded');
         supabase = null;
-        supabaseAdmin = null;
     }
 } catch (error) {
-    console.error('❌ Failed to create Supabase clients:', error);
+    console.error('❌ Failed to create Supabase client:', error);
     supabase = null;
-    supabaseAdmin = null;
 }
 
-// ========== توابع کاربران در Supabase ==========
+// ========== توابع اصلی کاربران ==========
 
-// 1. پیدا کردن کاربر با شماره تلفن
+// 1. پیدا کردن کاربر با شماره تلفن در Supabase
 async function findUserByPhone(phone) {
     try {
         if (!supabase) {
-            console.warn('⚠️ Supabase not available, checking localStorage');
-            return findUserInLocalStorage(phone);
+            console.warn('⚠️ Supabase not available');
+            return null;
         }
         
         const { data, error } = await supabase
             .from('users')
             .select('*')
             .eq('phone', phone)
-            .single();
+            .maybeSingle(); // استفاده از maybeSingle به جای single
         
         if (error) {
-            if (error.code === 'PGRST116') { // No rows returned
+            if (error.code === 'PGRST116') {
+                console.log(`📭 No user found with phone: ${phone}`);
                 return null;
             }
             console.error('❌ Error finding user:', error);
             return null;
         }
         
-        console.log(`✅ User found in Supabase: ${data.phone}`);
+        console.log(`✅ User found in Supabase: ${data?.phone || 'N/A'}`);
         return data;
         
     } catch (error) {
@@ -71,27 +67,29 @@ async function findUserByPhone(phone) {
     }
 }
 
-// 2. ذخیره کاربر در Supabase
+// 2. ذخیره یا آپدیت کاربر در Supabase
 async function saveUserToSupabase(userData) {
     try {
         if (!supabase) {
-            console.warn('⚠️ Supabase not available, saving to localStorage');
+            console.warn('⚠️ Supabase not available');
             return saveUserToLocalStorage(userData);
         }
         
         // آماده‌سازی داده
         const userToSave = {
             phone: userData.phone,
-            first_name: userData.first_name || userData.firstName,
-            last_name: userData.last_name || userData.lastName,
-            password: userData.password,
-            is_admin: userData.is_admin || false
+            first_name: userData.first_name || userData.firstName || 'کاربر',
+            last_name: userData.last_name || userData.lastName || '',
+            password: userData.password || null,
+            is_admin: userData.is_admin || userData.isAdmin || false
         };
         
         // اگر id داره (کاربر موجود)
-        if (userData.id) {
+        if (userData.id && typeof userData.id === 'number') {
             userToSave.id = userData.id;
         }
+        
+        console.log('📤 Saving user to Supabase:', userToSave);
         
         const { data, error } = await supabase
             .from('users')
@@ -112,11 +110,12 @@ async function saveUserToSupabase(userData) {
         
     } catch (error) {
         console.error('❌ Exception in saveUserToSupabase:', error);
-        throw error;
+        // در صورت خطا، در localStorage ذخیره کن
+        return saveUserToLocalStorage(userData);
     }
 }
 
-// 3. ورود با رمز عبور (بررسی در Supabase)
+// 3. ورود با رمز عبور
 async function loginWithPassword(phone, password) {
     try {
         console.log(`🔐 Login attempt for: ${phone}`);
@@ -131,7 +130,7 @@ async function loginWithPassword(phone, password) {
                 };
             }
             
-            // پیدا کردن یا ایجاد کاربر ادمین
+            // پیدا کردن یا ایجاد کاربر ادمین در Supabase
             let adminUser = await findUserByPhone(phone);
             
             if (!adminUser) {
@@ -206,7 +205,7 @@ async function loginWithPassword(phone, password) {
     }
 }
 
-// 4. ثبت‌نام جدید در Supabase
+// 4. ثبت‌نام جدید
 async function registerUserInSupabase(phone, firstName, lastName, password) {
     try {
         console.log(`📝 Registering: ${firstName} ${lastName}`);
@@ -215,7 +214,7 @@ async function registerUserInSupabase(phone, firstName, lastName, password) {
         if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
             return {
                 success: false,
-                error: 'شماره موبایل معتبر وارد کنید',
+                error: 'شماره موبایل معتبر وارد کنید (09xxxxxxxxx)',
                 code: 'INVALID_PHONE'
             };
         }
@@ -281,12 +280,12 @@ async function registerUserInSupabase(phone, firstName, lastName, password) {
 // 5. دریافت همه کاربران (برای ادمین)
 async function getAllUsersFromSupabase() {
     try {
-        if (!supabaseAdmin) {
-            console.warn('⚠️ Admin client not available');
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
             return getAllUsersFromLocalStorage();
         }
         
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await supabase
             .from('users')
             .select('*')
             .order('created_at', { ascending: false });
@@ -297,11 +296,11 @@ async function getAllUsersFromSupabase() {
         }
         
         console.log(`✅ Retrieved ${data.length} users from Supabase`);
-        return data;
+        return data || [];
         
     } catch (error) {
         console.error('❌ Exception in getAllUsersFromSupabase:', error);
-        return [];
+        return getAllUsersFromLocalStorage();
     }
 }
 
@@ -334,13 +333,284 @@ async function updateUserInfoInSupabase(userId, firstName, lastName) {
         
     } catch (error) {
         console.error('❌ Exception in updateUserInfoInSupabase:', error);
-        throw error;
+        return updateUserInLocalStorage(userId, firstName, lastName);
     }
 }
 
-// ========== توابع کمکی ==========
+// ========== توابع محصولات ==========
 
-// ذخیره سشن
+// 1. دریافت همه محصولات از Supabase
+async function getAllProductsFromSupabase() {
+    try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return getProductsFromLocalStorage();
+        }
+        
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('active', true)
+            .order('id');
+        
+        if (error) {
+            console.error('❌ Error getting products:', error);
+            // استفاده از محصولات ثابت
+            return getDefaultProducts();
+        }
+        
+        if (!data || data.length === 0) {
+            console.warn('⚠️ No products in Supabase, using default');
+            return getDefaultProducts();
+        }
+        
+        console.log(`✅ Retrieved ${data.length} products from Supabase`);
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Exception in getAllProductsFromSupabase:', error);
+        return getDefaultProducts();
+    }
+}
+
+// ========== توابع سفارشات ==========
+
+// 1. ایجاد سفارش جدید
+async function createNewOrderInSupabase(orderData) {
+    try {
+        console.log('🛒 Creating order in Supabase...');
+        
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return createNewOrderInLocalStorage(orderData);
+        }
+        
+        const orderToSave = {
+            user_id: orderData.userId,
+            total: orderData.total || 0,
+            status: 'در انتظار تأیید',
+            customer_info: orderData.customerInfo || {},
+            receipt_info: orderData.receipt || {},
+            items: orderData.items || []
+        };
+        
+        console.log('📤 Saving order:', orderToSave);
+        
+        const { data, error } = await supabase
+            .from('orders')
+            .insert([orderToSave])
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('❌ Error creating order in Supabase:', error);
+            throw error;
+        }
+        
+        console.log(`✅ Order created in Supabase: ${data.id}`);
+        
+        // خالی کردن سبد خرید
+        localStorage.removeItem('sidka_cart');
+        
+        return {
+            success: true,
+            order: data,
+            message: 'سفارش با موفقیت ثبت شد'
+        };
+        
+    } catch (error) {
+        console.error('❌ Exception in createNewOrderInSupabase:', error);
+        return createNewOrderInLocalStorage(orderData);
+    }
+}
+
+// 2. دریافت سفارشات کاربر
+async function getUserOrdersFromSupabase(userId) {
+    try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return getUserOrdersFromLocalStorage(userId);
+        }
+        
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('❌ Error getting user orders:', error);
+            throw error;
+        }
+        
+        console.log(`✅ Retrieved ${data?.length || 0} orders for user ${userId}`);
+        return data || [];
+        
+    } catch (error) {
+        console.error('❌ Exception in getUserOrdersFromSupabase:', error);
+        return getUserOrdersFromLocalStorage(userId);
+    }
+}
+
+// 3. دریافت همه سفارشات (برای ادمین)
+async function getAllOrdersFromSupabase() {
+    try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return getAllOrdersFromLocalStorage();
+        }
+        
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*, users(first_name, last_name, phone)')
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('❌ Error getting all orders:', error);
+            throw error;
+        }
+        
+        console.log(`✅ Retrieved ${data?.length || 0} orders from Supabase`);
+        return data || [];
+        
+    } catch (error) {
+        console.error('❌ Exception in getAllOrdersFromSupabase:', error);
+        return getAllOrdersFromLocalStorage();
+    }
+}
+
+// 4. آپدیت وضعیت سفارش
+async function updateOrderStatusInSupabase(orderId, status) {
+    try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return updateOrderStatusInLocalStorage(orderId, status);
+        }
+        
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                status: status,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', orderId);
+        
+        if (error) {
+            console.error('❌ Error updating order status:', error);
+            throw error;
+        }
+        
+        console.log(`✅ Order ${orderId} status updated to: ${status}`);
+        return { success: true };
+        
+    } catch (error) {
+        console.error('❌ Exception in updateOrderStatusInSupabase:', error);
+        return updateOrderStatusInLocalStorage(orderId, status);
+    }
+}
+
+// ========== توابع تیکت‌ها ==========
+
+// 1. ایجاد تیکت جدید
+async function createNewTicketInSupabase(ticketData) {
+    try {
+        console.log('🎫 Creating ticket in Supabase...');
+        
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return createNewTicketInLocalStorage(ticketData);
+        }
+        
+        const ticketToSave = {
+            user_id: ticketData.userId,
+            subject: ticketData.subject || 'بدون موضوع',
+            message: ticketData.message || 'بدون پیام',
+            status: 'جدید'
+        };
+        
+        const { data, error } = await supabase
+            .from('tickets')
+            .insert([ticketToSave])
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('❌ Error creating ticket in Supabase:', error);
+            throw error;
+        }
+        
+        console.log(`✅ Ticket created in Supabase: ${data.id}`);
+        
+        return {
+            success: true,
+            ticket: data,
+            message: 'تیکت با موفقیت ارسال شد'
+        };
+        
+    } catch (error) {
+        console.error('❌ Exception in createNewTicketInSupabase:', error);
+        return createNewTicketInLocalStorage(ticketData);
+    }
+}
+
+// 2. دریافت تیکت‌های کاربر
+async function getUserTicketsFromSupabase(userId) {
+    try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return getUserTicketsFromLocalStorage(userId);
+        }
+        
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('❌ Error getting user tickets:', error);
+            throw error;
+        }
+        
+        console.log(`✅ Retrieved ${data?.length || 0} tickets for user ${userId}`);
+        return data || [];
+        
+    } catch (error) {
+        console.error('❌ Exception in getUserTicketsFromSupabase:', error);
+        return getUserTicketsFromLocalStorage(userId);
+    }
+}
+
+// 3. دریافت همه تیکت‌ها (برای ادمین)
+async function getAllTicketsFromSupabase() {
+    try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            return getAllTicketsFromLocalStorage();
+        }
+        
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*, users(first_name, last_name, phone)')
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('❌ Error getting all tickets:', error);
+            throw error;
+        }
+        
+        console.log(`✅ Retrieved ${data?.length || 0} tickets from Supabase`);
+        return data || [];
+        
+    } catch (error) {
+        console.error('❌ Exception in getAllTicketsFromSupabase:', error);
+        return getAllTicketsFromLocalStorage();
+    }
+}
+
+// ========== توابع کمکی و Fallback ==========
+
+// ذخیره سشن در localStorage
 function saveSession(user) {
     try {
         const sessionData = {
@@ -358,32 +628,33 @@ function saveSession(user) {
     }
 }
 
-// Fallback: جستجو در localStorage
-function findUserInLocalStorage(phone) {
-    try {
-        const userKey = `sidka_user_${phone}`;
-        const userData = localStorage.getItem(userKey);
-        
-        if (userData) {
-            return JSON.parse(userData);
-        }
-        
-        return null;
-    } catch (error) {
-        console.error('❌ Error in findUserInLocalStorage:', error);
-        return null;
-    }
+// محصولات پیش‌فرض
+function getDefaultProducts() {
+    return [
+        { id: 1, name: 'ساخت پنل', description: 'ساخت پنل اختصاصی با امکانات کامل', price: 900000, category: 'panels', icon: 'fas fa-plus-circle', active: true },
+        { id: 2, name: 'آپدیت پنل', description: 'ارتقاء و به‌روزرسانی پنل موجود', price: 235000, category: 'panels', icon: 'fas fa-sync-alt', active: true },
+        { id: 3, name: 'اشتراک سلف تلگرام - یک ماهه', description: 'اشتراک یکماهه سلف تلگرام', price: 40000, category: 'subscriptions', icon: 'fab fa-telegram', active: true },
+        { id: 4, name: 'اشتراک V2rayNG - 50 گیگ', description: 'اشتراک 50 گیگ کاربر نامحدود یکماهه v2rayNG', price: 30000, category: 'subscriptions', icon: 'fas fa-server', active: true },
+        { id: 5, name: 'ویاکس پنل - یکروزه', description: 'اشتراک یکروزه ویاکس پنل - تک کاربره', price: 15000, category: 'subscriptions', icon: 'fas fa-bolt', active: true },
+        { id: 6, name: 'ویاکس پنل - یک هفته', description: 'اشتراک یک هفته ویاکس پنل - تک کاربره', price: 80000, category: 'subscriptions', icon: 'fas fa-calendar-week', active: true },
+        { id: 7, name: 'ویاکس پنل - یکماهه', description: 'اشتراک یکماهه ویاکس پنل - تک کاربره', price: 230000, category: 'subscriptions', icon: 'fas fa-calendar-alt', active: true },
+        { id: 8, name: 'ویاکس پنل - دائمی', description: 'اشتراک دائمی ویاکس پنل - تک کاربره', price: 350000, category: 'subscriptions', icon: 'fas fa-infinity', active: true },
+        { id: 9, name: 'تامنیل یوتیوب', description: 'طراحی تامنیل حرفه‌ای برای یوتیوب', price: 50000, category: 'design', icon: 'fab fa-youtube', active: true },
+        { id: 10, name: 'پروفایل چنل', description: 'طراحی پروفایل حرفه‌ای برای چنل', price: 50000, category: 'design', icon: 'fas fa-id-card', active: true }
+    ];
 }
 
-// Fallback: ذخیره در localStorage
+// ========== توابع Fallback به localStorage ==========
+
+// کاربران در localStorage
 function saveUserToLocalStorage(userData) {
     try {
         const userKey = `sidka_user_${userData.phone}`;
         const userToSave = {
             id: userData.id || Date.now(),
             phone: userData.phone,
-            first_name: userData.first_name || userData.firstName,
-            last_name: userData.last_name || userData.lastName,
+            first_name: userData.first_name || userData.firstName || 'کاربر',
+            last_name: userData.last_name || userData.lastName || '',
             password: userData.password,
             is_admin: userData.is_admin || false,
             created_at: new Date().toISOString()
@@ -398,7 +669,6 @@ function saveUserToLocalStorage(userData) {
     }
 }
 
-// Fallback: دریافت همه کاربران از localStorage
 function getAllUsersFromLocalStorage() {
     try {
         const keys = Object.keys(localStorage);
@@ -422,34 +692,29 @@ function getAllUsersFromLocalStorage() {
     }
 }
 
-// Fallback: آپدیت کاربر در localStorage
 function updateUserInLocalStorage(userId, firstName, lastName) {
     try {
         const keys = Object.keys(localStorage);
-        const userKey = keys.find(key => 
-            key.startsWith('sidka_user_') && 
-            !key.includes('session')
-        );
-        
-        if (userKey) {
-            const user = JSON.parse(localStorage.getItem(userKey));
-            if (user.id == userId) {
-                user.first_name = firstName;
-                user.last_name = lastName;
-                localStorage.setItem(userKey, JSON.stringify(user));
-                
-                // آپدیت سشن هم
-                const session = JSON.parse(localStorage.getItem('sidka_user_session') || '{}');
-                if (session.user && session.user.id == userId) {
-                    session.user.first_name = firstName;
-                    session.user.last_name = lastName;
-                    localStorage.setItem('sidka_user_session', JSON.stringify(session));
+        for (const key of keys) {
+            if (key.startsWith('sidka_user_') && !key.includes('session')) {
+                const user = JSON.parse(localStorage.getItem(key));
+                if (user.id == userId) {
+                    user.first_name = firstName;
+                    user.last_name = lastName;
+                    localStorage.setItem(key, JSON.stringify(user));
+                    
+                    // آپدیت سشن
+                    const session = JSON.parse(localStorage.getItem('sidka_user_session') || '{}');
+                    if (session.user && session.user.id == userId) {
+                        session.user.first_name = firstName;
+                        session.user.last_name = lastName;
+                        localStorage.setItem('sidka_user_session', JSON.stringify(session));
+                    }
+                    
+                    return user;
                 }
-                
-                return user;
             }
         }
-        
         return null;
     } catch (error) {
         console.error('❌ Error in updateUserInLocalStorage:', error);
@@ -457,8 +722,132 @@ function updateUserInLocalStorage(userId, firstName, lastName) {
     }
 }
 
-// ========== مهاجرت کاربران از localStorage به Supabase ==========
+// محصولات در localStorage
+function getProductsFromLocalStorage() {
+    try {
+        const products = localStorage.getItem('sidka_products');
+        if (products) {
+            return JSON.parse(products);
+        }
+        return getDefaultProducts();
+    } catch (error) {
+        return getDefaultProducts();
+    }
+}
 
+// سفارشات در localStorage
+function createNewOrderInLocalStorage(orderData) {
+    try {
+        const order = {
+            id: Date.now(),
+            userId: orderData.userId,
+            user_id: orderData.userId,
+            total: orderData.total || 0,
+            status: 'در انتظار تأیید',
+            customer_info: orderData.customerInfo || {},
+            receipt_info: orderData.receipt || {},
+            items: orderData.items || [],
+            created_at: new Date().toISOString()
+        };
+        
+        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        orders.push(order);
+        localStorage.setItem('sidka_orders', JSON.stringify(orders));
+        
+        localStorage.removeItem('sidka_cart');
+        
+        return { success: true, order: order };
+    } catch (error) {
+        console.error('❌ Error in createNewOrderInLocalStorage:', error);
+        return { success: false, error: 'خطا در ثبت سفارش' };
+    }
+}
+
+function getUserOrdersFromLocalStorage(userId) {
+    try {
+        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const userOrders = orders.filter(order => 
+            order.userId == userId || order.user_id == userId
+        );
+        return userOrders;
+    } catch (error) {
+        return [];
+    }
+}
+
+function getAllOrdersFromLocalStorage() {
+    try {
+        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        return orders;
+    } catch (error) {
+        return [];
+    }
+}
+
+function updateOrderStatusInLocalStorage(orderId, status) {
+    try {
+        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const updatedOrders = orders.map(order => {
+            if (order.id == orderId) {
+                order.status = status;
+                order.updated_at = new Date().toISOString();
+            }
+            return order;
+        });
+        localStorage.setItem('sidka_orders', JSON.stringify(updatedOrders));
+        return { success: true };
+    } catch (error) {
+        return { success: false };
+    }
+}
+
+// تیکت‌ها در localStorage
+function createNewTicketInLocalStorage(ticketData) {
+    try {
+        const ticket = {
+            id: Date.now(),
+            userId: ticketData.userId,
+            user_id: ticketData.userId,
+            subject: ticketData.subject || 'بدون موضوع',
+            message: ticketData.message || 'بدون پیام',
+            status: 'جدید',
+            created_at: new Date().toISOString()
+        };
+        
+        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        tickets.push(ticket);
+        localStorage.setItem('sidka_tickets', JSON.stringify(tickets));
+        
+        return { success: true, ticket: ticket };
+    } catch (error) {
+        return { success: false, error: 'خطا در ایجاد تیکت' };
+    }
+}
+
+function getUserTicketsFromLocalStorage(userId) {
+    try {
+        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        const userTickets = tickets.filter(ticket => 
+            ticket.userId == userId || ticket.user_id == userId
+        );
+        return userTickets;
+    } catch (error) {
+        return [];
+    }
+}
+
+function getAllTicketsFromLocalStorage() {
+    try {
+        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        return tickets;
+    } catch (error) {
+        return [];
+    }
+}
+
+// ========== توابع مهاجرت ==========
+
+// مهاجرت کاربران از localStorage به Supabase
 async function migrateUsersToSupabase() {
     try {
         console.log('🚚 Starting user migration to Supabase...');
@@ -471,6 +860,7 @@ async function migrateUsersToSupabase() {
         }
         
         let migratedCount = 0;
+        let errors = 0;
         
         for (const localUser of localUsers) {
             try {
@@ -481,22 +871,29 @@ async function migrateUsersToSupabase() {
                     // مهاجرت کاربر
                     await saveUserToSupabase({
                         phone: localUser.phone,
-                        first_name: localUser.first_name || localUser.firstName,
-                        last_name: localUser.last_name || localUser.lastName,
+                        first_name: localUser.first_name,
+                        last_name: localUser.last_name,
                         password: localUser.password || null,
                         is_admin: localUser.is_admin || false
                     });
                     
                     migratedCount++;
                     console.log(`✅ Migrated user: ${localUser.phone}`);
+                } else {
+                    console.log(`⏭️ User already exists in Supabase: ${localUser.phone}`);
                 }
             } catch (error) {
-                console.warn(`⚠️ Failed to migrate user ${localUser.phone}:`, error);
+                errors++;
+                console.warn(`⚠️ Failed to migrate user ${localUser.phone}:`, error.message);
             }
         }
         
-        console.log(`🎉 Migration complete: ${migratedCount} users migrated`);
-        return { success: true, migrated: migratedCount };
+        console.log(`🎉 Migration complete: ${migratedCount} users migrated, ${errors} errors`);
+        return { 
+            success: true, 
+            migrated: migratedCount,
+            errors: errors 
+        };
         
     } catch (error) {
         console.error('❌ Error in migrateUsersToSupabase:', error);
@@ -504,11 +901,7 @@ async function migrateUsersToSupabase() {
     }
 }
 
-// ========== توابع سفارشات و تیکت‌ها (همچنان در Supabase) ==========
-
-// توابع قبلی رو با کمی تغییر اینجا بیار...
-
-// ========== اتصال همه توابع به window ==========
+// ========== اتصال توابع به window ==========
 
 const supabaseCompleteFunctions = {
     // توابع کاربران
@@ -531,146 +924,261 @@ const supabaseCompleteFunctions = {
     
     registerUser: registerUserInSupabase,
     
-    // توابع مدیریت کاربران
-    getAllUsers: getAllUsersFromSupabase,
-    updateUserInfo: updateUserInfoInSupabase,
-    
-    // توابع محصولات
-    getAllProducts: async function() {
-        const products = [
-            { id: 1, name: 'ساخت پنل', description: 'ساخت پنل اختصاصی با امکانات کامل', price: 900000, category: 'panels', icon: 'fas fa-plus-circle', active: true },
-            { id: 2, name: 'آپدیت پنل', description: 'ارتقاء و به‌روزرسانی پنل موجود', price: 235000, category: 'panels', icon: 'fas fa-sync-alt', active: true },
-            { id: 3, name: 'اشتراک سلف تلگرام - یک ماهه', description: 'اشتراک یکماهه سلف تلگرام', price: 40000, category: 'subscriptions', icon: 'fab fa-telegram', active: true },
-            { id: 4, name: 'اشتراک V2rayNG - 50 گیگ', description: 'اشتراک 50 گیگ کاربر نامحدود یکماهه v2rayNG', price: 30000, category: 'subscriptions', icon: 'fas fa-server', active: true },
-            { id: 5, name: 'ویاکس پنل - یکروزه', description: 'اشتراک یکروزه ویاکس پنل - تک کاربره', price: 15000, category: 'subscriptions', icon: 'fas fa-bolt', active: true },
-            { id: 6, name: 'ویاکس پنل - یک هفته', description: 'اشتراک یک هفته ویاکس پنل - تک کاربره', price: 80000, category: 'subscriptions', icon: 'fas fa-calendar-week', active: true },
-            { id: 7, name: 'ویاکس پنل - یکماهه', description: 'اشتراک یکماهه ویاکس پنل - تک کاربره', price: 230000, category: 'subscriptions', icon: 'fas fa-calendar-alt', active: true },
-            { id: 8, name: 'ویاکس پنل - دائمی', description: 'اشتراک دائمی ویاکس پنل - تک کاربره', price: 350000, category: 'subscriptions', icon: 'fas fa-infinity', active: true },
-            { id: 9, name: 'تامنیل یوتیوب', description: 'طراحی تامنیل حرفه‌ای برای یوتیوب', price: 50000, category: 'design', icon: 'fab fa-youtube', active: true },
-            { id: 10, name: 'پروفایل چنل', description: 'طراحی پروفایل حرفه‌ای برای چنل', price: 50000, category: 'design', icon: 'fas fa-id-card', active: true }
-        ];
-        
-        return {
-            success: true,
-            products: products,
-            count: products.length
-        };
+    // مدیریت کاربران
+    getAllUsers: async function() {
+        try {
+            const users = await getAllUsersFromSupabase();
+            return { success: true, users: users };
+        } catch (error) {
+            console.error('❌ Error in getAllUsers:', error);
+            const localUsers = getAllUsersFromLocalStorage();
+            return { success: true, users: localUsers };
+        }
     },
     
-    // توابع سفارشات (همان قبلی با تغییرات جزئی)
+    updateUserInfo: async function(userId, firstName, lastName) {
+        try {
+            const updatedUser = await updateUserInfoInSupabase(userId, firstName, lastName);
+            return { success: true, user: updatedUser };
+        } catch (error) {
+            console.error('❌ Error in updateUserInfo:', error);
+            const localUser = updateUserInLocalStorage(userId, firstName, lastName);
+            return { success: !!localUser, user: localUser };
+        }
+    },
+    
+    // محصولات
+    getAllProducts: async function() {
+        try {
+            const products = await getAllProductsFromSupabase();
+            return { 
+                success: true, 
+                products: products,
+                count: products.length 
+            };
+        } catch (error) {
+            console.error('❌ Error in getAllProducts:', error);
+            const defaultProducts = getDefaultProducts();
+            return { 
+                success: true, 
+                products: defaultProducts,
+                count: defaultProducts.length 
+            };
+        }
+    },
+    
+    // سفارشات
     createNewOrder: async function(orderData) {
         try {
-            // ذخیره در Supabase
-            if (supabase) {
-                const { data, error } = await supabase
-                    .from('orders')
-                    .insert([{
-                        user_id: orderData.userId,
-                        total: orderData.total,
-                        status: 'در انتظار تأیید',
-                        customer_info: orderData.customerInfo,
-                        receipt_info: orderData.receipt,
-                        items: orderData.items
-                    }])
-                    .select()
-                    .single();
-                
-                if (error) throw error;
-                
-                // خالی کردن سبد خرید
-                localStorage.removeItem('sidka_cart');
-                
-                return {
-                    success: true,
-                    order: data,
-                    message: 'سفارش در Supabase ذخیره شد'
-                };
-            }
-            
-            // Fallback به localStorage
-            return fallbackFunctions.createNewOrder(orderData);
-            
+            const result = await createNewOrderInSupabase(orderData);
+            return result;
         } catch (error) {
-            console.error('❌ Error creating order:', error);
-            return fallbackFunctions.createNewOrder(orderData);
+            console.error('❌ Error in createNewOrder:', error);
+            return createNewOrderInLocalStorage(orderData);
         }
     },
     
     getUserOrders: async function(userId) {
         try {
-            if (supabase) {
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                
-                return {
-                    success: true,
-                    orders: data || []
-                };
-            }
-            
-            return fallbackFunctions.getUserOrders(userId);
-            
+            const orders = await getUserOrdersFromSupabase(userId);
+            return { success: true, orders: orders };
         } catch (error) {
-            console.error('❌ Error getting user orders:', error);
-            return fallbackFunctions.getUserOrders(userId);
+            console.error('❌ Error in getUserOrders:', error);
+            const localOrders = getUserOrdersFromLocalStorage(userId);
+            return { success: true, orders: localOrders };
         }
     },
     
-    // بقیه توابع...
+    getAllOrders: async function() {
+        try {
+            const orders = await getAllOrdersFromSupabase();
+            return { success: true, orders: orders };
+        } catch (error) {
+            console.error('❌ Error in getAllOrders:', error);
+            const localOrders = getAllOrdersFromLocalStorage();
+            return { success: true, orders: localOrders };
+        }
+    },
     
-    // ابزارهای مدیریتی
+    updateOrderStatus: async function(orderId, status) {
+        try {
+            const result = await updateOrderStatusInSupabase(orderId, status);
+            return result;
+        } catch (error) {
+            console.error('❌ Error in updateOrderStatus:', error);
+            return updateOrderStatusInLocalStorage(orderId, status);
+        }
+    },
+    
+    getOrderReceipt: async function(orderId) {
+        try {
+            if (!supabase) {
+                const orders = getAllOrdersFromLocalStorage();
+                const order = orders.find(o => o.id == orderId);
+                if (order && order.receipt_info) {
+                    return { success: true, receipt: order.receipt_info };
+                }
+                return { success: false, error: 'رسید یافت نشد' };
+            }
+            
+            const { data, error } = await supabase
+                .from('orders')
+                .select('receipt_info')
+                .eq('id', orderId)
+                .single();
+            
+            if (error) {
+                return { success: false, error: 'رسید یافت نشد' };
+            }
+            
+            return { success: true, receipt: data.receipt_info };
+        } catch (error) {
+            return { success: false, error: 'خطا در دریافت رسید' };
+        }
+    },
+    
+    // تیکت‌ها
+    createNewTicket: async function(ticketData) {
+        try {
+            const result = await createNewTicketInSupabase(ticketData);
+            return result;
+        } catch (error) {
+            console.error('❌ Error in createNewTicket:', error);
+            return createNewTicketInLocalStorage(ticketData);
+        }
+    },
+    
+    getUserTickets: async function(userId) {
+        try {
+            const tickets = await getUserTicketsFromSupabase(userId);
+            return { success: true, tickets: tickets };
+        } catch (error) {
+            console.error('❌ Error in getUserTickets:', error);
+            const localTickets = getUserTicketsFromLocalStorage(userId);
+            return { success: true, tickets: localTickets };
+        }
+    },
+    
+    getAllTickets: async function() {
+        try {
+            const tickets = await getAllTicketsFromSupabase();
+            return { success: true, tickets: tickets };
+        } catch (error) {
+            console.error('❌ Error in getAllTickets:', error);
+            const localTickets = getAllTicketsFromLocalStorage();
+            return { success: true, tickets: localTickets };
+        }
+    },
+    
+    updateTicketStatus: async function(ticketId, status) {
+        try {
+            if (!supabase) {
+                const tickets = getAllTicketsFromLocalStorage();
+                const updatedTickets = tickets.map(ticket => {
+                    if (ticket.id == ticketId) {
+                        ticket.status = status;
+                    }
+                    return ticket;
+                });
+                localStorage.setItem('sidka_tickets', JSON.stringify(updatedTickets));
+                return { success: true };
+            }
+            
+            const { error } = await supabase
+                .from('tickets')
+                .update({ status: status })
+                .eq('id', ticketId);
+            
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Error in updateTicketStatus:', error);
+            return { success: false };
+        }
+    },
+    
+    addTicketReply: async function(ticketId, replyData) {
+        return { success: true };
+    },
+    
+    // آمار
+    getDashboardStats: async function() {
+        try {
+            let totalUsers = 0;
+            let totalOrders = 0;
+            let totalIncome = 0;
+            let newTickets = 0;
+            
+            // کاربران
+            const usersResult = await this.getAllUsers();
+            if (usersResult.success) {
+                totalUsers = usersResult.users.length;
+            }
+            
+            // سفارشات
+            const ordersResult = await this.getAllOrders();
+            if (ordersResult.success) {
+                totalOrders = ordersResult.orders.length;
+                totalIncome = ordersResult.orders
+                    .filter(o => o.status === 'تأیید شده')
+                    .reduce((sum, order) => sum + (order.total || 0), 0);
+            }
+            
+            // تیکت‌ها
+            const ticketsResult = await this.getAllTickets();
+            if (ticketsResult.success) {
+                newTickets = ticketsResult.tickets.filter(t => t.status === 'جدید').length;
+            }
+            
+            return {
+                success: true,
+                stats: {
+                    users: totalUsers,
+                    orders: totalOrders,
+                    totalIncome: totalIncome,
+                    newTickets: newTickets
+                }
+            };
+        } catch (error) {
+            console.error('❌ Error in getDashboardStats:', error);
+            return {
+                success: true,
+                stats: {
+                    users: 1,
+                    orders: 0,
+                    totalIncome: 0,
+                    newTickets: 0
+                }
+            };
+        }
+    },
+    
+    // ابزارها
     migrateUsers: migrateUsersToSupabase,
+    clearAuthData: function() {
+        localStorage.removeItem('sidka_user_session');
+        console.log('✅ Auth data cleared');
+    },
     
     // دیباگ
     debug: function() {
         console.log('🔍 Debug Info:');
         console.log('- Supabase client:', supabase ? 'Available' : 'Not available');
-        console.log('- Admin client:', supabaseAdmin ? 'Available' : 'Not available');
         
-        // تعداد کاربران در localStorage
         const localUsers = getAllUsersFromLocalStorage();
+        const localOrders = getAllOrdersFromLocalStorage();
+        const localTickets = getAllTicketsFromLocalStorage();
+        
         console.log(`- Local users: ${localUsers.length}`);
+        console.log(`- Local orders: ${localOrders.length}`);
+        console.log(`- Local tickets: ${localTickets.length}`);
         
         return {
             supabase: !!supabase,
-            admin: !!supabaseAdmin,
-            localUsers: localUsers.length
+            localUsers: localUsers.length,
+            localOrders: localOrders.length,
+            localTickets: localTickets.length
         };
-    }
-};
-
-// توابع Fallback
-const fallbackFunctions = {
-    createNewOrder: async function(orderData) {
-        const order = {
-            id: Date.now(),
-            userId: orderData.userId,
-            total: orderData.total,
-            status: 'در انتظار تأیید',
-            customer_info: orderData.customerInfo,
-            receipt_info: orderData.receipt,
-            items: orderData.items,
-            created_at: new Date().toISOString()
-        };
-        
-        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        orders.push(order);
-        localStorage.setItem('sidka_orders', JSON.stringify(orders));
-        
-        localStorage.removeItem('sidka_cart');
-        
-        return { success: true, order: order };
-    },
-    
-    getUserOrders: async function(userId) {
-        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        const userOrders = orders.filter(order => order.userId == userId || order.user_id == userId);
-        return { success: true, orders: userOrders };
     }
 };
 
@@ -678,7 +1186,7 @@ const fallbackFunctions = {
 window.supabaseFunctions = supabaseCompleteFunctions;
 console.log('✅ Complete Supabase service loaded');
 
-// اجرای مهاجرت خودکار
+// اجرای مهاجرت خودکار پس از 3 ثانیه
 setTimeout(async () => {
     const result = await migrateUsersToSupabase();
     if (result.success && result.migrated > 0) {
