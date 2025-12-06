@@ -1116,11 +1116,10 @@ async function addTicketReply(ticketId, replyData) {
     }
 }
 
-async function getTicketReplies(ticketId, forAdmin = false) {
+async function getTicketReplies(ticketId) {
     try {
-        console.log(`📨 Getting replies for ticket ${ticketId}, forAdmin: ${forAdmin}`);
+        console.log(`📨 Getting replies for ticket ${ticketId}`);
         
-        // اگر forAdmin نfalseه، اصلاً پاسخ‌های ادمین رو نگیر
         let allReplies = [];
         
         // از localStorage بخون
@@ -1161,31 +1160,13 @@ async function getTicketReplies(ticketId, forAdmin = false) {
             }
         });
         
-        // ======== این قسمت مهمه! ========
-        // اگر کاربر ادمین نیست، پاسخ‌های ادمین رو فیلتر کن
-        let filteredReplies = [];
-        
-        if (forAdmin) {
-            // ادمین همه پاسخ‌ها رو می‌بینه
-            filteredReplies = uniqueReplies;
-        } else {
-            // کاربر عادی فقط پاسخ‌های غیر ادمین رو می‌بینه
-            filteredReplies = uniqueReplies.filter(reply => {
-                // پاسخ‌هایی که is_admin ندارن یا false هستن
-                return !reply.is_admin || reply.is_admin === false;
-            });
-            
-            console.log(`📊 Filtered replies for regular user: ${filteredReplies.length} out of ${uniqueReplies.length}`);
-        }
-        
         // مرتب کردن بر اساس تاریخ
-        filteredReplies.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        uniqueReplies.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         
         return {
             success: true,
-            replies: filteredReplies,
-            totalReplies: uniqueReplies.length,
-            visibleReplies: filteredReplies.length
+            replies: uniqueReplies,
+            totalReplies: uniqueReplies.length
         };
         
     } catch (error) {
@@ -1193,8 +1174,7 @@ async function getTicketReplies(ticketId, forAdmin = false) {
         return {
             success: true,
             replies: [],
-            totalReplies: 0,
-            visibleReplies: 0
+            totalReplies: 0
         };
     }
 }
