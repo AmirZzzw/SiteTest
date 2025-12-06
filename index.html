@@ -236,68 +236,31 @@
         // بارگذاری همه اسکریپت‌ها
         async function loadAllScripts() {
             console.log('🚀 شروع بارگذاری برنامه...');
-            
+        
             try {
-                // مرحله ۱: بارگذاری Supabase از CDN
+                // مرحله ۱: بارگذاری Supabase
                 console.log('📦 بارگذاری Supabase...');
                 await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
                 
-                // مرحله ۲: بارگذاری سرویس‌ها
-                console.log('🔧 بارگذاری سرویس‌ها...');
-                try {
-                    await loadScript('supabase-service.js');
-                } catch (serviceError) {
-                    console.warn('خطا در بارگذاری سرویس اصلی:', serviceError);
-                    // بارگذاری سرویس جایگزین
-                    try {
-                        await loadScript('supabase-service-fixed.js');
-                    } catch (fixedError) {
-                        console.warn('خطا در بارگذاری سرویس جایگزین:', fixedError);
-                        // بارگذاری fallback
-                        await loadScript('fallback-data.js');
-                    }
-                }
-                
+                // مرحله ۲: بارگذاری سرویس کامل
+                console.log('🔧 بارگذاری سرویس کامل...');
+                await loadScript('supabase-service-complete.js');
+            
                 // مرحله ۳: بارگذاری منطق اصلی
                 console.log('💻 بارگذاری منطق اصلی...');
-                try {
-                    await loadScript('main.js');
-                } catch (mainError) {
-                    console.error('خطا در بارگذاری منطق اصلی:', mainError);
-                    showErrorToUser('خطا در بارگذاری برنامه. لطفاً صفحه را رفرش کنید.');
-                    return;
-                }
-                
-                // مرحله ۴: راه‌اندازی برنامه
-                console.log('🎉 برنامه در حال راه‌اندازی...');
+                await loadScript('main.js');
+            
+                // راه‌اندازی برنامه
                 if (window.initializeApp) {
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', window.initializeApp);
-                    } else {
-                        setTimeout(() => window.initializeApp(), 100);
-                    }
-                } else {
-                    console.error('تابع initializeApp پیدا نشد');
-                    showErrorToUser('برنامه به درستی بارگذاری نشد.');
+                    setTimeout(() => window.initializeApp(), 100);
                 }
-                
+            
             } catch (error) {
-                console.error('❌ خطای بحرانی در بارگذاری:', error);
-                showErrorToUser('خطا در بارگذاری برنامه. لطفاً اینترنت خود را بررسی کنید.');
-                
-                // تلاش برای بارگذاری fallback
-                try {
-                    await loadScript('fallback-data.js');
-                    await loadScript('main.js');
-                    if (window.initializeApp) {
-                        setTimeout(() => window.initializeApp(), 100);
-                    }
-                } catch (fallbackError) {
-                    console.error('خطا در بارگذاری fallback:', fallbackError);
-                }
+                console.error('❌ خطا در بارگذاری:', error);
+                showErrorToUser('خطا در بارگذاری برنامه');
             }
         }
-        
+    
         // شروع بارگذاری
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', loadAllScripts);
@@ -305,6 +268,7 @@
             setTimeout(loadAllScripts, 100);
         }
     </script>
+        
 </head>
 <body>
     <!-- صفحه لودینگ -->
