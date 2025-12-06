@@ -1415,6 +1415,7 @@ async function replyToTicket(ticketId) {
 // در main.js این تابع‌ها را اضافه کن:
 
 // 1. تابع باز کردن مودال جزئیات تیکت
+// 1. تابع باز کردن مودال جزئیات تیکت
 async function openTicketDetails(ticketId) {
     try {
         const result = await window.supabaseFunctions.getTicketDetails(ticketId);
@@ -1452,8 +1453,7 @@ async function openTicketDetails(ticketId) {
                                 <h4>${ticket.subject || 'بدون موضوع'}</h4>
                                 <span class="status-badge ${ticket.status === 'جدید' ? 'status-new' : 
                                     ticket.status === 'در حال بررسی' ? 'status-pending' : 
-                                    ticket.status === 'پاسخ داده شده' ? 'status-solved' : 
-                                    ticket.status === 'در انتظار پاسخ ادمین' ? 'status-pending' : 'status-solved'}">
+                                    ticket.status === 'پاسخ داده شده' ? 'status-solved' : 'status-solved'}">
                                     ${ticket.status || 'جدید'}
                                 </span>
                             </div>
@@ -1504,23 +1504,29 @@ async function openTicketDetails(ticketId) {
                             }).join('')}
                         </div>
                         
-                        <!-- پاسخ جدید (برای ادمین و کاربر) -->
-                        ${isAdmin || ticket.user_phone === currentUserPhone ? `
+                        <!-- پاسخ جدید (فقط برای ادمین‌ها) -->
+                        ${isAdmin ? `
                             <div class="new-reply-section">
-                                <h5><i class="fas fa-plus-circle"></i> ${isAdmin ? 'پاسخ ادمین' : 'پاسخ شما'}</h5>
+                                <h5><i class="fas fa-plus-circle"></i> پاسخ ادمین</h5>
+                                <p class="note" style="color: #f39c12; margin-bottom: 10px;">
+                                    <i class="fas fa-info-circle"></i> شما به عنوان ادمین می‌توانید پاسخ دهید
+                                </p>
                                 <div class="form-group">
-                                    <textarea id="new-reply-message" rows="4" placeholder="${isAdmin ? 'پاسخ خود را به عنوان ادمین وارد کنید...' : 'پاسخ خود را وارد کنید...'}"></textarea>
+                                    <textarea id="new-reply-message" rows="4" placeholder="پاسخ خود را به عنوان ادمین وارد کنید..."></textarea>
                                 </div>
-                                <button class="btn ${isAdmin ? 'btn-warning' : 'btn-primary'}" onclick="submitTicketReply(${ticketId}, ${isAdmin})">
-                                    <i class="fas fa-paper-plane"></i> ${isAdmin ? 'ارسال پاسخ ادمین' : 'ارسال پاسخ'}
+                                <button class="btn btn-warning" onclick="submitTicketReply(${ticketId}, true)">
+                                    <i class="fas fa-paper-plane"></i> ارسال پاسخ ادمین
                                 </button>
-                                ${isAdmin ? `
-                                    <p class="note" style="margin-top: 10px; color: #f39c12; font-size: 0.9rem;">
-                                        <i class="fas fa-info-circle"></i> پاسخ شما فقط برای ادمین‌ها قابل مشاهده است
-                                    </p>
-                                ` : ''}
                             </div>
-                        ` : ''}
+                        ` : `
+                            <div class="new-reply-section">
+                                <div class="alert alert-info" style="background: #3498db; color: white; padding: 15px; border-radius: 8px;">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>تنها ادمین‌ها می‌توانند پاسخ دهند.</strong><br>
+                                    پاسخ شما پس از بررسی توسط ادمین ارسال خواهد شد.
+                                </div>
+                            </div>
+                        `}
                     </div>
                 </div>
             </div>
@@ -1545,8 +1551,7 @@ async function openTicketDetails(ticketId) {
         showNotification('خطا در نمایش تیکت', 'error');
     }
 }
-// 2. تابع ارسال پاسخ به تیکت
-// 2. تابع ارسال پاسخ به تیکت
+// 2. تابع ارسال پاسخ به تیکت (فقط برای ادمین‌ها)
 async function submitTicketReply(ticketId, isAdmin = false) {
     const messageInput = document.getElementById('new-reply-message');
     const message = messageInput?.value.trim();
@@ -1561,26 +1566,27 @@ async function submitTicketReply(ticketId, isAdmin = false) {
         return;
     }
     
-    showNotification('در حال ارسال پاسخ...', 'info');
+    // چک کن که آیا کاربر ادمینه
+    const isUserAdmin = userState.currentUser?.is_admin || userState.currentUser?.phone === '09021707830';
+    
+    if (!isUserAdmin) {
+        showNotification('❌ فقط ادمین‌ها می‌توانند پاسخ دهند', 'error');
+        return;
+    }
+    
+    showNotification('در حال ارسال پاسخ ادمین...', 'info');
     
     try {
-        // اگر ادمین هستیم، isAdmin رو true کن
-        const isUserAdmin = isAdmin || userState.currentUser?.is_admin || userState.currentUser?.phone === '09021707830';
-        
         const replyData = {
             userId: userState.currentUser.id,
-            isAdmin: isUserAdmin,
+            isAdmin: true, // همیشه true چون فقط ادمین‌ها می‌تونن پاسخ بدن
             message: message
         };
         
         const result = await window.supabaseFunctions.addTicketReply(ticketId, replyData);
         
         if (result.success) {
-            if (isUserAdmin) {
-                showNotification('✅ پاسخ ادمین ارسال شد (فقط برای ادمین‌ها قابل مشاهده)', 'success');
-            } else {
-                showNotification('✅ پاسخ شما ارسال شد و در انتظار پاسخ ادمین است', 'success');
-            }
+            showNotification('✅ پاسخ ادمین با موفقیت ارسال شد', 'success');
             
             // رفرش لیست پاسخ‌ها
             closeModal('ticket-details-modal', 'ticket-details-overlay');
