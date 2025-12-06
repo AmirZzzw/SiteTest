@@ -1984,6 +1984,31 @@ window.initializeApp = function() {
     }
 };
 
+async function loadUserData(userPhone) {
+    try {
+        console.log('📊 Loading user data for:', userPhone);
+        
+        // بارگذاری سفارشات
+        if (window.supabaseFunctions && window.supabaseFunctions.getUserOrders) {
+            const ordersResult = await window.supabaseFunctions.getUserOrders(userPhone);
+            if (ordersResult.success && ordersResult.orders.length > 0) {
+                console.log('✅ Loaded', ordersResult.orders.length, 'orders');
+            }
+        }
+        
+        // بارگذاری تیکت‌ها
+        if (window.supabaseFunctions && window.supabaseFunctions.getUserTickets) {
+            const ticketsResult = await window.supabaseFunctions.getUserTickets(userPhone);
+            if (ticketsResult.success && ticketsResult.tickets.length > 0) {
+                console.log('✅ Loaded', ticketsResult.tickets.length, 'tickets');
+            }
+        }
+        
+    } catch (error) {
+        console.warn('⚠️ Error loading user data:', error);
+    }
+}
+
 // ========== اتصال توابع به window ==========
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
