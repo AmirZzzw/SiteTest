@@ -981,7 +981,6 @@ async function submitSupportTicket() {
     
     try {
         const ticketData = {
-            userId: userState.currentUser.id,
             subject: subject,
             message: message
         };
@@ -1014,7 +1013,9 @@ async function openUserTickets() {
     }
     
     try {
-        const result = await window.supabaseFunctions.getUserTickets(userState.currentUser.id);
+        // استفاده از شماره تلفن کاربر
+        const userPhone = userState.currentUser.phone;
+        const result = await window.supabaseFunctions.getUserTickets(userPhone);
         const ticketsList = document.getElementById('user-tickets-list');
         
         if (result.success && result.tickets && result.tickets.length > 0) {
@@ -1033,6 +1034,11 @@ async function openUserTickets() {
                         <div class="ticket-meta">
                             <span class="ticket-date">${formatDate(ticket.created_at)}</span>
                             <span class="${statusClass}">${ticket.status || 'جدید'}</span>
+                        </div>
+                        <div class="ticket-actions">
+                            <button class="btn btn-sm btn-primary" onclick="openTicketDetails(${ticket.id})">
+                                <i class="fas fa-eye"></i> مشاهده
+                            </button>
                         </div>
                     </div>
                 `;
