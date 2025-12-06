@@ -724,19 +724,147 @@ async function updateTicketStatus(ticketId, status) {
 
 async function addTicketReply(ticketId, replyData) {
     try {
-        if (supabase) {
-            await supabase
-                .from('ticket_replies')
-                .insert([{
-                    ticket_id: ticketId,
-                    is_admin: replyData.isAdmin || false,
-                    message: replyData.message
-                }]);
+        console.log(`💬 Adding reply to ticket ${ticketId}:`, replyData);
+        
+        // ساختار داده پاسخ
+        const replyToSave = {
+            id: Date.now(),
+            ticket_id: ticketId,
+            user_id: replyData.userId || null,
+            is_admin: replyData.isAdmin || false,
+            message: replyData.message || '',
+            created_at: new Date().toISOString()
+        };
+        
+        // ذخیره در localStorage
+        try {
+            let replies = JSON.parse(localStorage.getItem('sidka_ticket_replies') || '[]');
+            replies.push(replyToSave);
+            localStorage.setItem('sidka_ticket_replies', JSON.stringify(replies));
+            console.log('✅ Reply saved to localStorage');
+        } catch (storageError) {
+            console.error('❌ localStorage error:', storageError);
         }
         
-        return { success: true };
-    } catch {
-        return { success: true };
+        // ذخیره در Supabase
+        if (supabase) {
+            try {
+                const { data, error } = await supabase
+                    .from('ticket_replies')
+                    .insert([{
+                        ticket_id: ticketId,
+                        is_admin: replyData.isAdmin || false,
+                        message: replyData.message
+                    }])
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                console.log('✅ Reply saved to Supabase:', data.id);
+            } catch (supabaseError) {
+                console.warn('⚠️ Supabase error:', supabaseError);
+            }
+        }
+        
+        // آپدیت وضعیت تیکت به "پاسخ داده شده"
+        await updateTicketStatus(ticketId, 'پاسخ داده شده');
+        
+        return {
+            success: true,
+            reply: replyToSave,
+            message: 'پاسخ با موفقیت ارسال شد'
+        };
+        
+    } catch (error) {
+        console.error('❌ Error adding ticket reply:', error);
+        return {
+            success: false,
+            error: 'خطا در ارسال پاسخ'
+        };
+    }
+}
+
+async function getTicketReplies(ticketId) {
+    try {
+        console.log(`📨 Getting replies for ticket ${ticketId}`);
+        
+        // خواندن از localStorage
+        const localReplies = JSON.parse(localStorage.getItem('sidka_ticket_replies') || '[]');
+        const ticketLocalReplies = localReplies.filter(reply => 
+            reply.ticket_id == ticketId
+        );
+        
+        console.log('Found in localStorage:', ticketLocalReplies.length, 'replies');
+        
+        // اگر Supabase در دسترس نیست
+        if (!supabase) {
+            return {
+                success: true,
+                replies: ticketLocalReplies.sort((a, b) => 
+                    new Date(b.created_at) - new Date(a.created_at)
+                )
+            };
+        }
+        
+        // خواندن از Supabase
+        try {
+            const { data, error } = await supabase
+                .from('ticket_replies')
+                .select('*')
+                .eq('ticket_id', ticketId)
+                .order('created_at', { ascending: true });
+            
+            if (error) {
+                console.warn('⚠️ Supabase error, using localStorage:', error);
+                return {
+                    success: true,
+                    replies: ticketLocalReplies
+                };
+            }
+            
+            if (data && data.length > 0) {
+                console.log('Found in Supabase:', data.length, 'replies');
+                
+                // ترکیب داده‌ها (Supabase + localStorage)
+                const allReplies = [...data, ...ticketLocalReplies];
+                const uniqueReplies = [];
+                const seenIds = new Set();
+                
+                allReplies.forEach(reply => {
+                    const replyId = reply.id;
+                    if (!seenIds.has(replyId)) {
+                        seenIds.add(replyId);
+                        uniqueReplies.push(reply);
+                    }
+                });
+                
+                return {
+                    success: true,
+                    replies: uniqueReplies.sort((a, b) => 
+                        new Date(a.created_at) - new Date(b.created_at)
+                    )
+                };
+            }
+            
+            return {
+                success: true,
+                replies: ticketLocalReplies
+            };
+            
+        } catch (supabaseError) {
+            console.warn('⚠️ Supabase exception:', supabaseError);
+            return {
+                success: true,
+                replies: ticketLocalReplies
+            };
+        }
+        
+    } catch (error) {
+        console.error('❌ Error getting ticket replies:', error);
+        return {
+            success: true,
+            replies: []
+        };
     }
 }
 
