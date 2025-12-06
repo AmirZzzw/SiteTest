@@ -1415,7 +1415,6 @@ async function replyToTicket(ticketId) {
 // در main.js این تابع‌ها را اضافه کن:
 
 // 1. تابع باز کردن مودال جزئیات تیکت
-// 1. تابع باز کردن مودال جزئیات تیکت
 async function openTicketDetails(ticketId) {
     try {
         const result = await window.supabaseFunctions.getTicketDetails(ticketId);
@@ -1425,11 +1424,11 @@ async function openTicketDetails(ticketId) {
             return;
         }
         
-        const { ticket, replies, isAdmin, userPhone } = result;
+        const { ticket, replies, isAdmin, userPhone, currentUser } = result;
         
         // آیا کاربر دسترسی به این تیکت رو داره؟
-        const currentUserPhone = userState.currentUser?.phone;
-        const canViewTicket = isAdmin || ticket.user_phone === currentUserPhone || ticket.user_id === userState.currentUser?.id;
+        const currentUserPhone = userState.currentUser?.phone || currentUser?.phone;
+        const canViewTicket = isAdmin || ticket.user_phone === currentUserPhone || ticket.user_id === (userState.currentUser?.id || currentUser?.id);
         
         if (!canViewTicket) {
             showNotification('شما دسترسی به این تیکت را ندارید', 'error');
@@ -1465,7 +1464,6 @@ async function openTicketDetails(ticketId) {
                                     (${ticket.user_phone || ticket.users?.phone || '---'})
                                 </p>
                                 <p><i class="fas fa-calendar"></i> تاریخ ارسال: ${formatDate(ticket.created_at)}</p>
-                                ${isAdmin ? `<p><i class="fas fa-id-badge"></i> سطح دسترسی: <strong>${isAdmin ? '👑 ادمین' : '👤 کاربر عادی'}</strong></p>` : ''}
                             </div>
                             
                             <div class="ticket-message-box">
@@ -1488,11 +1486,6 @@ async function openTicketDetails(ticketId) {
                             ` : ''}
                             
                             ${replies.map(reply => {
-                                // اگر پاسخ ادمین هست و کاربر ادمین نیست، نمایش نده
-                                if (reply.is_admin && !isAdmin) {
-                                    return ''; // پاسخ ادمین رو نشون نده
-                                }
-                                
                                 return `
                                     <div class="reply-item ${reply.is_admin ? 'admin-reply' : 'user-reply'}">
                                         <div class="reply-header">
