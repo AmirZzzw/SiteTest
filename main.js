@@ -988,7 +988,6 @@ async function openUserTickets() {
                                   ticket.status === 'در حال بررسی' ? 'status-pending' : 
                                   'status-solved';
                 
-                // در داخل حلقه forEach تابع openUserTickets:
                 html += `
                     <div class="user-ticket-item">
                         <div class="ticket-summary">
@@ -1006,6 +1005,7 @@ async function openUserTickets() {
                         </div>
                     </div>
                 `;
+            }); // <-- این پرانتز بسته مهمه!
             
             ticketsList.innerHTML = html;
         } else {
