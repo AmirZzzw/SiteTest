@@ -234,40 +234,27 @@
         };
         
         // بارگذاری همه اسکریپت‌ها
-        async function loadAllScripts() {
-            console.log('🚀 شروع بارگذاری برنامه...');
+        <script>
+async function loadAllScripts() {
+    try {
+        // 1. بارگذاری Supabase
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
         
-            try {
-                // مرحله ۱: بارگذاری Supabase
-                console.log('📦 بارگذاری Supabase...');
-                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
-                
-                // مرحله ۲: بارگذاری سرویس کامل
-                console.log('🔧 بارگذاری سرویس کامل...');
-                await loadScript('supabase-service-complete.js');
-            
-                // مرحله ۳: بارگذاری منطق اصلی
-                console.log('💻 بارگذاری منطق اصلی...');
-                await loadScript('main.js');
-            
-                // راه‌اندازی برنامه
-                if (window.initializeApp) {
-                    setTimeout(() => window.initializeApp(), 100);
-                }
-            
-            } catch (error) {
-                console.error('❌ خطا در بارگذاری:', error);
-                showErrorToUser('خطا در بارگذاری برنامه');
-            }
+        // 2. بارگذاری سرویس درست
+        await loadScript('supabase-service-fixed.js');
+        
+        // 3. بارگذاری main.js
+        await loadScript('main.js');
+        
+        if (window.initializeApp) {
+            setTimeout(() => window.initializeApp(), 100);
         }
-    
-        // شروع بارگذاری
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadAllScripts);
-        } else {
-            setTimeout(loadAllScripts, 100);
-        }
-    </script>
+    } catch (error) {
+        console.error('❌ Error:', error);
+    }
+}    
+loadAllScripts();
+</script>
         
 </head>
 <body>
