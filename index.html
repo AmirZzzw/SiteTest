@@ -1,7 +1,310 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <!-- متا تگ‌ها و لینک‌ها -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>فروشگاه خدمات دیجیتال | SidkaShop</title>
+    
+    <!-- استایل‌ها -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- متا تگ‌های مهم برای موبایل -->
+    <meta name="theme-color" content="#121212">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- پیش‌بارگذاری فونت‌ها -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- استایل‌های اولیه -->
+    <style>
+        /* استایل‌های موقت هنگام لودینگ */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #121212;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-family: Vazirmatn, sans-serif;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-logo {
+            font-size: 3rem;
+            color: #3498db;
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.7; transform: scale(1); }
+        }
+        
+        .loading-text {
+            color: #f5f5f5;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(52, 152, 219, 0.3);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* نوتیفیکیشن */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 9998;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            font-family: Vazirmatn, sans-serif;
+            text-align: center;
+            min-width: 300px;
+            max-width: 90vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                top: -100px;
+                opacity: 0;
+            }
+            to {
+                top: 20px;
+                opacity: 1;
+            }
+        }
+        
+        .notification-success {
+            background-color: #2ecc71;
+        }
+        
+        .notification-error {
+            background-color: #e74c3c;
+        }
+        
+        .notification-warning {
+            background-color: #f39c12;
+        }
+        
+        .notification-info {
+            background-color: #3498db;
+        }
+        
+        /* اسکرول‌بار */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3498db;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2980b9;
+        }
+        
+        /* بهبود نمایش در موبایل */
+        @media (max-width: 768px) {
+            .notification {
+                min-width: 90%;
+                font-size: 0.9rem;
+                padding: 12px 20px;
+            }
+            
+            .loading-logo {
+                font-size: 2.5rem;
+            }
+            
+            .loading-text {
+                font-size: 1rem;
+                padding: 0 20px;
+            }
+        }
+    </style>
+    
+    <!-- بارگذاری ایمن اسکریپت‌ها -->
+    <script>
+        // تابع بارگذاری اسکریپت
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    console.log(`✅ Loaded: ${src}`);
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error(`❌ Failed to load: ${src}`);
+                    reject(new Error(`Failed to load ${src}`));
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // تابع نمایش خطا به کاربر
+        function showErrorToUser(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'notification notification-error';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" style="
+                    background: transparent;
+                    border: 1px solid white;
+                    color: white;
+                    margin-right: 15px;
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-family: Vazirmatn, sans-serif;
+                ">بستن</button>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // حذف خودکار بعد از 10 ثانیه
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 10000);
+        }
+        
+        // تابع نمایش نوتیفیکیشن
+        window.showNotification = function(message, type = 'info') {
+            // حذف نوتیفیکیشن قبلی
+            const existing = document.querySelector('.notification:not(.notification-error)');
+            if (existing) existing.remove();
+            
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // حذف خودکار بعد از 5 ثانیه
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => notification.remove(), 500);
+                }
+            }, 5000);
+        };
+        
+        // بارگذاری همه اسکریپت‌ها
+        async function loadAllScripts() {
+            console.log('🚀 شروع بارگذاری برنامه...');
+            
+            try {
+                // مرحله ۱: بارگذاری Supabase از CDN
+                console.log('📦 بارگذاری Supabase...');
+                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
+                
+                // مرحله ۲: بارگذاری سرویس‌ها
+                console.log('🔧 بارگذاری سرویس‌ها...');
+                try {
+                    await loadScript('supabase-service.js');
+                } catch (serviceError) {
+                    console.warn('خطا در بارگذاری سرویس اصلی:', serviceError);
+                    // بارگذاری سرویس جایگزین
+                    try {
+                        await loadScript('supabase-service-fixed.js');
+                    } catch (fixedError) {
+                        console.warn('خطا در بارگذاری سرویس جایگزین:', fixedError);
+                        // بارگذاری fallback
+                        await loadScript('fallback-data.js');
+                    }
+                }
+                
+                // مرحله ۳: بارگذاری منطق اصلی
+                console.log('💻 بارگذاری منطق اصلی...');
+                try {
+                    await loadScript('main.js');
+                } catch (mainError) {
+                    console.error('خطا در بارگذاری منطق اصلی:', mainError);
+                    showErrorToUser('خطا در بارگذاری برنامه. لطفاً صفحه را رفرش کنید.');
+                    return;
+                }
+                
+                // مرحله ۴: راه‌اندازی برنامه
+                console.log('🎉 برنامه در حال راه‌اندازی...');
+                if (window.initializeApp) {
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', window.initializeApp);
+                    } else {
+                        setTimeout(() => window.initializeApp(), 100);
+                    }
+                } else {
+                    console.error('تابع initializeApp پیدا نشد');
+                    showErrorToUser('برنامه به درستی بارگذاری نشد.');
+                }
+                
+            } catch (error) {
+                console.error('❌ خطای بحرانی در بارگذاری:', error);
+                showErrorToUser('خطا در بارگذاری برنامه. لطفاً اینترنت خود را بررسی کنید.');
+                
+                // تلاش برای بارگذاری fallback
+                try {
+                    await loadScript('fallback-data.js');
+                    await loadScript('main.js');
+                    if (window.initializeApp) {
+                        setTimeout(() => window.initializeApp(), 100);
+                    }
+                } catch (fallbackError) {
+                    console.error('خطا در بارگذاری fallback:', fallbackError);
+                }
+            }
+        }
+        
+        // شروع بارگذاری
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadAllScripts);
+        } else {
+            setTimeout(loadAllScripts, 100);
+        }
+    </script>
 </head>
 <body>
     <!-- صفحه لودینگ -->
@@ -206,50 +509,365 @@
     </footer>
 
     <!-- ========== MODALS ========== -->
-    <!-- مودال‌ها -->
     
-    <script>
-        // تابع بارگذاری اسکریپت
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = () => {
-                    console.log(`✅ Loaded: ${src}`);
-                    resolve();
-                };
-                script.onerror = () => {
-                    console.error(`❌ Failed to load: ${src}`);
-                    reject(new Error(`Failed to load ${src}`));
-                };
-                document.head.appendChild(script);
-            });
-        }
+    <!-- سبد خرید -->
+    <div class="cart-overlay" id="cart-overlay"></div>
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3><i class="fas fa-shopping-cart"></i> سبد خرید</h3>
+            <button class="close-cart" id="close-cart">&times;</button>
+        </div>
         
-        // بارگذاری همه اسکریپت‌ها
-        async function loadAllScripts() {
-            try {
-                // 1. بارگذاری Supabase
-                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
-                
-                // 2. بارگذاری سرویس درست
-                await loadScript('supabase-service-fixed.js');
-                
-                // 3. بارگذاری main.js
-                await loadScript('main.js');
-                
-                // 4. بارگذاری fallback اگر نیاز بود
-                if (!window.supabaseFunctions) {
-                    await loadScript('fallback-data.js');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error loading scripts:', error);
-            }
-        }
+        <div class="cart-items" id="cart-items">
+            <!-- آیتم‌های سبد خرید -->
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <p>سبد خرید شما خالی است</p>
+            </div>
+        </div>
         
-        // شروع بارگذاری
-        loadAllScripts();
-    </script>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>مجموع:</span>
+                <span id="cart-total-price">۰ تومان</span>
+            </div>
+            <button class="btn btn-primary btn-checkout" id="checkout-btn">ادامه فرآیند خرید</button>
+        </div>
+    </div>
+
+    <!-- مودال ورود/عضویت -->
+    <div class="modal-overlay" id="login-overlay"></div>
+    <div class="modal" id="login-modal">
+        <div class="modal-header">
+            <h3>ورود / عضویت</h3>
+            <button class="close-modal" id="close-login">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="phone">شماره موبایل</label>
+                    <input type="tel" id="phone" placeholder="09xxxxxxxxx" maxlength="11" pattern="09[0-9]{9}" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label for="password">رمز عبور (اختیاری)</label>
+                    <input type="password" id="password" placeholder="در صورت ثبت‌نام قبلی">
+                </div>
+                <button class="btn btn-primary btn-login" id="submit-login">ورود / عضویت</button>
+                <p style="margin-top: 15px; text-align: center; color: #aaa;">
+                    با ورود، قوانین فروشگاه را پذیرفته‌اید
+                </p>
+                <p style="margin-top: 10px; text-align: center;">
+                    <a href="#" id="show-register">ثبت‌نام کامل (با نام و رمز)</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال ثبت‌نام کامل -->
+    <div class="modal-overlay" id="register-overlay"></div>
+    <div class="modal" id="register-modal">
+        <div class="modal-header">
+            <h3>ثبت‌نام کامل</h3>
+            <button class="close-modal" id="close-register">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="registration-form">
+                <div class="form-group">
+                    <label for="reg-phone">شماره موبایل *</label>
+                    <input type="tel" id="reg-phone" placeholder="09xxxxxxxxx" maxlength="11" pattern="09[0-9]{9}" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label for="reg-first-name">نام *</label>
+                    <input type="text" id="reg-first-name" placeholder="نام" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-last-name">نام خانوادگی *</label>
+                    <input type="text" id="reg-last-name" placeholder="نام خانوادگی" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">رمز عبور *</label>
+                    <input type="password" id="reg-password" placeholder="حداقل ۶ کاراکتر" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-confirm-password">تکرار رمز عبور *</label>
+                    <input type="password" id="reg-confirm-password" placeholder="تکرار رمز عبور" minlength="6" required>
+                </div>
+                <button class="btn btn-primary btn-register" id="submit-register">
+                    ثبت‌نام و ورود
+                </button>
+                <p style="margin-top: 15px; text-align: center;">
+                    <a href="#" id="switch-to-login">ورود با شماره موبایل</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال پرداخت -->
+    <div class="modal-overlay" id="checkout-overlay"></div>
+    <div class="modal modal-lg" id="checkout-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-credit-card"></i> تکمیل خرید و پرداخت</h3>
+            <button class="close-modal" id="close-checkout">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="checkout-form">
+                <h4>اطلاعات شخصی</h4>
+                <div class="form-group">
+                    <label for="first-name">نام *</label>
+                    <input type="text" id="first-name" placeholder="نام خود را وارد کنید">
+                </div>
+                <div class="form-group">
+                    <label for="last-name">نام خانوادگی *</label>
+                    <input type="text" id="last-name" placeholder="نام خانوادگی خود را وارد کنید">
+                </div>
+                <div class="form-group">
+                    <label for="checkout-phone">شماره موبایل *</label>
+                    <input type="tel" id="checkout-phone" placeholder="09xxxxxxxxx" maxlength="11" pattern="09[0-9]{9}">
+                </div>
+                
+                <div class="order-summary">
+                    <h4>خلاصه سفارش</h4>
+                    <div id="order-summary-items"></div>
+                    <div class="order-total">
+                        <span>مجموع:</span>
+                        <span id="order-total-price">۰ تومان</span>
+                    </div>
+                </div>
+                
+                <div class="payment-instruction">
+                    <h4>روش پرداخت</h4>
+                    <p><strong>لطفاً مبلغ <span id="payment-amount">۰</span> تومان را به شماره کارت زیر واریز کنید:</strong></p>
+                    <div class="card-number-large">
+                        <i class="fas fa-credit-card"></i>
+                        <span id="card-number-large-text">6037 9982 2227 6759</span>
+                        <button class="copy-btn" id="copy-card-large-btn">
+                            <i class="fas fa-copy"></i> کپی
+                        </button>
+                    </div>
+                    <p><strong>به نام:</strong> امیرمحمد یوسفی</p>
+                    <p class="note">حتماً شماره پیگیری را یادداشت کنید.</p>
+                </div>
+                
+                <!-- در قسمت مودال پرداخت، بخش آپلود رسید را با این کد جایگزین کن -->
+
+                <div class="upload-receipt">
+                  <h4>آپلود رسید پرداخت</h4>
+    
+                  <!-- دکمه زیبای انتخاب فایل -->
+                  <div class="custom-file-upload">
+                      <!-- دکمه توسط JavaScript اضافه می‌شود -->
+                  </div>
+    
+                  <!-- Input اصلی (مخفی) -->
+                  <input type="file" id="receipt-file" accept="image/*,.jpg,.jpeg,.png,.webp">
+    
+                  <p class="note" style="margin-top: 15px; color: #aaa; font-size: 0.9rem;">
+                      <i class="fas fa-info-circle"></i> می‌توانید از گالری یا دوربین عکس بگیرید (حداکثر ۵MB)
+                  </p>
+    
+                  <div class="form-group">
+                      <label for="receipt-note">توضیحات (اختیاری)</label>
+                      <textarea id="receipt-note" rows="2" placeholder="مثلاً ساعت واریز، شماره پیگیری و ..."></textarea>
+                  </div>
+              </div>
+                
+                <button class="btn btn-primary" id="final-submit-btn">تکمیل خرید و ارسال</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تیکت پشتیبانی -->
+    <div class="modal-overlay" id="ticket-overlay"></div>
+    <div class="modal modal-lg" id="ticket-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-comment-medical"></i> سیستم پشتیبانی</h3>
+            <button class="close-modal" id="close-ticket">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="ticket-form">
+                <h4>ارسال تیکت جدید</h4>
+                <div class="form-group">
+                    <label for="ticket-subject">موضوع *</label>
+                    <input type="text" id="ticket-subject" placeholder="مشکل در خرید، سوال درباره محصول و ...">
+                </div>
+                <div class="form-group">
+                    <label for="ticket-message">پیام *</label>
+                    <textarea id="ticket-message" rows="5" placeholder="پیام خود را با جزئیات بنویسید..."></textarea>
+                </div>
+                <button class="btn btn-primary" id="submit-ticket-btn">ارسال تیکت</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال سابقه خرید -->
+    <div class="modal-overlay" id="orders-overlay"></div>
+    <div class="modal modal-lg" id="orders-modal">
+        <div class="modal-header">
+            <h3>سابقه خرید</h3>
+            <button class="close-modal" id="close-orders">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="orders-list" id="orders-list">
+                <!-- سفارش‌ها -->
+                <div class="empty-orders">
+                    <i class="fas fa-history"></i>
+                    <p>هنوز سفارشی ثبت نکرده‌اید</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال پروفایل -->
+    <div class="modal-overlay" id="profile-overlay"></div>
+    <div class="modal" id="profile-modal">
+        <div class="modal-header">
+            <h3>پروفایل کاربری</h3>
+            <button class="close-modal" id="close-profile">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-item">
+                        <span>نام:</span>
+                        <span id="profile-name">---</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>نام خانوادگی:</span>
+                        <span id="profile-lastname">---</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>شماره موبایل:</span>
+                        <span id="profile-phone">---</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>تعداد سفارشات:</span>
+                        <span id="profile-orders-count">۰</span>
+                    </div>
+                    <div class="profile-item">
+                        <span>تعداد تیکت‌ها:</span>
+                        <span id="profile-tickets-count">۰</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تیکت‌های من -->
+    <div class="modal-overlay" id="mytickets-overlay"></div>
+    <div class="modal modal-lg" id="mytickets-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-ticket-alt"></i> تیکت‌های من</h3>
+            <button class="close-modal" id="close-mytickets">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="user-tickets-list" id="user-tickets-list">
+                <!-- تیکت‌های کاربر -->
+                <div class="empty-message">
+                    <i class="fas fa-ticket-alt"></i>
+                    <p>هنوز تیکتی ارسال نکرده‌اید</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال پنل ادمین -->
+    <div class="modal-overlay" id="admin-overlay"></div>
+    <div class="modal modal-xl" id="admin-modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-cogs"></i> پنل مدیریت ادمین</h3>
+            <button class="close-modal" id="close-admin">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- اطلاعات ادمین -->
+            <div class="admin-info">
+                <h4>اطلاعات ادمین</h4>
+                <p><strong>نام:</strong> امیرمحمد یوسفی</p>
+                <p><strong>شماره تماس:</strong> 09021707830</p>
+                <p><strong>شماره کارت:</strong> <span id="admin-card-number">6037-9982-2227-6759</span></p>
+            </div>
+            
+            <!-- آمار کلی -->
+            <div class="admin-stats">
+                <div class="stat-card">
+                    <h5>کاربران</h5>
+                    <span id="stats-users-count">0</span>
+                </div>
+                <div class="stat-card">
+                    <h5>سفارشات</h5>
+                    <span id="stats-orders-count">0</span>
+                </div>
+                <div class="stat-card">
+                    <h5>درآمد کل</h5>
+                    <span id="stats-total-income">0 تومان</span>
+                </div>
+                <div class="stat-card">
+                    <h5>تیکت‌های جدید</h5>
+                    <span id="stats-new-tickets">0</span>
+                </div>
+            </div>
+            
+            <!-- تب‌های ادمین -->
+            <div class="admin-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="orders-tab">سفارشات</button>
+                    <button class="tab-btn" data-tab="tickets-tab">تیکت‌ها</button>
+                    <button class="tab-btn" data-tab="users-tab">کاربران</button>
+                </div>
+                
+                <!-- تب سفارشات -->
+                <div class="tab-content active" id="orders-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت سفارشات</h4>
+                        <div class="admin-orders-list" id="admin-orders-list">
+                            <!-- لیست سفارشات -->
+                            <div class="empty-message">
+                                <i class="fas fa-box-open"></i>
+                                <p>هنوز سفارشی ثبت نشده است</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تب تیکت‌ها -->
+                <div class="tab-content" id="tickets-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت تیکت‌های پشتیبانی</h4>
+                        <div class="admin-tickets-list" id="admin-tickets-list">
+                            <!-- لیست تیکت‌ها -->
+                            <div class="empty-message">
+                                <i class="fas fa-comments"></i>
+                                <p>هیچ تیکتی ارسال نشده است</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تب کاربران -->
+                <div class="tab-content" id="users-tab">
+                    <div class="admin-section">
+                        <h4>مدیریت کاربران</h4>
+                        <div class="admin-users-list" id="admin-users-list">
+                            <!-- لیست کاربران -->
+                            <div class="empty-message">
+                                <i class="fas fa-users"></i>
+                                <p>هنوز کاربری ثبت نکرده‌اید</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
