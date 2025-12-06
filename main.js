@@ -1406,6 +1406,9 @@ async function openTicketDetails(ticketId) {
         
         const { ticket, replies } = result;
         
+        // آیا کاربر ادمین است؟
+        const isAdmin = userState.currentUser?.is_admin || userState.currentUser?.phone === '09021707830';
+        
         // ایجاد HTML مودال
         const modalHtml = `
             <div class="modal-overlay" id="ticket-details-overlay"></div>
@@ -1431,7 +1434,7 @@ async function openTicketDetails(ticketId) {
                             <div class="ticket-user-info">
                                 <p><i class="fas fa-user"></i> ارسال کننده: 
                                     ${ticket.users?.first_name || 'کاربر'} ${ticket.users?.last_name || ''}
-                                    (${ticket.users?.phone || ticket.user_id || '---'})
+                                    (${ticket.user_phone || ticket.users?.phone || '---'})
                                 </p>
                                 <p><i class="fas fa-calendar"></i> تاریخ ارسال: ${formatDate(ticket.created_at)}</p>
                             </div>
@@ -1456,11 +1459,11 @@ async function openTicketDetails(ticketId) {
                             ` : ''}
                             
                             ${replies.map(reply => `
-                                <div class="reply-item ${reply.is_admin ? 'admin-reply' : 'user-reply'}">
+                                <div class="reply-item ${reply.is_admin || reply.responder_phone === '09021707830' ? 'admin-reply' : 'user-reply'}">
                                     <div class="reply-header">
                                         <div class="reply-sender">
-                                            <i class="fas ${reply.is_admin ? 'fa-user-shield' : 'fa-user'}"></i>
-                                            <span>${reply.is_admin ? '👑 ادمین' : '👤 کاربر'}</span>
+                                            <i class="fas ${reply.is_admin || reply.responder_phone === '09021707830' ? 'fa-user-shield' : 'fa-user'}"></i>
+                                            <span>${reply.is_admin || reply.responder_phone === '09021707830' ? '👑 ادمین' : '👤 کاربر'}</span>
                                         </div>
                                         <span class="reply-date">${formatDate(reply.created_at)}</span>
                                     </div>
@@ -1471,15 +1474,15 @@ async function openTicketDetails(ticketId) {
                             `).join('')}
                         </div>
                         
-                        <!-- پاسخ جدید (فقط برای کاربر) -->
-                        ${!userState.currentUser?.is_admin ? `
+                        <!-- پاسخ جدید (برای ادمین و کاربر) -->
+                        ${isAdmin || ticket.user_phone === userState.currentUser?.phone ? `
                             <div class="new-reply-section">
-                                <h5><i class="fas fa-plus-circle"></i> ارسال پاسخ جدید</h5>
+                                <h5><i class="fas fa-plus-circle"></i> ${isAdmin ? 'پاسخ ادمین' : 'پاسخ شما'}</h5>
                                 <div class="form-group">
-                                    <textarea id="new-reply-message" rows="4" placeholder="پاسخ خود را وارد کنید..."></textarea>
+                                    <textarea id="new-reply-message" rows="4" placeholder="${isAdmin ? 'پاسخ خود را به عنوان ادمین وارد کنید...' : 'پاسخ خود را وارد کنید...'}"></textarea>
                                 </div>
-                                <button class="btn btn-primary" onclick="submitTicketReply(${ticketId})">
-                                    <i class="fas fa-paper-plane"></i> ارسال پاسخ
+                                <button class="btn ${isAdmin ? 'btn-warning' : 'btn-primary'}" onclick="submitTicketReply(${ticketId}, ${isAdmin})">
+                                    <i class="fas fa-paper-plane"></i> ${isAdmin ? 'ارسال پاسخ ادمین' : 'ارسال پاسخ'}
                                 </button>
                             </div>
                         ` : ''}
@@ -1507,9 +1510,8 @@ async function openTicketDetails(ticketId) {
         showNotification('خطا در نمایش تیکت', 'error');
     }
 }
-
 // 2. تابع ارسال پاسخ به تیکت
-async function submitTicketReply(ticketId) {
+async function submitTicketReply(ticketId, isAdmin = false) {
     const messageInput = document.getElementById('new-reply-message');
     const message = messageInput?.value.trim();
     
@@ -1526,16 +1528,19 @@ async function submitTicketReply(ticketId) {
     showNotification('در حال ارسال پاسخ...', 'info');
     
     try {
+        // اگر ادمین هستیم، isAdmin رو true کن
+        const isUserAdmin = isAdmin || userState.currentUser?.is_admin || userState.currentUser?.phone === '09021707830';
+        
         const replyData = {
             userId: userState.currentUser.id,
-            isAdmin: userState.currentUser.is_admin || false,
+            isAdmin: isUserAdmin,
             message: message
         };
         
         const result = await window.supabaseFunctions.addTicketReply(ticketId, replyData);
         
         if (result.success) {
-            showNotification('پاسخ شما ارسال شد', 'success');
+            showNotification(isUserAdmin ? 'پاسخ ادمین ارسال شد' : 'پاسخ شما ارسال شد', 'success');
             
             // رفرش لیست پاسخ‌ها
             const replySection = document.querySelector('.ticket-replies-section');
