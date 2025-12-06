@@ -1806,16 +1806,10 @@ window.initializeApp = function() {
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
             loadingScreen.style.opacity = '0';
-            setTimeout(() => loadingScreen.remove(), 500);
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
         }
-
-        // پاکسازی localStorage اگر پر شده (حذف خطا)
-        // try {
-        //     checkStorageSpace();
-        //     cleanupOldOrders();
-        // } catch (e) {
-        //     console.warn('⚠️ Storage cleanup failed:', e);
-        // }
         
         // بارگذاری سشن
         const savedUser = sessionManager.loadSession();
@@ -1831,42 +1825,28 @@ window.initializeApp = function() {
             }
         }
         
+        // بارگذاری اولیه
+        loadCart();
+        updateCartUI();
+        
         // صبر کن تا DOM کاملاً بارگذاری شود
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                initializeAppComponents();
-            });
+            document.addEventListener('DOMContentLoaded', initAfterDOM);
         } else {
-            initializeAppComponents();
+            setTimeout(initAfterDOM, 100);
         }
         
-        function initializeAppComponents() {
-            loadCart();
+        function initAfterDOM() {
+            // الان DOM آماده است
             updateUserUI();
-            updateCartUI();
             renderCartItems();
             loadProducts();
             setupEventListeners();
             
             // تنظیم شماره کارت
-            document.querySelectorAll('#card-number-text, .card-number-large span').forEach(el => {
+            const cardNumberEls = document.querySelectorAll('#card-number-text, .card-number-large span');
+            cardNumberEls.forEach(el => {
                 if (el) el.textContent = adminInfo.formattedCard;
-            });
-            
-            // راه‌اندازی Choose File برای مودال پرداخت
-            const checkoutBtn = document.getElementById('checkout-btn');
-            if (checkoutBtn) {
-                checkoutBtn.addEventListener('click', function() {
-                    setTimeout(setupFileInput, 300);
-                });
-            }
-            
-            window.addEventListener('online', () => {
-                showNotification('اتصال برقرار شد', 'success');
-            });
-            
-            window.addEventListener('offline', () => {
-                showNotification('اتصال قطع شد', 'warning');
             });
             
             console.log('✅ Application initialized successfully');
@@ -1875,7 +1855,11 @@ window.initializeApp = function() {
         
     } catch (error) {
         console.error('❌ Error initializing app:', error);
-        showNotification('خطا در راه‌اندازی برنامه', 'error');
+        // حداقل صفحه لودینگ رو پاک کن
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
     }
 };
 
