@@ -1442,6 +1442,201 @@ async function replyToTicket(ticketId) {
     }
 }
 
+// در main.js این تابع‌ها را اضافه کن:
+
+// 1. تابع باز کردن مودال جزئیات تیکت
+async function openTicketDetails(ticketId) {
+    try {
+        const result = await window.supabaseFunctions.getTicketDetails(ticketId);
+        
+        if (!result.success) {
+            showNotification(result.error, 'error');
+            return;
+        }
+        
+        const { ticket, replies } = result;
+        
+        // ایجاد HTML مودال
+        const modalHtml = `
+            <div class="modal-overlay" id="ticket-details-overlay"></div>
+            <div class="modal modal-lg" id="ticket-details-modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-ticket-alt"></i> جزئیات تیکت #${ticketId}</h3>
+                    <button class="close-modal" onclick="closeModal('ticket-details-modal', 'ticket-details-overlay')">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="ticket-details-view">
+                        <!-- اطلاعات تیکت -->
+                        <div class="ticket-info-section">
+                            <div class="ticket-header-info">
+                                <h4>${ticket.subject || 'بدون موضوع'}</h4>
+                                <span class="status-badge ${ticket.status === 'جدید' ? 'status-new' : 
+                                    ticket.status === 'در حال بررسی' ? 'status-pending' : 
+                                    ticket.status === 'پاسخ داده شده' ? 'status-solved' : 'status-solved'}">
+                                    ${ticket.status || 'جدید'}
+                                </span>
+                            </div>
+                            
+                            <div class="ticket-user-info">
+                                <p><i class="fas fa-user"></i> ارسال کننده: 
+                                    ${ticket.users?.first_name || 'کاربر'} ${ticket.users?.last_name || ''}
+                                    (${ticket.users?.phone || ticket.user_id || '---'})
+                                </p>
+                                <p><i class="fas fa-calendar"></i> تاریخ ارسال: ${formatDate(ticket.created_at)}</p>
+                            </div>
+                            
+                            <div class="ticket-message-box">
+                                <h5><i class="fas fa-comment"></i> پیام:</h5>
+                                <div class="message-content">
+                                    ${(ticket.message || '').replace(/\n/g, '<br>')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- پاسخ‌ها -->
+                        <div class="ticket-replies-section">
+                            <h5><i class="fas fa-reply"></i> پاسخ‌ها (${replies.length})</h5>
+                            
+                            ${replies.length === 0 ? `
+                                <div class="no-replies">
+                                    <i class="fas fa-comments"></i>
+                                    <p>هنوز پاسخی داده نشده است</p>
+                                </div>
+                            ` : ''}
+                            
+                            ${replies.map(reply => `
+                                <div class="reply-item ${reply.is_admin ? 'admin-reply' : 'user-reply'}">
+                                    <div class="reply-header">
+                                        <div class="reply-sender">
+                                            <i class="fas ${reply.is_admin ? 'fa-user-shield' : 'fa-user'}"></i>
+                                            <span>${reply.is_admin ? '👑 ادمین' : '👤 کاربر'}</span>
+                                        </div>
+                                        <span class="reply-date">${formatDate(reply.created_at)}</span>
+                                    </div>
+                                    <div class="reply-content">
+                                        ${(reply.message || '').replace(/\n/g, '<br>')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <!-- پاسخ جدید (فقط برای کاربر) -->
+                        ${!userState.currentUser?.is_admin ? `
+                            <div class="new-reply-section">
+                                <h5><i class="fas fa-plus-circle"></i> ارسال پاسخ جدید</h5>
+                                <div class="form-group">
+                                    <textarea id="new-reply-message" rows="4" placeholder="پاسخ خود را وارد کنید..."></textarea>
+                                </div>
+                                <button class="btn btn-primary" onclick="submitTicketReply(${ticketId})">
+                                    <i class="fas fa-paper-plane"></i> ارسال پاسخ
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // حذف مودال قبلی اگر وجود دارد
+        const oldModal = document.getElementById('ticket-details-modal');
+        const oldOverlay = document.getElementById('ticket-details-overlay');
+        if (oldModal) oldModal.remove();
+        if (oldOverlay) oldOverlay.remove();
+        
+        // افزودن مودال جدید به DOM
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // نمایش مودال
+        document.getElementById('ticket-details-modal').style.display = 'block';
+        document.getElementById('ticket-details-overlay').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+    } catch (error) {
+        console.error('❌ Error opening ticket details:', error);
+        showNotification('خطا در نمایش تیکت', 'error');
+    }
+}
+
+// 2. تابع ارسال پاسخ به تیکت
+async function submitTicketReply(ticketId) {
+    const messageInput = document.getElementById('new-reply-message');
+    const message = messageInput?.value.trim();
+    
+    if (!message || message.length < 5) {
+        showNotification('لطفاً پاسخ معتبر وارد کنید (حداقل ۵ کاراکتر)', 'warning');
+        return;
+    }
+    
+    if (!userState.isLoggedIn) {
+        showNotification('لطفاً ابتدا وارد شوید', 'warning');
+        return;
+    }
+    
+    showNotification('در حال ارسال پاسخ...', 'info');
+    
+    try {
+        const replyData = {
+            userId: userState.currentUser.id,
+            isAdmin: userState.currentUser.is_admin || false,
+            message: message
+        };
+        
+        const result = await window.supabaseFunctions.addTicketReply(ticketId, replyData);
+        
+        if (result.success) {
+            showNotification('پاسخ شما ارسال شد', 'success');
+            
+            // رفرش لیست پاسخ‌ها
+            const replySection = document.querySelector('.ticket-replies-section');
+            if (replySection) {
+                // بستن مودال و باز کردن مجدد
+                closeModal('ticket-details-modal', 'ticket-details-overlay');
+                setTimeout(() => openTicketDetails(ticketId), 300);
+            }
+            
+            // پاک کردن فیلد
+            if (messageInput) messageInput.value = '';
+            
+        } else {
+            showNotification(result.error || 'خطا در ارسال پاسخ', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error submitting reply:', error);
+        showNotification('خطا در ارتباط با سرور', 'error');
+    }
+}
+
+// 3. اضافه کردن دکمه مشاهده جزئیات در لیست تیکت‌ها
+// در تابع renderAdminTickets، این کد را به هر آیتم تیکت اضافه کن:
+// داخل حلقه forEach تیکت‌ها:
+html += `
+    <div class="admin-item ticket-item">
+        <!-- ... کدهای قبلی ... -->
+        <div class="ticket-meta">
+            <!-- ... کدهای قبلی ... -->
+            <button class="btn btn-sm btn-info" onclick="openTicketDetails(${ticket.id})">
+                <i class="fas fa-eye"></i> مشاهده و پاسخ
+            </button>
+        </div>
+    </div>
+`;
+
+// 4. اضافه کردن دکمه مشاهده در لیست تیکت‌های کاربر
+// در تابع openUserTickets، این کد را اضافه کن:
+// داخل حلقه forEach تیکت‌های کاربر:
+html += `
+    <div class="user-ticket-item">
+        <!-- ... کدهای قبلی ... -->
+        <div class="ticket-actions">
+            <button class="btn btn-sm btn-primary" onclick="openTicketDetails(${ticket.id})">
+                <i class="fas fa-eye"></i> مشاهده
+            </button>
+        </div>
+    </div>
+`;
+
 // ========== Choose File بهبود یافته ==========
 function setupFileInput() {
     const receiptFileInput = document.getElementById('receipt-file');
