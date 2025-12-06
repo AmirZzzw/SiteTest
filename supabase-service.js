@@ -868,6 +868,50 @@ async function getTicketReplies(ticketId) {
     }
 }
 
+async function getTicketDetails(ticketId) {
+    try {
+        // دریافت اطلاعات تیکت
+        const tickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        const ticket = tickets.find(t => t.id == ticketId);
+        
+        // اگر در localStorage نبود، از Supabase بگیر
+        if (!ticket && supabase) {
+            const { data, error } = await supabase
+                .from('tickets')
+                .select('*, users(first_name, last_name, phone)')
+                .eq('id', ticketId)
+                .single();
+            
+            if (!error && data) {
+                ticket = data;
+            }
+        }
+        
+        if (!ticket) {
+            return {
+                success: false,
+                error: 'تیکت یافت نشد'
+            };
+        }
+        
+        // دریافت پاسخ‌ها
+        const repliesResult = await getTicketReplies(ticketId);
+        
+        return {
+            success: true,
+            ticket: ticket,
+            replies: repliesResult.replies || []
+        };
+        
+    } catch (error) {
+        console.error('❌ Error getting ticket details:', error);
+        return {
+            success: false,
+            error: 'خطا در دریافت اطلاعات تیکت'
+        };
+    }
+}
+
 async function updateUserInfo(userId, firstName, lastName) {
     try {
         const sessionStr = localStorage.getItem('sidka_user_session');
@@ -984,6 +1028,8 @@ const supabaseFunctions = {
     getUserTickets,
     getAllTickets,
     addTicketReply,
+    getTicketReplies,
+    getTicketDetails,
     updateTicketStatus,
     getAllUsers,
     updateUserInfo,
