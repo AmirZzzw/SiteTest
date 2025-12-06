@@ -1025,6 +1025,7 @@ async function openUserTickets() {
                                   ticket.status === 'در حال بررسی' ? 'status-pending' : 
                                   'status-solved';
                 
+                // در داخل حلقه forEach تابع openUserTickets:
                 html += `
                     <div class="user-ticket-item">
                         <div class="ticket-summary">
@@ -1042,7 +1043,6 @@ async function openUserTickets() {
                         </div>
                     </div>
                 `;
-            });
             
             ticketsList.innerHTML = html;
         } else {
@@ -1228,6 +1228,7 @@ async function renderAdminTickets() {
                     new Date(ticket.created_at).toLocaleDateString('fa-IR') : 
                     '---';
                 
+                // در داخل حلقه forEach تابع renderAdminTickets:
                 html += `
                     <div class="admin-item ticket-item">
                         <div style="flex: 1;">
@@ -1242,8 +1243,8 @@ async function renderAdminTickets() {
                             </div>
                             <div class="ticket-meta">
                                 <span class="${statusClass}">${status}</span>
-                                <button class="btn btn-sm btn-primary" onclick="replyToTicket(${ticket.id})">
-                                    <i class="fas fa-reply"></i> پاسخ به تیکت
+                                <button class="btn btn-sm btn-info" onclick="openTicketDetails(${ticket.id})">
+                                    <i class="fas fa-eye"></i> مشاهده و پاسخ
                                 </button>
                                 <button class="btn btn-sm btn-warning" onclick="changeTicketStatus(${ticket.id})">
                                     <i class="fas fa-edit"></i> تغییر وضعیت
@@ -1252,7 +1253,6 @@ async function renderAdminTickets() {
                         </div>
                     </div>
                 `;
-            });
             
             container.innerHTML = html;
         } else {
@@ -1613,35 +1613,6 @@ async function submitTicketReply(ticketId) {
         showNotification('خطا در ارتباط با سرور', 'error');
     }
 }
-
-// 3. اضافه کردن دکمه مشاهده جزئیات در لیست تیکت‌ها
-// در تابع renderAdminTickets، این کد را به هر آیتم تیکت اضافه کن:
-// داخل حلقه forEach تیکت‌ها:
-html += `
-    <div class="admin-item ticket-item">
-        <!-- ... کدهای قبلی ... -->
-        <div class="ticket-meta">
-            <!-- ... کدهای قبلی ... -->
-            <button class="btn btn-sm btn-info" onclick="openTicketDetails(${ticket.id})">
-                <i class="fas fa-eye"></i> مشاهده و پاسخ
-            </button>
-        </div>
-    </div>
-`;
-
-// 4. اضافه کردن دکمه مشاهده در لیست تیکت‌های کاربر
-// در تابع openUserTickets، این کد را اضافه کن:
-// داخل حلقه forEach تیکت‌های کاربر:
-html += `
-    <div class="user-ticket-item">
-        <!-- ... کدهای قبلی ... -->
-        <div class="ticket-actions">
-            <button class="btn btn-sm btn-primary" onclick="openTicketDetails(${ticket.id})">
-                <i class="fas fa-eye"></i> مشاهده
-            </button>
-        </div>
-    </div>
-`;
 
 // ========== Choose File بهبود یافته ==========
 function setupFileInput() {
