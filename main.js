@@ -690,43 +690,6 @@ function handleLogout() {
     document.getElementById('admin-nav-item').style.display = 'none';
 }
 
-// در تابع initializeApp این رو اضافه کن:
-window.initializeApp = function() {
-    console.log('🚀 Starting SidkaShop with user-based storage...');
-    
-    try {
-        // حذف صفحه لودینگ
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-            loadingScreen.style.opacity = '0';
-            setTimeout(() => loadingScreen.remove(), 500);
-        }
-        
-        // مهاجرت داده‌های قدیم (اگر تابع وجود داره)
-        if (window.supabaseFunctions.migrateOldData) {
-            window.supabaseFunctions.migrateOldData();
-        }
-        
-        // بارگذاری سشن
-        const savedUser = sessionManager.loadSession();
-        if (savedUser) {
-            userState.isLoggedIn = true;
-            userState.currentUser = savedUser;
-            
-            if (savedUser.phone === '09021707830' || savedUser.is_admin) {
-                document.getElementById('admin-nav-item').style.display = 'block';
-            }
-        }
-        
-        // بقیه کدهای initializeApp...
-        
-        console.log('✅ App initialized with user:', userState.currentUser?.phone);
-        
-    } catch (error) {
-        console.error('❌ Error initializing app:', error);
-        showNotification('خطا در راه‌اندازی', 'error');
-    }
-};
 function updateUserUI() {
     const loginBtn = document.getElementById('login-btn');
     const userDropdown = document.getElementById('user-dropdown');
