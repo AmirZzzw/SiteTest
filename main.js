@@ -578,29 +578,24 @@ async function handleLogin() {
         return;
     }
     
-    // اگر کاربر قدیمی است (اولین بار است)، رمز نیاز ندارد
-    const isNewUser = !localStorage.getItem(`sidka_user_${phone}`);
-    
-    if (!isNewUser && (!password || password.length < 6)) {
-        showNotification('رمز عبور الزامی است (حداقل ۶ کاراکتر)', 'warning');
-        return;
-    }
-    
     showNotification('در حال ورود...', 'info');
     
     try {
         const result = await window.supabaseFunctions.loginUser(phone, password);
         
         if (result.success) {
+            // ورود موفق
             userState.isLoggedIn = true;
             userState.currentUser = result.user;
             
+            // ذخیره سشن
             sessionManager.saveSession(result.user);
             
             updateUserUI();
             showNotification(`خوش آمدید ${result.user.first_name || 'کاربر'}!`, 'success');
             
-            if (phone === adminInfo.phone || result.user.is_admin) {
+            // چک ادمین
+            if (phone === '09021707830' || result.user.is_admin) {
                 document.getElementById('admin-nav-item').style.display = 'block';
             }
             
@@ -609,19 +604,30 @@ async function handleLogin() {
             phoneInput.value = '';
             passwordInput.value = '';
             
-            // بارگذاری داده‌های کاربر
-            loadUserData(phone);
-            
         } else {
-            // نمایش پیام خطای مناسب
-            let errorMessage = result.error;
-            if (result.code === 'WRONG_PASSWORD') {
-                errorMessage = 'رمز عبور اشتباه است';
-            } else if (result.code === 'USER_NOT_FOUND') {
-                errorMessage = 'کاربری با این شماره وجود ندارد';
+            // مدیریت خطاها
+            if (result.code === 'USER_NOT_FOUND') {
+                // کاربر جدید شناسایی شد
+                showNotification('کاربر جدید شناسایی شد. لطفاً ثبت‌نام کنید.', 'info');
+                
+                // بعد از 1.5 ثانیه فرم ثبت‌نام رو نشون بده
+                setTimeout(() => {
+                    closeModal('login-modal', 'login-overlay');
+                    document.getElementById('reg-phone').value = phone;
+                    if (password) {
+                        document.getElementById('reg-password').value = password;
+                        document.getElementById('reg-confirm-password').value = password;
+                    }
+                    openModal('register-modal', 'register-overlay');
+                }, 1500);
+                
+            } else if (result.code === 'WRONG_PASSWORD') {
+                showNotification('رمز عبور اشتباه است', 'error');
+            } else if (result.code === 'WRONG_ADMIN_PASSWORD') {
+                showNotification('رمز عبور ادمین اشتباه است', 'error');
+            } else {
+                showNotification(result.error || 'خطا در ورود', 'error');
             }
-            
-            showNotification(errorMessage, 'error');
         }
         
     } catch (error) {
@@ -1723,6 +1729,23 @@ function setupEventListeners() {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
             handleLogout();
+        });
+    }
+
+    const showRegisterLink = document.getElementById('show-register');
+    if (showRegisterLink) {
+        showRegisterLink.addEventListener('click', function(e) {
+            e.preventDefault();
+        
+            const phone = document.getElementById('phone').value.trim();
+            if (!phone || phone.length !== 11 || !phone.startsWith('09')) {
+                showNotification('لطفاً ابتدا شماره موبایل معتبر وارد کنید', 'warning');
+                return;
+            }
+        
+            closeModal('login-modal', 'login-overlay');
+            document.getElementById('reg-phone').value = phone;
+            openModal('register-modal', 'register-overlay');
         });
     }
     
