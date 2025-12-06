@@ -1048,12 +1048,16 @@ async function addTicketReply(ticketId, replyData) {
             };
         }
         
+        // چک کن که آیا کاربر ادمینه یا نه
+        const isAdmin = currentUser.is_admin || currentUser.phone === '09021707830';
+        
         // ساختار داده پاسخ
         const replyToSave = {
             ticket_id: ticketId,
             responder_phone: currentUser.phone,
-            is_admin: replyData.isAdmin || false,
-            message: replyData.message || ''
+            is_admin: isAdmin, // اینجا اصلاح شد
+            message: replyData.message || '',
+            responder_name: isAdmin ? '👑 ادمین' : currentUser.first_name || 'کاربر'
         };
         
         console.log('📤 Saving reply:', replyToSave);
@@ -1083,12 +1087,14 @@ async function addTicketReply(ticketId, replyData) {
                     console.log('✅ Reply saved to Supabase:', data.id);
                     
                     // آپدیت وضعیت تیکت
-                    await updateTicketStatus(ticketId, 'پاسخ داده شده');
+                    const newStatus = isAdmin ? 'پاسخ داده شده' : 'در انتظار پاسخ ادمین';
+                    await updateTicketStatus(ticketId, newStatus);
                     
                     return {
                         success: true,
                         reply: data,
-                        message: 'پاسخ با موفقیت ارسال شد'
+                        message: 'پاسخ با موفقیت ارسال شد',
+                        isAdmin: isAdmin
                     };
                 }
             } catch (supabaseError) {
@@ -1097,12 +1103,14 @@ async function addTicketReply(ticketId, replyData) {
         }
         
         // آپدیت وضعیت تیکت در localStorage
-        await updateTicketStatus(ticketId, 'پاسخ داده شده');
+        const newStatus = isAdmin ? 'پاسخ داده شده' : 'در انتظار پاسخ ادمین';
+        await updateTicketStatus(ticketId, newStatus);
         
         return {
             success: true,
             reply: newReply,
-            message: 'پاسخ با موفقیت ارسال شد'
+            message: 'پاسخ با موفقیت ارسال شد',
+            isAdmin: isAdmin
         };
         
     } catch (error) {
@@ -1114,15 +1122,22 @@ async function addTicketReply(ticketId, replyData) {
     }
 }
 
-async function getTicketReplies(ticketId) {
+async function getTicketReplies(ticketId, forAdmin = false) {
     try {
-        console.log(`📨 Getting replies for ticket ${ticketId}`);
+        console.log(`📨 Getting replies for ticket ${ticketId}, forAdmin: ${forAdmin}`);
         
         // از localStorage بخون
         const localReplies = JSON.parse(localStorage.getItem('sidka_ticket_replies') || '[]');
-        const ticketLocalReplies = localReplies.filter(reply => 
+        let ticketLocalReplies = localReplies.filter(reply => 
             reply.ticket_id == ticketId
         );
+        
+        // اگر کاربر عادی هست، فقط پاسخ‌های عمومی رو نشون بده
+        if (!forAdmin) {
+            ticketLocalReplies = ticketLocalReplies.filter(reply => 
+                !reply.is_admin || reply.is_admin === false
+            );
+        }
         
         console.log('Found in localStorage:', ticketLocalReplies.length, 'replies');
         
@@ -1138,11 +1153,19 @@ async function getTicketReplies(ticketId) {
         
         // از Supabase بخون
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('ticket_replies')
                 .select('*')
-                .eq('ticket_id', ticketId)
-                .order('created_at', { ascending: true });
+                .eq('ticket_id', ticketId);
+            
+            // اگر کاربر عادی هست، فقط پاسخ‌های غیر ادمین رو بگیر
+            if (!forAdmin) {
+                query = query.eq('is_admin', false);
+            }
+            
+            query = query.order('created_at', { ascending: true });
+            
+            const { data, error } = await query;
             
             if (error) {
                 console.warn('⚠️ Supabase error, using localStorage:', error);
@@ -1168,9 +1191,13 @@ async function getTicketReplies(ticketId) {
                     }
                 });
                 
+                // باز هم فیلتر کن اگر کاربر عادی هست
+                const filteredReplies = forAdmin ? uniqueReplies : 
+                    uniqueReplies.filter(reply => !reply.is_admin || reply.is_admin === false);
+                
                 return {
                     success: true,
-                    replies: uniqueReplies.sort((a, b) => 
+                    replies: filteredReplies.sort((a, b) => 
                         new Date(a.created_at) - new Date(b.created_at)
                     )
                 };
@@ -1228,13 +1255,19 @@ async function getTicketDetails(ticketId) {
             };
         }
         
-        // دریافت پاسخ‌ها
-        const repliesResult = await getTicketReplies(ticketId);
+        // دریافت پاسخ‌ها - ببینیم کاربر ادمینه یا نه
+        const currentUser = JSON.parse(localStorage.getItem('sidka_user_session'))?.user;
+        const isAdmin = currentUser && (currentUser.is_admin || currentUser.phone === '09021707830');
+        
+        // دریافت پاسخ‌ها با در نظر گرفتن سطح دسترسی
+        const repliesResult = await getTicketReplies(ticketId, isAdmin);
         
         return {
             success: true,
             ticket: ticket,
-            replies: repliesResult.replies || []
+            replies: repliesResult.replies || [],
+            isAdmin: isAdmin,
+            userPhone: currentUser?.phone || null
         };
         
     } catch (error) {
@@ -1245,7 +1278,6 @@ async function getTicketDetails(ticketId) {
         };
     }
 }
-
 // ========== توابع دیگر ==========
 
 async function getAllUsers() {
