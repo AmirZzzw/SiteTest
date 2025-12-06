@@ -191,7 +191,92 @@ async function loginOrRegisterUser(phone, firstName = '', lastName = '', passwor
 
 // 2. ورود با رمز
 async function loginUser(phone, password) {
-    return loginOrRegisterUser(phone, '', '', password);
+    try {
+        console.log(`🔐 Login attempt: ${phone}`);
+        
+        // چک ادمین (رمز ثابت)
+        if (phone === '09021707830') {
+            if (password !== 'SidkaShop1234') {
+                return {
+                    success: false,
+                    error: 'رمز عبور ادمین اشتباه است',
+                    code: 'WRONG_ADMIN_PASSWORD'
+                };
+            }
+            
+            // ... کد ادمین
+        }
+        
+        // کاربران عادی
+        if (!supabase) {
+            // حالت fallback - فقط برای کاربران موجود
+            const localUsers = getAllUsersFromLocalStorage();
+            const user = localUsers.find(u => u.phone === phone);
+            
+            if (!user) {
+                return {
+                    success: false,
+                    error: 'کاربری با این شماره وجود ندارد',
+                    code: 'USER_NOT_FOUND'
+                };
+            }
+            
+            // اگر کاربر رمز دارد، چک کن
+            if (user.password && user.password !== password) {
+                return {
+                    success: false,
+                    error: 'رمز عبور اشتباه است',
+                    code: 'WRONG_PASSWORD'
+                };
+            }
+            
+            // اگر کاربر رمز ندارد، اجازه ورود بده (کاربر قدیمی)
+            saveSession(user);
+            return {
+                success: true,
+                user: user
+            };
+        }
+        
+        // Supabase
+        const { data: existingUser, error: fetchError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('phone', phone)
+            .maybeSingle();
+        
+        if (!existingUser) {
+            return {
+                success: false,
+                error: 'کاربری با این شماره وجود ندارد',
+                code: 'USER_NOT_FOUND'
+            };
+        }
+        
+        // اگر کاربر رمز دارد، چک کن
+        if (existingUser.password && existingUser.password !== password) {
+            return {
+                success: false,
+                error: 'رمز عبور اشتباه است',
+                code: 'WRONG_PASSWORD'
+            };
+        }
+        
+        // اگر کاربر رمز ندارد، اجازه ورود بده (کاربر قدیمی)
+        saveSession(existingUser);
+        
+        return {
+            success: true,
+            user: existingUser
+        };
+        
+    } catch (error) {
+        console.error('❌ Error in login:', error);
+        return {
+            success: false,
+            error: 'خطا در ورود'
+        };
+    }
 }
 
 // 3. ثبت‌نام کامل
