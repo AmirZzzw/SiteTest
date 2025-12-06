@@ -1258,16 +1258,18 @@ async function getTicketDetails(ticketId) {
         // دریافت پاسخ‌ها - ببینیم کاربر ادمینه یا نه
         const currentUser = JSON.parse(localStorage.getItem('sidka_user_session'))?.user;
         const isAdmin = currentUser && (currentUser.is_admin || currentUser.phone === '09021707830');
+        const canViewAdminReplies = isAdmin; // فقط ادمین‌ها می‌تونن پاسخ‌های ادمین رو ببینن
         
         // دریافت پاسخ‌ها با در نظر گرفتن سطح دسترسی
-        const repliesResult = await getTicketReplies(ticketId, isAdmin);
+        const repliesResult = await getTicketReplies(ticketId, canViewAdminReplies);
         
         return {
             success: true,
             ticket: ticket,
             replies: repliesResult.replies || [],
             isAdmin: isAdmin,
-            userPhone: currentUser?.phone || null
+            userPhone: currentUser?.phone || null,
+            currentUser: currentUser // کل کاربر رو برگردون
         };
         
     } catch (error) {
