@@ -578,7 +578,10 @@ async function handleLogin() {
         return;
     }
     
-    if (!password || password.length < 6) {
+    // اگر کاربر قدیمی است (اولین بار است)، رمز نیاز ندارد
+    const isNewUser = !localStorage.getItem(`sidka_user_${phone}`);
+    
+    if (!isNewUser && (!password || password.length < 6)) {
         showNotification('رمز عبور الزامی است (حداقل ۶ کاراکتر)', 'warning');
         return;
     }
@@ -606,8 +609,19 @@ async function handleLogin() {
             phoneInput.value = '';
             passwordInput.value = '';
             
+            // بارگذاری داده‌های کاربر
+            loadUserData(phone);
+            
         } else {
-            showNotification(result.error || 'خطا در ورود', 'error');
+            // نمایش پیام خطای مناسب
+            let errorMessage = result.error;
+            if (result.code === 'WRONG_PASSWORD') {
+                errorMessage = 'رمز عبور اشتباه است';
+            } else if (result.code === 'USER_NOT_FOUND') {
+                errorMessage = 'کاربری با این شماره وجود ندارد';
+            }
+            
+            showNotification(errorMessage, 'error');
         }
         
     } catch (error) {
