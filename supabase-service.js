@@ -488,7 +488,7 @@ async function createNewOrder(orderData) {
     try {
         console.log('🛒 Creating order:', orderData);
         
-        // اطمینان از ساختار داده
+        // 1. ساختار سفارش برای localStorage (بدون تصویر)
         const orderToSave = {
             id: orderData.id || Date.now(),
             userId: orderData.userId,
@@ -496,62 +496,105 @@ async function createNewOrder(orderData) {
             total: orderData.total || 0,
             status: 'در انتظار تأیید',
             customer_info: orderData.customerInfo || {},
-            // حذف تصویر از localStorage برای صرفه‌جویی در فضا
             receipt_info: {
                 fileName: orderData.receipt?.fileName,
                 fileSize: orderData.receipt?.fileSize,
                 fileType: orderData.receipt?.fileType,
                 note: orderData.receipt?.note,
-                status: orderData.receipt?.status,
-                hasImage: !!orderData.receipt?.image // فقط مشخص کن که تصویر داره
+                status: orderData.receipt?.status || 'در انتظار تأیید',
+                hasImageInSupabase: true // پرچم برای اینکه تصویر در Supabase ذخیره شده
             },
             items: orderData.items || [],
             created_at: new Date().toISOString(),
             createdAt: new Date().toISOString()
         };
         
-        // 1. فقط متن ذخیره کن، نه تصویر
-        try {
-            let orders = [];
-            const stored = localStorage.getItem('sidka_orders');
-            if (stored) {
-                orders = JSON.parse(stored);
-                if (!Array.isArray(orders)) orders = [];
-            }
-            
-            orders.push(orderToSave);
-            localStorage.setItem('sidka_orders', JSON.stringify(orders));
-            console.log('✅ Order saved to localStorage:', orderToSave.id);
-        } catch (storageError) {
-            console.error('❌ localStorage error:', storageError);
-        }
-        
-        // 2. فقط در Supabase تصویر رو ذخیره کن
+        // 2. ذخیره در Supabase (با تصویر کامل)
+        let supabaseOrderId = null;
         if (supabase) {
             try {
+                const supabaseOrder = {
+                    user_id: orderData.userId,
+                    total: orderData.total,
+                    status: 'در انتظار تأیید',
+                    customer_info: orderData.customerInfo,
+                    receipt_info: orderData.receipt, // تصویر کامل اینجا
+                    items: orderData.items
+                };
+                
                 const { data, error } = await supabase
                     .from('orders')
-                    .insert([{
-                        user_id: orderData.userId,
-                        total: orderData.total,
-                        status: 'در انتظار تأیید',
-                        customer_info: orderData.customerInfo,
-                        receipt_info: orderData.receipt, // اینجا تصویر کامل ذخیره میشه
-                        items: orderData.items
-                    }])
+                    .insert([supabaseOrder])
                     .select()
                     .single();
                 
                 if (error) throw error;
-                console.log('✅ Order saved to Supabase:', data.id);
+                
+                supabaseOrderId = data.id;
+                orderToSave.supabase_id = data.id; // ID سفارش در Supabase رو ذخیره کن
+                
+                console.log('✅ Order saved to Supabase (with image):', data.id);
+                
             } catch (supabaseError) {
-                console.warn('⚠️ Supabase error:', supabaseError);
+                console.error('❌ Error saving to Supabase:', supabaseError);
+                
+                // اگر Supabase خطا داد، تصویر رو در localStorage ذخیره کن (فشرده)
+                if (orderData.receipt?.image) {
+                    try {
+                        const compressedImage = await compressImageForLocalStorage(orderData.receipt.image);
+                        orderToSave.receipt_info.image = compressedImage;
+                        orderToSave.receipt_info.hasImageInSupabase = false;
+                        console.log('📦 Image saved to localStorage (compressed)');
+                    } catch (compressionError) {
+                        console.warn('⚠️ Could not compress image:', compressionError);
+                    }
+                }
+            }
+        } else {
+            // اگر Supabase وصل نیست، تصویر رو در localStorage ذخیره کن (فشرده)
+            if (orderData.receipt?.image) {
+                try {
+                    const compressedImage = await compressImageForLocalStorage(orderData.receipt.image);
+                    orderToSave.receipt_info.image = compressedImage;
+                    orderToSave.receipt_info.hasImageInSupabase = false;
+                    console.log('📦 Image saved to localStorage (compressed - no Supabase)');
+                } catch (compressionError) {
+                    console.warn('⚠️ Could not compress image:', compressionError);
+                }
             }
         }
+        
+        // 3. ذخیره در localStorage (بدون تصویر یا با تصویر فشرده)
+        try {
+            let orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+            
+            // فقط سفارشات "در انتظار تأیید" یا "تأیید شده" رو نگه دار
+            orders = orders.filter(order => 
+                order.status === 'در انتظار تأیید' || 
+                order.status === 'تأیید شده'
+            );
+            
+            // حداکثر ۲۰ سفارش نگه دار
+            if (orders.length >= 20) {
+                orders = orders.slice(-20);
+                console.log('🗑️ Cleaned up old orders, keeping only last 20');
+            }
+            
+            orders.push(orderToSave);
+            localStorage.setItem('sidka_orders', JSON.stringify(orders));
+            console.log('✅ Order saved to localStorage (without full image):', orderToSave.id);
+            
+        } catch (storageError) {
+            console.error('❌ localStorage error:', storageError);
+        }
+        
+        // 4. خالی کردن سبد خرید
+        localStorage.removeItem('sidka_cart');
         
         return {
             success: true,
             order: orderToSave,
+            supabaseOrderId: supabaseOrderId,
             message: 'سفارش با موفقیت ثبت شد'
         };
         
@@ -564,6 +607,133 @@ async function createNewOrder(orderData) {
     }
 }
 
+// ====== تابع فشرده‌سازی برای localStorage ======
+function compressImageForLocalStorage(base64Image) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // اندازه بسیار کوچک برای صرفه‌جویی در فضا
+            const maxWidth = 400;
+            const maxHeight = 400;
+            
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > height) {
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width = (width * maxHeight) / height;
+                    height = maxHeight;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // فشرده‌سازی شدید
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4); // کیفیت 40%
+            resolve(compressedBase64);
+        };
+        img.src = base64Image;
+    });
+}
+
+// ====== تابع حذف سفارشات رد شده از localStorage ======
+function cleanupLocalStorageOrders() {
+    try {
+        let orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const initialCount = orders.length;
+        
+        // فقط سفارشات "در انتظار تأیید" و "تأیید شده" رو نگه دار
+        orders = orders.filter(order => 
+            order.status === 'در انتظار تأیید' || 
+            order.status === 'تأیید شده'
+        );
+        
+        // همچنین سفارشات قدیمی (بیش از ۷ روز) رو حذف کن
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        orders = orders.filter(order => {
+            const orderDate = new Date(order.created_at || order.createdAt || 0).getTime();
+            return orderDate > sevenDaysAgo;
+        });
+        
+        // حداکثر ۱۵ سفارش نگه دار
+        if (orders.length > 15) {
+            orders = orders.slice(-15);
+        }
+        
+        if (orders.length < initialCount) {
+            localStorage.setItem('sidka_orders', JSON.stringify(orders));
+            console.log(`🗑️ Cleaned up ${initialCount - orders.length} orders from localStorage`);
+        }
+        
+        return orders.length;
+        
+    } catch (error) {
+        console.error('❌ Error cleaning up localStorage:', error);
+        return 0;
+    }
+}
+
+// ====== تابع دریافت تصویر رسید ======
+async function getOrderReceipt(orderId) {
+    try {
+        // اول از Supabase بگیر
+        if (supabase) {
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('receipt_info')
+                    .eq('id', orderId)
+                    .single();
+                
+                if (!error && data && data.receipt_info) {
+                    console.log('✅ Receipt loaded from Supabase');
+                    return {
+                        success: true,
+                        receipt: data.receipt_info,
+                        source: 'supabase'
+                    };
+                }
+            } catch (supabaseError) {
+                console.warn('⚠️ Supabase error:', supabaseError);
+            }
+        }
+        
+        // اگر Supabase خطا داد یا وصل نیست، از localStorage بگیر
+        const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const order = orders.find(o => o.id == orderId || o.supabase_id == orderId);
+        
+        if (order && order.receipt_info) {
+            console.log('✅ Receipt loaded from localStorage');
+            return {
+                success: true,
+                receipt: order.receipt_info,
+                source: 'localStorage'
+            };
+        }
+        
+        return {
+            success: false,
+            error: 'رسید یافت نشد'
+        };
+        
+    } catch {
+        return {
+            success: false,
+            error: 'خطا در دریافت رسید'
+        };
+    }
+}
 async function getUserOrders(userId) {
     try {
         console.log('📋 Getting orders for user:', userId);
@@ -693,15 +863,23 @@ async function updateOrderStatus(orderId, status) {
     try {
         console.log(`📊 Updating order ${orderId} status to: ${status}`);
         
+        // 1. آپدیت در localStorage
         const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        const orderIndex = orders.findIndex(o => o.id == orderId);
+        const orderIndex = orders.findIndex(o => o.id == orderId || o.supabase_id == orderId);
         
         if (orderIndex !== -1) {
-            orders[orderIndex].status = status;
+            if (status === 'رد شده') {
+                // اگر سفارش رد شده، از localStorage حذفش کن
+                orders.splice(orderIndex, 1);
+                console.log(`🗑️ Order ${orderId} removed from localStorage (rejected)`);
+            } else {
+                // در غیر این صورت آپدیت کن
+                orders[orderIndex].status = status;
+            }
             localStorage.setItem('sidka_orders', JSON.stringify(orders));
-            console.log(`✅ Order ${orderId} updated in localStorage`);
         }
         
+        // 2. آپدیت در Supabase
         if (supabase) {
             try {
                 const { error } = await supabase
@@ -714,11 +892,31 @@ async function updateOrderStatus(orderId, status) {
                 
                 if (!error) {
                     console.log(`✅ Order ${orderId} updated in Supabase`);
+                    
+                    // اگر رد شده، تصویرش رو از Supabase هم حذف کن (اختیاری)
+                    if (status === 'رد شده') {
+                        setTimeout(async () => {
+                            try {
+                                await supabase
+                                    .from('orders')
+                                    .update({ 
+                                        receipt_info: null // یا receipt_info: {deleted: true}
+                                    })
+                                    .eq('id', orderId);
+                                console.log(`🗑️ Receipt image cleared from Supabase for order ${orderId}`);
+                            } catch (deleteError) {
+                                console.warn('⚠️ Could not clear receipt from Supabase:', deleteError);
+                            }
+                        }, 1000);
+                    }
                 }
             } catch (supabaseError) {
                 console.warn(`⚠️ Supabase error:`, supabaseError);
             }
         }
+        
+        // 3. تمیزکاری localStorage
+        cleanupLocalStorageOrders();
         
         return { success: true };
         
@@ -727,7 +925,6 @@ async function updateOrderStatus(orderId, status) {
         return { success: false, error: 'خطا در بروزرسانی سفارش' };
     }
 }
-
 async function getOrderReceipt(orderId) {
     try {
         const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
