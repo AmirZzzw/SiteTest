@@ -1194,41 +1194,22 @@ async function renderAdminTickets() {
         if (result.success && result.tickets && result.tickets.length > 0) {
             let html = '';
             
-            // فیلتر تیکت‌های واقعی (نه خالی)
-            const validTickets = result.tickets.filter(ticket => 
-                ticket && ticket.subject && ticket.message
-            );
-            
-            if (validTickets.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-message">
-                        <i class="fas fa-comments"></i>
-                        <p>هیچ تیکتی ارسال نشده است</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            validTickets.forEach(ticket => {
-                // اطلاعات کاربر
+            result.tickets.forEach(ticket => {
                 const user = ticket.users || {};
                 const userName = user.first_name ? 
                     `${user.first_name} ${user.last_name || ''}`.trim() : 
                     'کاربر';
-                const userPhone = user.phone || '---';
+                const userPhone = user.phone || ticket.user_phone || '---';
                 
-                // وضعیت تیکت
                 const status = ticket.status || 'جدید';
                 const statusClass = status === 'جدید' ? 'status-new' : 
                                   status === 'در حال بررسی' ? 'status-pending' : 
                                   'status-solved';
                 
-                // فرمت تاریخ
                 const ticketDate = ticket.created_at ? 
                     new Date(ticket.created_at).toLocaleDateString('fa-IR') : 
                     '---';
                 
-                // در داخل حلقه forEach تابع renderAdminTickets:
                 html += `
                     <div class="admin-item ticket-item">
                         <div style="flex: 1;">
@@ -1253,6 +1234,7 @@ async function renderAdminTickets() {
                         </div>
                     </div>
                 `;
+            });
             
             container.innerHTML = html;
         } else {
@@ -1263,7 +1245,6 @@ async function renderAdminTickets() {
                 </div>
             `;
         }
-        
     } catch (error) {
         console.error('Error rendering admin tickets:', error);
         container.innerHTML = `
