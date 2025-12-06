@@ -496,13 +496,21 @@ async function createNewOrder(orderData) {
             total: orderData.total || 0,
             status: 'در انتظار تأیید',
             customer_info: orderData.customerInfo || {},
-            receipt_info: orderData.receipt || {},
+            // حذف تصویر از localStorage برای صرفه‌جویی در فضا
+            receipt_info: {
+                fileName: orderData.receipt?.fileName,
+                fileSize: orderData.receipt?.fileSize,
+                fileType: orderData.receipt?.fileType,
+                note: orderData.receipt?.note,
+                status: orderData.receipt?.status,
+                hasImage: !!orderData.receipt?.image // فقط مشخص کن که تصویر داره
+            },
             items: orderData.items || [],
             created_at: new Date().toISOString(),
             createdAt: new Date().toISOString()
         };
         
-        // 1. ذخیره در localStorage
+        // 1. فقط متن ذخیره کن، نه تصویر
         try {
             let orders = [];
             const stored = localStorage.getItem('sidka_orders');
@@ -518,7 +526,7 @@ async function createNewOrder(orderData) {
             console.error('❌ localStorage error:', storageError);
         }
         
-        // 2. ذخیره در Supabase (اگر موجود است)
+        // 2. فقط در Supabase تصویر رو ذخیره کن
         if (supabase) {
             try {
                 const { data, error } = await supabase
@@ -528,7 +536,7 @@ async function createNewOrder(orderData) {
                         total: orderData.total,
                         status: 'در انتظار تأیید',
                         customer_info: orderData.customerInfo,
-                        receipt_info: orderData.receipt,
+                        receipt_info: orderData.receipt, // اینجا تصویر کامل ذخیره میشه
                         items: orderData.items
                     }])
                     .select()
