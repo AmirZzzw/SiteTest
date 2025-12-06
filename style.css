@@ -2148,3 +2148,53 @@ input[type="file"] {
     padding-top: 20px;
     margin-top: 20px;
 }
+
+/* در style.css اضافه کن */
+.telegram-verification {
+    text-align: center;
+    padding: 20px;
+}
+
+.verification-info {
+    margin-bottom: 25px;
+}
+
+.verification-info h4 {
+    margin: 15px 0 10px;
+    color: #333;
+}
+
+.verification-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.verification-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    display: none;
+}
+
+.verification-status.success {
+    background-color: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+    border: 1px solid #2ecc71;
+    display: block;
+}
+
+.verification-status.error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #c0392b;
+    border: 1px solid #e74c3c;
+    display: block;
+}
+
+#telegram-code {
+    font-size: 1.5rem;
+    letter-spacing: 8px;
+    text-align: center;
+    font-weight: bold;
+}
