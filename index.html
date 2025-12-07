@@ -913,6 +913,87 @@
                     </div>
                 </div>
 
+                <!-- مودال نمایش کد (اضافه کن بعد از مودال تلگرام) -->
+                <div class="modal-overlay" id="fallback-code-overlay" style="display: none;"></div>
+                <div class="modal" id="fallback-code-modal" style="display: none;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-key"></i> کد امنیتی</h3>
+                        <button class="close-modal" onclick="closeModal('fallback-code-modal', 'fallback-code-overlay')">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <div class="code-display-container">
+                            <i class="fas fa-shield-alt fa-3x" style="color: #2ecc71; margin-bottom: 20px;"></i>
+                            <h4>کد امنیتی تولید شد</h4>
+                            <p>به دلیل محدودیت‌های اینترنتی، کد به تلگرام ارسال نشد.</p>
+                            <p>لطفاً کد زیر را کپی کرده و در فیلد مربوطه وارد کنید:</p>
+            
+                            <div class="code-box" id="fallback-code-display" style="
+                                font-size: 2.5rem;
+                                font-weight: bold;
+                                letter-spacing: 10px;
+                                background: #f8f9fa;
+                                padding: 20px;
+                                border-radius: 10px;
+                                margin: 20px 0;
+                                color: #2ecc71;
+                                direction: ltr;
+                            ">-----</div>
+            
+                            <p style="color: #f39c12;">
+                                <i class="fas fa-clock"></i>
+                                این کد تا <span id="code-expiry-time">۱۰</span> دقیقه دیگر معتبر است
+                            </p>
+            
+                            <div style="margin-top: 25px;">
+                                <button class="btn btn-primary" onclick="copyFallbackCode()">
+                                    <i class="fas fa-copy"></i> کپی کد
+                                </button>
+                                <button class="btn btn-secondary" onclick="closeModal('fallback-code-modal', 'fallback-code-overlay')">
+                                    <i class="fas fa-times"></i> بستن
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                // تابع نمایش کد fallback
+                function showFallbackCode(code, phone) {
+                    document.getElementById('fallback-code-display').textContent = code;
+                    document.getElementById('code-expiry-time').textContent = '۱۰';
+    
+                    openModal('fallback-code-modal', 'fallback-code-overlay');
+    
+                    // تایمر معکوس
+                    let timeLeft = 600; // 10 دقیقه
+                    const timerElement = document.getElementById('code-expiry-time');
+                    const timer = setInterval(() => {
+                        const minutes = Math.floor(timeLeft / 60);
+                        const seconds = timeLeft % 60;
+                        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+                        if (timeLeft <= 0) {
+                            clearInterval(timer);
+                            timerElement.textContent = 'منقضی شد';
+                            timerElement.style.color = '#e74c3c';
+                        }
+                        timeLeft--;
+                    }, 1000);
+    
+                    // ذخیره تایمر برای پاکسازی
+                    if (window.fallbackTimer) {
+                        clearInterval(window.fallbackTimer);
+                    }
+                    window.fallbackTimer = timer;
+                }
+
+                // تابع کپی کد fallback
+                function copyFallbackCode() {
+                    const code = document.getElementById('fallback-code-display').textContent;
+                    copyToClipboard(code);
+                }
+                </script>
+
 <!-- اسکریپت‌ها -->
 <script src="telegram-2fa.js"></script>                
             </div>
