@@ -648,17 +648,43 @@ async function handleLogin() {
                     
                     // بستن مودال ورود و باز کردن مودال ۲FA
                     closeModal('login-modal', 'login-overlay');
-                    
-                    // کمی تاخیر برای اطمینان از بسته شدن مودال قبلی
+
+                    // تنظیم timeout برای باز کردن مودال جدید
                     setTimeout(() => {
-                        openModal('telegram-code-modal', 'telegram-code-overlay');
-                        
+                        // اطمینان از وجود مودال تلگرام
+                        const telegramModal = document.getElementById('telegram-code-modal');
+                        const telegramOverlay = document.getElementById('telegram-code-overlay');
+    
+                        if (!telegramModal) {
+                            console.error('❌ Telegram modal not found! Creating it...');
+                            createTelegramModal();
+                        }
+    
+                        // نمایش مودال
+                        telegramModal.style.display = 'block';
+                        telegramOverlay.style.display = 'block';
+                        document.body.style.overflow = 'hidden';
+    
+                        // تنظیم شماره تلفن
+                        const phoneDisplay = document.getElementById('phone-display');
+                        if (phoneDisplay) {
+                            phoneDisplay.textContent = `📱 شماره: ${phone}`;
+                        }
+    
+                        // تایمر معکوس
+                        startCodeTimer(phone);
+    
                         // فوکوس روی فیلد کد
                         const codeInput = document.getElementById('telegram-code');
                         if (codeInput) {
-                            setTimeout(() => codeInput.focus(), 100);
+                            setTimeout(() => {
+                                codeInput.focus();
+                                codeInput.value = '';
+                            }, 200);
                         }
-                    }, 300);
+    
+                        console.log('✅ Telegram modal opened successfully');
+                    }, 500);
                     
                     // پاک کردن فیلدها
                     phoneInput.value = '';
@@ -2084,6 +2110,71 @@ function setupEventListeners() {
     });
     
     console.log('✅ Event listeners setup completed');
+}
+
+// تابع ایجاد مودال تلگرام (اگر وجود ندارد)
+function createTelegramModal() {
+    console.log('🔧 Creating Telegram modal...');
+    
+    const modalHtml = `
+        <div class="modal-overlay" id="telegram-code-overlay"></div>
+        <div class="modal" id="telegram-code-modal">
+            <div class="modal-header">
+                <h3><i class="fab fa-telegram"></i> تأیید دو مرحله‌ای</h3>
+                <button class="close-modal" id="close-telegram-code">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="telegram-verification">
+                    <div class="verification-info">
+                        <i class="fab fa-telegram fa-3x" style="color: #0088cc;"></i>
+                        <h4>کد تأیید برای ادمین</h4>
+                        <p>کد ۶ رقمی تولید شد. لطفاً آن را وارد کنید:</p>
+                        <p id="phone-display" style="margin: 10px 0; font-weight: bold; background: #f8f9fa; padding: 10px; border-radius: 8px;"></p>
+                        <p id="code-expiry" style="color: #f39c12; font-size: 0.9rem; margin-top: 10px;"></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telegram-code">کد ۶ رقمی</label>
+                        <input type="text" id="telegram-code" 
+                               maxlength="6" 
+                               pattern="[0-9]{6}"
+                               placeholder="123456"
+                               inputmode="numeric"
+                               style="text-align: center; font-size: 1.5rem; letter-spacing: 10px; padding: 15px;">
+                    </div>
+
+                    <div class="verification-actions">
+                        <button class="btn btn-telegram" id="verify-code-btn">
+                            <i class="fas fa-check-circle"></i> تأیید و ورود
+                        </button>
+                        <button class="btn btn-secondary" id="resend-code-btn">
+                            <i class="fas fa-redo"></i> ارسال مجدد کد
+                        </button>
+                        <button class="btn btn-danger" id="cancel-verification-btn">
+                            <i class="fas fa-times"></i> انصراف
+                        </button>
+                    </div>
+
+                    <div class="verification-status" id="verification-status"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // حذف مودال قبلی اگر وجود دارد
+    const oldModal = document.getElementById('telegram-code-modal');
+    const oldOverlay = document.getElementById('telegram-code-overlay');
+    if (oldModal) oldModal.remove();
+    if (oldOverlay) oldOverlay.remove();
+    
+    // اضافه کردن مودال جدید
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // راه‌اندازی رویدادها
+    setupTelegramModalEvents();
+    
+    console.log('✅ Telegram modal created');
 }
 
 // ========== تابع اصلی راه‌اندازی ==========
