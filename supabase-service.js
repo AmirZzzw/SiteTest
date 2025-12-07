@@ -194,22 +194,25 @@ async function loginUser(phone, password = '') {
         
         // ========== حالت ادمین ==========
         if (phone === '09021707830') {
-            // برای ادمین، رمز عبور را بررسی نکن چون 2FA اینجا کار میکنه
-            // فقط چک کن که کاربر ادمینه
+            // اگر کد 2FA قبلاً تأیید شده، مستقیماً ورود کن
+            if (window.pendingAdminLogin && window.pendingAdminLogin.isVerified) {
+                const adminUser = {
+                    id: 1,
+                    phone: '09021707830',
+                    first_name: 'امیرمحمد',
+                    last_name: 'یوسفی',
+                    is_admin: true,
+                    created_at: new Date().toISOString()
+                };
+                
+                return {
+                    success: true,
+                    user: adminUser,
+                    isAdmin: true
+                };
+            }
             
-            const adminUser = {
-                id: 1,
-                phone: '09021707830',
-                first_name: 'امیرمحمد',
-                last_name: 'یوسفی',
-                is_admin: true,
-                created_at: new Date().toISOString()
-            };
-            
-            // در این مرحله کاربر را برنگردون
-            // بگذار 2FA اول انجام بشه
-            console.log('👑 Admin detected, waiting for 2FA verification');
-            
+            // در غیر این صورت، منتظر 2FA بمان
             return {
                 success: false,
                 code: 'NEED_2FA',
