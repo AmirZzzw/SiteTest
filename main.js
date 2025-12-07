@@ -598,7 +598,7 @@ async function handleLogin() {
                 return;
             }
             
-            // فعال‌سازی 2FA برای ادمین
+            // فعال‌سازی ۲FA برای ادمین
             if (window.telegram2FA) {
                 console.log('🔐 Activating Telegram 2FA for admin');
                 
@@ -606,16 +606,21 @@ async function handleLogin() {
                 pendingAdminLogin = {
                     phone: phone,
                     password: password,
-                    isPending: true
+                    isPending: true,
+                    timestamp: Date.now()
                 };
                 
                 // ارسال کد به تلگرام
+                showNotification('در حال ارسال کد امنیتی به تلگرام...', 'info');
                 const telegramResult = await window.telegram2FA.sendCodeToTelegram(phone);
                 
+                console.log('Telegram 2FA result:', telegramResult);
+                
                 if (telegramResult.success) {
-                    // نمایش مودال 2FA
-                    document.getElementById('phone-display').textContent = `شماره: ${phone}`;
+                    // نمایش مودال ۲FA
+                    document.getElementById('phone-display').textContent = `📱 شماره: ${phone}`;
                     
+                    // تایمر معکوس
                     let timeLeft = 300;
                     const timerElement = document.getElementById('code-expiry');
                     
@@ -628,37 +633,50 @@ async function handleLogin() {
                             clearInterval(timer);
                             timerElement.textContent = '⏰ کد منقضی شده است';
                             timerElement.style.color = '#e74c3c';
+                            pendingAdminLogin.isPending = false;
                         }
                         timeLeft--;
                     }, 1000);
                     
-                    const clearTimer = () => clearInterval(timer);
+                    // ذخیره تایمر برای پاکسازی
+                    pendingAdminLogin.timer = timer;
                     
-                    document.getElementById('close-telegram-code').addEventListener('click', clearTimer, { once: true });
-                    document.getElementById('cancel-verification-btn').addEventListener('click', clearTimer, { once: true });
-                    
-                    // بستن مودال ورود و باز کردن مودال 2FA
+                    // بستن مودال ورود و باز کردن مودال ۲FA
                     closeModal('login-modal', 'login-overlay');
                     openModal('telegram-code-modal', 'telegram-code-overlay');
-                    document.getElementById('telegram-code').focus();
                     
+                    // فوکوس روی فیلد کد
+                    setTimeout(() => {
+                        document.getElementById('telegram-code').focus();
+                    }, 300);
+                    
+                    // پاک کردن فیلدها
                     phoneInput.value = '';
                     passwordInput.value = '';
+                    
+                    // نمایش پیام به کاربر
+                    if (telegramResult.sentToTelegram) {
+                        showNotification('کد امنیتی به تلگرام شما ارسال شد', 'success');
+                    } else {
+                        showNotification('کد امنیتی تولید شد. لطفاً صبر کنید...', 'warning');
+                    }
                     
                     return;
                     
                 } else {
                     console.error('❌ Telegram 2FA failed:', telegramResult);
-                    showNotification('خطا در ارسال کد تأیید. لطفاً دوباره تلاش کنید.', 'error');
+                    showNotification('خطا در ارسال کد امنیتی. لطفاً دوباره تلاش کنید.', 'error');
+                    pendingAdminLogin.isPending = false;
                     return;
                 }
             } else {
-                showNotification('سیستم تأیید دو مرحله‌ای در دسترس نیست', 'warning');
-                console.warn('⚠️ Telegram 2FA not available, proceeding without 2FA');
+                console.error('❌ Telegram 2FA not available');
+                showNotification('سیستم تأیید دو مرحله‌ای در دسترس نیست', 'error');
+                return;
             }
         }
         
-        // ========== کاربران عادی (بدون 2FA) ==========
+        // ========== کاربران عادی ==========
         console.log(`🔐 Regular user login: ${phone}`);
         
         const result = await window.supabaseFunctions.loginUser(phone, password);
@@ -703,8 +721,9 @@ async function handleLogin() {
                 
             } else if (result.code === 'WRONG_PASSWORD') {
                 showNotification('رمز عبور اشتباه است', 'error');
-            } else if (result.code === 'WRONG_ADMIN_PASSWORD') {
-                showNotification('رمز عبور ادمین اشتباه است', 'error');
+            } else if (result.code === 'NEED_2FA') {
+                // این حالت نباید اتفاق بیفته چون ما خودمون ۲FA رو هندل می‌کنیم
+                showNotification('خطا در سیستم امنیتی', 'error');
             } else {
                 showNotification(result.error || 'خطا در ورود', 'error');
             }
