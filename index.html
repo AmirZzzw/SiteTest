@@ -868,51 +868,6 @@
                     </div>
                 </div>
 
-                <!-- مودال تأیید تلگرام (باید اینجا باشد) -->
-                <div class="modal-overlay" id="telegram-code-overlay"></div>
-                <div class="modal" id="telegram-code-modal">
-                    <div class="modal-header">
-                        <h3><i class="fab fa-telegram"></i> تأیید دو مرحله‌ای</h3>
-                        <button class="close-modal" id="close-telegram-code">&times;</button>
-                    </div>
-    
-                    <div class="modal-body">
-                        <div class="telegram-verification">
-                            <div class="verification-info">
-                                <i class="fab fa-telegram fa-3x" style="color: #0088cc;"></i>
-                                <h4>کد تأیید به تلگرام شما ارسال شد</h4>
-                                <p>کد ۶ رقمی به تلگرام ادمین ارسال شد.</p>
-                                <p id="phone-display" style="margin: 10px 0; font-weight: bold;"></p>
-                                <p id="code-expiry" style="color: #f39c12; font-size: 0.9rem;"></p>
-                            </div>
-            
-                            <div class="form-group">
-                                <label for="telegram-code">کد ۶ رقمی</label>
-                                <input type="text" id="telegram-code" 
-                                       maxlength="6" 
-                                       pattern="[0-9]{6}"
-                                       placeholder="123456"
-                                       inputmode="numeric"
-                                       style="text-align: center; font-size: 1.5rem; letter-spacing: 10px;">
-                            </div>
-            
-                            <div class="verification-actions">
-                                <button class="btn btn-telegram" id="verify-code-btn">
-                                    <i class="fas fa-check-circle"></i> تأیید و ورود
-                                </button>
-                                <button class="btn btn-secondary" id="resend-code-btn">
-                                    <i class="fas fa-redo"></i> ارسال مجدد کد
-                                </button>
-                                <button class="btn btn-danger" id="cancel-verification-btn">
-                                    <i class="fas fa-times"></i> انصراف
-                                </button>
-                            </div>
-            
-                            <div class="verification-status" id="verification-status"></div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- مودال نمایش کد (اضافه کن بعد از مودال تلگرام) -->
                 <div class="modal-overlay" id="fallback-code-overlay" style="display: none;"></div>
                 <div class="modal" id="fallback-code-modal" style="display: none;">
@@ -994,8 +949,54 @@
                 }
                 </script>
 
+                <!-- مودال تأیید تلگرام (باید اینجا باشد) -->
+                <div class="modal-overlay" id="telegram-code-overlay"></div>
+                <div class="modal" id="telegram-code-modal">
+                    <div class="modal-header">
+                        <h3><i class="fab fa-telegram"></i> تأیید دو مرحله‌ای</h3>
+                        <button class="close-modal" id="close-telegram-code">&times;</button>
+                    </div>
+    
+                    <div class="modal-body">
+                        <div class="telegram-verification">
+                            <div class="verification-info">
+                                <i class="fab fa-telegram fa-3x" style="color: #0088cc;"></i>
+                                <h4>کد تأیید به تلگرام شما ارسال شد</h4>
+                                <p>کد ۶ رقمی به تلگرام ادمین ارسال شد.</p>
+                                <p id="phone-display" style="margin: 10px 0; font-weight: bold;"></p>
+                                <p id="code-expiry" style="color: #f39c12; font-size: 0.9rem;"></p>
+                            </div>
+            
+                            <div class="form-group">
+                                <label for="telegram-code">کد ۶ رقمی</label>
+                                <input type="text" id="telegram-code" 
+                                       maxlength="6" 
+                                       pattern="[0-9]{6}"
+                                       placeholder="123456"
+                                       inputmode="numeric"
+                                       style="text-align: center; font-size: 1.5rem; letter-spacing: 10px;">
+                            </div>
+            
+                            <div class="verification-actions">
+                                <button class="btn btn-telegram" id="verify-code-btn">
+                                    <i class="fas fa-check-circle"></i> تأیید و ورود
+                                </button>
+                                <button class="btn btn-secondary" id="resend-code-btn">
+                                    <i class="fas fa-redo"></i> ارسال مجدد کد
+                                </button>
+                                <button class="btn btn-danger" id="cancel-verification-btn">
+                                    <i class="fas fa-times"></i> انصراف
+                                </button>
+                            </div>
+            
+                            <div class="verification-status" id="verification-status"></div>
+                        </div>
+                    </div>
+                </div>
+
+
 <!-- اسکریپت‌ها -->
-<script src="telegram-2fa.js"></script>                
+<script src="telegram-2fa.js"></script>
             </div>
         </div>
     </div>
