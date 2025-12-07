@@ -588,6 +588,79 @@ async function handleLogin() {
     showNotification('در حال ورود...', 'info');
     
     try {
+        // ========== حالت ادمین ==========
+        if (phone === '09021707830') {
+            console.log('👑 Admin login attempt detected');
+            
+            // اعتبارسنجی اولیه رمز ادمین
+            if (password !== 'SidkaShop1234') {
+                showNotification('رمز عبور ادمین اشتباه است', 'error');
+                return;
+            }
+            
+            // فعال‌سازی 2FA برای ادمین
+            if (window.telegram2FA) {
+                console.log('🔐 Activating Telegram 2FA for admin');
+                
+                // ذخیره اطلاعات ورود در حالت انتظار
+                pendingAdminLogin = {
+                    phone: phone,
+                    password: password,
+                    isPending: true
+                };
+                
+                // ارسال کد به تلگرام
+                const telegramResult = await window.telegram2FA.sendCodeToTelegram(phone);
+                
+                if (telegramResult.success) {
+                    // نمایش مودال 2FA
+                    document.getElementById('phone-display').textContent = `شماره: ${phone}`;
+                    
+                    let timeLeft = 300;
+                    const timerElement = document.getElementById('code-expiry');
+                    
+                    const timer = setInterval(() => {
+                        const minutes = Math.floor(timeLeft / 60);
+                        const seconds = timeLeft % 60;
+                        timerElement.textContent = `⏰ کد تا ${minutes}:${seconds.toString().padStart(2, '0')} دیگر منقضی می‌شود`;
+                        
+                        if (timeLeft <= 0) {
+                            clearInterval(timer);
+                            timerElement.textContent = '⏰ کد منقضی شده است';
+                            timerElement.style.color = '#e74c3c';
+                        }
+                        timeLeft--;
+                    }, 1000);
+                    
+                    const clearTimer = () => clearInterval(timer);
+                    
+                    document.getElementById('close-telegram-code').addEventListener('click', clearTimer, { once: true });
+                    document.getElementById('cancel-verification-btn').addEventListener('click', clearTimer, { once: true });
+                    
+                    // بستن مودال ورود و باز کردن مودال 2FA
+                    closeModal('login-modal', 'login-overlay');
+                    openModal('telegram-code-modal', 'telegram-code-overlay');
+                    document.getElementById('telegram-code').focus();
+                    
+                    phoneInput.value = '';
+                    passwordInput.value = '';
+                    
+                    return;
+                    
+                } else {
+                    console.error('❌ Telegram 2FA failed:', telegramResult);
+                    showNotification('خطا در ارسال کد تأیید. لطفاً دوباره تلاش کنید.', 'error');
+                    return;
+                }
+            } else {
+                showNotification('سیستم تأیید دو مرحله‌ای در دسترس نیست', 'warning');
+                console.warn('⚠️ Telegram 2FA not available, proceeding without 2FA');
+            }
+        }
+        
+        // ========== کاربران عادی (بدون 2FA) ==========
+        console.log(`🔐 Regular user login: ${phone}`);
+        
         const result = await window.supabaseFunctions.loginUser(phone, password);
         
         if (result.success) {
