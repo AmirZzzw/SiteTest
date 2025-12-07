@@ -2029,6 +2029,8 @@ window.initializeApp = function() {
             renderCartItems();
             loadProducts();
             setupEventListeners();
+
+            initializeTelegram2FA(); // راه‌اندازی تلگرام 2FA
             
             // تنظیم شماره کارت
             const cardNumberEls = document.querySelectorAll('#card-number-text, .card-number-large span');
