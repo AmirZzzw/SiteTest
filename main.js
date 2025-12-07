@@ -2208,11 +2208,15 @@ function setupTelegramModalEvents() {
                 showNotification('✅ کد تأیید شد! در حال ورود...', 'success');
                 
                 // ورود نهایی ادمین
-                const loginResult = await window.supabaseFunctions.loginUser(
+                const loginResult = await window.supabaseFunctions.loginOrRegisterUser(
                     window.pendingAdminLogin.phone,
+                    'امیرمحمد', // نام
+                    'یوسفی',    // نام خانوادگی
                     window.pendingAdminLogin.password
                 );
-                
+
+                console.log('Admin login result:', loginResult);
+
                 if (loginResult.success) {
                     // به روزرسانی وضعیت کاربر
                     userState.isLoggedIn = true;
