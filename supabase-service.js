@@ -192,6 +192,33 @@ async function loginUser(phone, password = '') {
     try {
         console.log(`🔐 Simple login for: ${phone}`);
         
+        // ========== حالت ادمین ==========
+        if (phone === '09021707830') {
+            // برای ادمین، رمز عبور را بررسی نکن چون 2FA اینجا کار میکنه
+            // فقط چک کن که کاربر ادمینه
+            
+            const adminUser = {
+                id: 1,
+                phone: '09021707830',
+                first_name: 'امیرمحمد',
+                last_name: 'یوسفی',
+                is_admin: true,
+                created_at: new Date().toISOString()
+            };
+            
+            // در این مرحله کاربر را برنگردون
+            // بگذار 2FA اول انجام بشه
+            console.log('👑 Admin detected, waiting for 2FA verification');
+            
+            return {
+                success: false,
+                code: 'NEED_2FA',
+                message: 'نیاز به تأیید دو مرحله‌ای'
+            };
+        }
+        
+        // ========== کاربران عادی ==========
+        
         // اگر رمز نداده، بذار خالی باشه
         const actualPassword = password || '';
         
@@ -222,7 +249,6 @@ async function loginUser(phone, password = '') {
         };
     }
 }
-
 // 3. تابع ثبت‌نام کامل
 async function registerUser(phone, firstName, lastName, password) {
     try {
