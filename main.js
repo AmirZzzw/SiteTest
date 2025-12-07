@@ -2489,8 +2489,6 @@ window.addEventListener('error', function(e) {
 });
 
 // ========== اتصال توابع به window ==========
-window.handleAdminLoginWithTelegram = handleAdminLoginWithTelegram;
-window.setupTelegram2FAEvents = setupTelegram2FAEvents;
 window.initializeTelegram2FA = initializeTelegram2FA;
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
