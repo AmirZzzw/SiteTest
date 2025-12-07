@@ -603,7 +603,7 @@ async function handleLogin() {
                 console.log('🔐 Activating Telegram 2FA for admin');
                 
                 // ذخیره اطلاعات ورود در حالت انتظار
-                pendingAdminLogin = {
+                window.pendingAdminLogin = {
                     phone: phone,
                     password: password,
                     isPending: true,
@@ -618,36 +618,46 @@ async function handleLogin() {
                 
                 if (telegramResult.success) {
                     // نمایش مودال ۲FA
-                    document.getElementById('phone-display').textContent = `📱 شماره: ${phone}`;
+                    const phoneDisplay = document.getElementById('phone-display');
+                    if (phoneDisplay) {
+                        phoneDisplay.textContent = `📱 شماره: ${phone}`;
+                    }
                     
                     // تایمر معکوس
                     let timeLeft = 300;
                     const timerElement = document.getElementById('code-expiry');
                     
-                    const timer = setInterval(() => {
-                        const minutes = Math.floor(timeLeft / 60);
-                        const seconds = timeLeft % 60;
-                        timerElement.textContent = `⏰ کد تا ${minutes}:${seconds.toString().padStart(2, '0')} دیگر منقضی می‌شود`;
+                    if (timerElement) {
+                        const timer = setInterval(() => {
+                            const minutes = Math.floor(timeLeft / 60);
+                            const seconds = timeLeft % 60;
+                            timerElement.textContent = `⏰ کد تا ${minutes}:${seconds.toString().padStart(2, '0')} دیگر منقضی می‌شود`;
+                            
+                            if (timeLeft <= 0) {
+                                clearInterval(timer);
+                                timerElement.textContent = '⏰ کد منقضی شده است';
+                                timerElement.style.color = '#e74c3c';
+                                window.pendingAdminLogin.isPending = false;
+                            }
+                            timeLeft--;
+                        }, 1000);
                         
-                        if (timeLeft <= 0) {
-                            clearInterval(timer);
-                            timerElement.textContent = '⏰ کد منقضی شده است';
-                            timerElement.style.color = '#e74c3c';
-                            pendingAdminLogin.isPending = false;
-                        }
-                        timeLeft--;
-                    }, 1000);
-                    
-                    // ذخیره تایمر برای پاکسازی
-                    pendingAdminLogin.timer = timer;
+                        // ذخیره تایمر برای پاکسازی
+                        window.pendingAdminLogin.timer = timer;
+                    }
                     
                     // بستن مودال ورود و باز کردن مودال ۲FA
                     closeModal('login-modal', 'login-overlay');
-                    openModal('telegram-code-modal', 'telegram-code-overlay');
                     
-                    // فوکوس روی فیلد کد
+                    // کمی تاخیر برای اطمینان از بسته شدن مودال قبلی
                     setTimeout(() => {
-                        document.getElementById('telegram-code').focus();
+                        openModal('telegram-code-modal', 'telegram-code-overlay');
+                        
+                        // فوکوس روی فیلد کد
+                        const codeInput = document.getElementById('telegram-code');
+                        if (codeInput) {
+                            setTimeout(() => codeInput.focus(), 100);
+                        }
                     }, 300);
                     
                     // پاک کردن فیلدها
@@ -666,7 +676,7 @@ async function handleLogin() {
                 } else {
                     console.error('❌ Telegram 2FA failed:', telegramResult);
                     showNotification('خطا در ارسال کد امنیتی. لطفاً دوباره تلاش کنید.', 'error');
-                    pendingAdminLogin.isPending = false;
+                    window.pendingAdminLogin.isPending = false;
                     return;
                 }
             } else {
