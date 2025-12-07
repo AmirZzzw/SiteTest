@@ -2244,7 +2244,261 @@ function setupTelegram2FAEvents() {
     }
 }
 
+// ========== توابع تلگرام 2FA ==========
+
+// تابع جدید برای ورود ادمین با تلگرام
+async function handleAdminLoginWithTelegram(phone, password) {
+    if (!window.telegram2FA) {
+        showNotification('سیستم تأیید دو مرحله‌ای فعال نیست', 'error');
+        return false;
+    }
+    
+    pendingAdminLogin = {
+        phone: phone,
+        password: password,
+        isPending: true
+    };
+    
+    showNotification('در حال ارسال کد به تلگرام...', 'info');
+    
+    const result = await window.telegram2FA.sendCodeToTelegram(phone);
+    
+    if (result.success) {
+        document.getElementById('phone-display').textContent = `شماره: ${phone}`;
+        
+        let timeLeft = 300;
+        const timerElement = document.getElementById('code-expiry');
+        
+        const timer = setInterval(() => {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `⏰ کد تا ${minutes}:${seconds.toString().padStart(2, '0')} دیگر منقضی می‌شود`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                timerElement.textContent = '⏰ کد منقضی شده است';
+                timerElement.style.color = '#e74c3c';
+            }
+            timeLeft--;
+        }, 1000);
+        
+        const clearTimer = () => clearInterval(timer);
+        
+        document.getElementById('close-telegram-code').addEventListener('click', clearTimer, { once: true });
+        document.getElementById('cancel-verification-btn').addEventListener('click', clearTimer, { once: true });
+        
+        openModal('telegram-code-modal', 'telegram-code-overlay');
+        document.getElementById('telegram-code').focus();
+        
+        return true;
+    } else {
+        showNotification('خطا در ارسال کد به تلگرام', 'error');
+        pendingAdminLogin.isPending = false;
+        return false;
+    }
+}
+
+// ========== تنظیمات 2FA ==========
+function setupTelegram2FAEvents() {
+    console.log('🔧 Setting up Telegram 2FA events...');
+    
+    // دکمه تأیید کد
+    const verifyBtn = document.getElementById('verify-code-btn');
+    if (verifyBtn) {
+        verifyBtn.addEventListener('click', async function() {
+            const codeInput = document.getElementById('telegram-code');
+            const code = codeInput.value.trim();
+            
+            if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+                showNotification('کد ۶ رقمی معتبر وارد کنید', 'warning');
+                return;
+            }
+            
+            showNotification('در حال بررسی کد...', 'info');
+            
+            if (!pendingAdminLogin.isPending) {
+                showNotification('درخواست ورود فعالی وجود ندارد', 'error');
+                return;
+            }
+            
+            const result = window.telegram2FA.verifyCode(code, pendingAdminLogin.phone);
+            
+            if (result.success) {
+                showNotification('✅ کد تأیید شد', 'success');
+                
+                // ورود به عنوان ادمین
+                const loginResult = await window.supabaseFunctions.loginUser(
+                    pendingAdminLogin.phone,
+                    pendingAdminLogin.password
+                );
+                
+                if (loginResult.success) {
+                    userState.isLoggedIn = true;
+                    userState.currentUser = loginResult.user;
+                    
+                    sessionManager.saveSession(loginResult.user);
+                    updateUserUI();
+                    showNotification('✅ ورود ادمین موفقیت‌آمیز بود!', 'success');
+                    
+                    document.getElementById('admin-nav-item').style.display = 'block';
+                    closeModal('telegram-code-modal', 'telegram-code-overlay');
+                    
+                    // ارسال نوتیفیکیشن به تلگرام
+                    if (window.telegram2FA.sendNotification) {
+                        window.telegram2FA.sendNotification(
+                            `🔓 ادمین وارد شد\n📱 شماره: ${pendingAdminLogin.phone}\n🕒 ${new Date().toLocaleString('fa-IR')}`
+                        );
+                    }
+                    
+                    pendingAdminLogin.isPending = false;
+                    codeInput.value = '';
+                    
+                } else {
+                    showNotification('خطا در ورود ادمین', 'error');
+                }
+                
+            } else {
+                showNotification(result.error, 'error');
+                codeInput.value = '';
+                codeInput.focus();
+            }
+        });
+    }
+    
+    // دکمه ارسال مجدد کد
+    const resendBtn = document.getElementById('resend-code-btn');
+    if (resendBtn) {
+        resendBtn.addEventListener('click', async function() {
+            if (!pendingAdminLogin.isPending) {
+                showNotification('درخواست ورود فعالی وجود ندارد', 'warning');
+                return;
+            }
+            
+            showNotification('در حال ارسال کد جدید...', 'info');
+            const result = await window.telegram2FA.sendCodeToTelegram(pendingAdminLogin.phone);
+            
+            if (result.success) {
+                showNotification('✅ کد جدید ارسال شد', 'success');
+                document.getElementById('telegram-code').value = '';
+                document.getElementById('telegram-code').focus();
+            } else {
+                showNotification('خطا در ارسال کد جدید', 'error');
+            }
+        });
+    }
+    
+    // دکمه انصراف
+    const cancelBtn = document.getElementById('cancel-verification-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            pendingAdminLogin.isPending = false;
+            closeModal('telegram-code-modal', 'telegram-code-overlay');
+            showNotification('فرآیند ورود لغو شد', 'warning');
+        });
+    }
+    
+    // بستن مودال
+    const closeBtn = document.getElementById('close-telegram-code');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeModal('telegram-code-modal', 'telegram-code-overlay');
+            pendingAdminLogin.isPending = false;
+        });
+    }
+    
+    // کلیک روی overlay
+    const overlay = document.getElementById('telegram-code-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            closeModal('telegram-code-modal', 'telegram-code-overlay');
+            pendingAdminLogin.isPending = false;
+        });
+    }
+    
+    // فشردن Enter در فیلد کد
+    const codeInput = document.getElementById('telegram-code');
+    if (codeInput) {
+        codeInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                document.getElementById('verify-code-btn').click();
+            }
+        });
+    }
+    
+    console.log('✅ Telegram 2FA events setup completed');
+}
+
+// تابع فعال‌سازی 2FA
+function initializeTelegram2FA() {
+    try {
+        if (window.telegram2FA) {
+            console.log('✅ Telegram 2FA is available');
+            
+            // تنظیم رویدادها
+            setupTelegram2FAEvents();
+            
+            // تست اتصال
+            window.telegram2FA.initialize().then(success => {
+                if (success) {
+                    console.log('✅ Telegram Bot connected');
+                } else {
+                    console.warn('⚠️ Could not connect to Telegram Bot');
+                }
+            });
+            
+            return true;
+        } else {
+            console.warn('⚠️ Telegram 2FA is NOT available');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error initializing Telegram 2FA:', error);
+        return false;
+    }
+}
+
+// خط آخر main.js اضافه کن:
+window.addEventListener('error', function(e) {
+    console.error('🚨 خطای جزئیات:', {
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error
+    });
+    
+    // نمایش خطا به کاربر
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'notification notification-error';
+    errorDiv.style.position = 'fixed';
+    errorDiv.style.top = '50%';
+    errorDiv.style.left = '50%';
+    errorDiv.style.transform = 'translate(-50%, -50%)';
+    errorDiv.style.zIndex = '99999';
+    errorDiv.innerHTML = `
+        <div style="padding: 20px; background: #e74c3c; color: white; border-radius: 10px;">
+            <h3>خطا در برنامه</h3>
+            <p>${e.message}</p>
+            <p>خط: ${e.lineno}</p>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: white;
+                color: #e74c3c;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                margin-top: 10px;
+                cursor: pointer;
+            ">بستن</button>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
+});
+
 // ========== اتصال توابع به window ==========
+window.handleAdminLoginWithTelegram = handleAdminLoginWithTelegram;
+window.setupTelegram2FAEvents = setupTelegram2FAEvents;
+window.initializeTelegram2FA = initializeTelegram2FA;
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
 window.updateCartQuantity = updateCartQuantity;
