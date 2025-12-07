@@ -2177,99 +2177,6 @@ function createTelegramModal() {
     console.log('✅ Telegram modal created');
 }
 
-// ========== تابع اصلی راه‌اندازی ==========
-window.initializeApp = function() {
-    console.log('🚀 Starting SidkaShop application...');
-    
-    try {
-        // حذف صفحه لودینگ
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-            loadingScreen.style.opacity = '0';
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-            }, 500);
-        }
-        
-        // بارگذاری سشن
-        const savedUser = sessionManager.loadSession();
-        if (savedUser) {
-            userState.isLoggedIn = true;
-            userState.currentUser = savedUser;
-            
-            if (savedUser.phone === '09021707830' || savedUser.is_admin) {
-                const adminNav = document.getElementById('admin-nav-item');
-                if (adminNav) {
-                    adminNav.style.display = 'block';
-                }
-            }
-        }
-        
-        // بارگذاری اولیه
-        loadCart();
-        updateCartUI();
-        
-        // صبر کن تا DOM کاملاً بارگذاری شود
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initAfterDOM);
-        } else {
-            setTimeout(initAfterDOM, 100);
-        }
-        
-        function initAfterDOM() {
-            // الان DOM آماده است
-            updateUserUI();
-            renderCartItems();
-            loadProducts();
-            setupEventListeners();
-
-            initializeTelegram2FA(); // راه‌اندازی تلگرام 2FA
-            
-            // تنظیم شماره کارت
-            const cardNumberEls = document.querySelectorAll('#card-number-text, .card-number-large span');
-            cardNumberEls.forEach(el => {
-                if (el) el.textContent = adminInfo.formattedCard;
-            });
-            
-            console.log('✅ Application initialized successfully');
-            showNotification('فروشگاه آماده است!', 'success');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error initializing app:', error);
-        // حداقل صفحه لودینگ رو پاک کن
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-            loadingScreen.style.display = 'none';
-        }
-    }
-};
-
-async function loadUserData(userPhone) {
-    try {
-        console.log('📊 Loading user data for:', userPhone);
-        
-        // بارگذاری سفارشات
-        if (window.supabaseFunctions && window.supabaseFunctions.getUserOrders) {
-            const ordersResult = await window.supabaseFunctions.getUserOrders(userPhone);
-            if (ordersResult.success && ordersResult.orders.length > 0) {
-                console.log('✅ Loaded', ordersResult.orders.length, 'orders');
-            }
-        }
-        
-        // بارگذاری تیکت‌ها
-        if (window.supabaseFunctions && window.supabaseFunctions.getUserTickets) {
-            const ticketsResult = await window.supabaseFunctions.getUserTickets(userPhone);
-            if (ticketsResult.success && ticketsResult.tickets.length > 0) {
-                console.log('✅ Loaded', ticketsResult.tickets.length, 'tickets');
-            }
-        }
-        
-    } catch (error) {
-        console.warn('⚠️ Error loading user data:', error);
-    }
-}
-
 // ========== توابع تلگرام 2FA ==========
 
 function setupTelegramModalEvents() {
@@ -2451,6 +2358,238 @@ function initializeTelegram2FA() {
     }
 }
 
+// ========== توابع کمکی تلگرام ==========
+
+// تابع تایمر معکوس برای کد تلگرام
+function startCodeTimer(phone = null) {
+    console.log('⏰ Starting code timer...');
+    
+    const timerElement = document.getElementById('code-expiry');
+    if (!timerElement) {
+        console.warn('⚠️ Timer element not found');
+        return;
+    }
+    
+    let timeLeft = 300; // 5 دقیقه
+    
+    // پاک کردن تایمر قبلی
+    if (window.codeTimer) {
+        clearInterval(window.codeTimer);
+    }
+    
+    window.codeTimer = setInterval(() => {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        
+        timerElement.textContent = `⏰ کد تا ${minutes}:${seconds.toString().padStart(2, '0')} دیگر معتبر است`;
+        timerElement.style.color = timeLeft < 60 ? '#e74c3c' : '#f39c12';
+        
+        if (timeLeft <= 0) {
+            clearInterval(window.codeTimer);
+            timerElement.textContent = '⏰ کد منقضی شده است';
+            timerElement.style.color = '#e74c3c';
+            
+            // غیرفعال کردن حالت انتظار
+            if (window.pendingAdminLogin) {
+                window.pendingAdminLogin.isPending = false;
+            }
+        }
+        
+        timeLeft--;
+    }, 1000);
+    
+    console.log('✅ Code timer started');
+}
+
+// تابع نمایش مودال تلگرام
+function showTelegramModal(phone, code = '') {
+    console.log('📱 Showing Telegram modal for:', phone);
+    
+    // مطمئن شو مودال وجود داره
+    let modal = document.getElementById('telegram-code-modal');
+    let overlay = document.getElementById('telegram-code-overlay');
+    
+    if (!modal) {
+        console.error('❌ Telegram modal not found!');
+        createEmergencyTelegramModal();
+        modal = document.getElementById('telegram-code-modal');
+        overlay = document.getElementById('telegram-code-overlay');
+    }
+    
+    // نمایش مودال
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // تنظیم اطلاعات
+    const phoneDisplay = document.getElementById('phone-display');
+    if (phoneDisplay) {
+        phoneDisplay.textContent = `📱 شماره: ${phone}`;
+    }
+    
+    // تایمر معکوس
+    startCodeTimer(phone);
+    
+    // فوکوس روی فیلد کد
+    setTimeout(() => {
+        const codeInput = document.getElementById('telegram-code');
+        if (codeInput) {
+            codeInput.focus();
+            codeInput.value = '';
+        }
+    }, 300);
+    
+    console.log('✅ Telegram modal shown');
+}
+
+// تابع ایجاد مودال اضطراری
+function createEmergencyTelegramModal() {
+    console.log('🚨 Creating emergency Telegram modal...');
+    
+    const modalHtml = `
+        <div class="modal-overlay" id="telegram-code-overlay"></div>
+        <div class="modal" id="telegram-code-modal">
+            <div class="modal-header">
+                <h3><i class="fab fa-telegram"></i> تأیید دو مرحله‌ای</h3>
+                <button class="close-modal" id="close-telegram-code">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="telegram-verification">
+                    <div class="verification-info">
+                        <i class="fab fa-telegram fa-3x" style="color: #0088cc;"></i>
+                        <h4>تأیید ادمین</h4>
+                        <p>لطفاً کد امنیتی را وارد کنید</p>
+                        <p id="phone-display" style="margin: 10px 0; font-weight: bold;"></p>
+                        <p id="code-expiry" style="color: #f39c12; font-size: 0.9rem;"></p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="telegram-code">کد ۶ رقمی</label>
+                        <input type="text" id="telegram-code" 
+                               maxlength="6" 
+                               pattern="[0-9]{6}"
+                               placeholder="123456"
+                               inputmode="numeric"
+                               style="text-align: center; font-size: 1.5rem; letter-spacing: 10px;">
+                    </div>
+                    
+                    <div class="verification-actions">
+                        <button class="btn btn-telegram" id="verify-code-btn">
+                            <i class="fas fa-check-circle"></i> تأیید
+                        </button>
+                        <button class="btn btn-secondary" id="resend-code-btn">
+                            <i class="fas fa-redo"></i> ارسال مجدد
+                        </button>
+                        <button class="btn btn-danger" id="cancel-verification-btn">
+                            <i class="fas fa-times"></i> انصراف
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // رویدادها رو دوباره تنظیم کن
+    setTimeout(setupTelegramModalEvents, 100);
+    
+    console.log('✅ Emergency Telegram modal created');
+}
+
+// ========== تابع اصلی راه‌اندازی ==========
+window.initializeApp = function() {
+    console.log('🚀 Starting SidkaShop application...');
+    
+    try {
+        // حذف صفحه لودینگ
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }
+        
+        // بارگذاری سشن
+        const savedUser = sessionManager.loadSession();
+        if (savedUser) {
+            userState.isLoggedIn = true;
+            userState.currentUser = savedUser;
+            
+            if (savedUser.phone === '09021707830' || savedUser.is_admin) {
+                const adminNav = document.getElementById('admin-nav-item');
+                if (adminNav) {
+                    adminNav.style.display = 'block';
+                }
+            }
+        }
+        
+        // بارگذاری اولیه
+        loadCart();
+        updateCartUI();
+        
+        // صبر کن تا DOM کاملاً بارگذاری شود
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAfterDOM);
+        } else {
+            setTimeout(initAfterDOM, 100);
+        }
+        
+        function initAfterDOM() {
+            // الان DOM آماده است
+            updateUserUI();
+            renderCartItems();
+            loadProducts();
+            setupEventListeners();
+
+            initializeTelegram2FA(); // راه‌اندازی تلگرام 2FA
+            
+            // تنظیم شماره کارت
+            const cardNumberEls = document.querySelectorAll('#card-number-text, .card-number-large span');
+            cardNumberEls.forEach(el => {
+                if (el) el.textContent = adminInfo.formattedCard;
+            });
+            
+            console.log('✅ Application initialized successfully');
+            showNotification('فروشگاه آماده است!', 'success');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        // حداقل صفحه لودینگ رو پاک کن
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
+    }
+};
+
+async function loadUserData(userPhone) {
+    try {
+        console.log('📊 Loading user data for:', userPhone);
+        
+        // بارگذاری سفارشات
+        if (window.supabaseFunctions && window.supabaseFunctions.getUserOrders) {
+            const ordersResult = await window.supabaseFunctions.getUserOrders(userPhone);
+            if (ordersResult.success && ordersResult.orders.length > 0) {
+                console.log('✅ Loaded', ordersResult.orders.length, 'orders');
+            }
+        }
+        
+        // بارگذاری تیکت‌ها
+        if (window.supabaseFunctions && window.supabaseFunctions.getUserTickets) {
+            const ticketsResult = await window.supabaseFunctions.getUserTickets(userPhone);
+            if (ticketsResult.success && ticketsResult.tickets.length > 0) {
+                console.log('✅ Loaded', ticketsResult.tickets.length, 'tickets');
+            }
+        }
+        
+    } catch (error) {
+        console.warn('⚠️ Error loading user data:', error);
+    }
+}
+
 // خط آخر main.js اضافه کن:
 window.addEventListener('error', function(e) {
     console.error('🚨 خطای جزئیات:', {
@@ -2489,6 +2628,9 @@ window.addEventListener('error', function(e) {
 });
 
 // ========== اتصال توابع به window ==========
+window.startCodeTimer = startCodeTimer;
+window.showTelegramModal = showTelegramModal;
+window.createEmergencyTelegramModal = createEmergencyTelegramModal;
 window.initializeTelegram2FA = initializeTelegram2FA;
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
