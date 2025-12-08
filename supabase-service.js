@@ -832,100 +832,58 @@ async function getAllOrders() {
     try {
         console.log('📋 Getting all orders for admin...');
         
-        if (!supabase) {
-            console.warn('⚠️ Supabase not available');
-            const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-            return { success: true, orders: localOrders };
-        }
-        
-        // این کوئری الان باید همه سفارشات رو برگردونه برای ادمین
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                users!inner (
-                    id,
-                    phone,
-                    first_name,
-                    last_name,
-                    is_admin
-                )
-            `)
-            .order('created_at', { ascending: false });
-        
-        if (error) {
-            console.error('❌ Error getting all orders:', error);
-            
-            // اگر خطای دسترسی بود (کاربر ادمین نیست)
-            if (error.message.includes('permission denied') || error.code === '42501') {
-                console.error('🚨 کاربر دسترسی ادمین ندارد!');
-                
-                // از localStorage بگیر
-                const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-                return { 
-                    success: true, 
-                    orders: localOrders,
-                    warning: 'فقط سفارشات ذخیره شده محلی نمایش داده می‌شوند' 
-                };
-            }
-            
-            throw error;
-        }
-        
-        console.log(`✅ Retrieved ${data?.length || 0} orders from Supabase`);
-        
-        // پردازش داده‌ها
-        const processedOrders = data?.map(order => {
-            return {
-                ...order,
-                customer_info: order.customer_info || {},
-                user: order.users || {},
-                userName: order.users?.first_name ? 
-                    `${order.users.first_name} ${order.users.last_name || ''}`.trim() : 
-                    'کاربر',
-                userPhone: order.users?.phone || '---'
-            };
-        }) || [];
-        
-        // ترکیب با localStorage
         const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        const allOrders = [...processedOrders, ...localOrders];
+        console.log('Found in localStorage:', localOrders.length, 'orders');
         
-        // حذف duplicate
+        let supabaseOrders = [];
+        if (supabase) {
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('*, users(phone, first_name, last_name)')
+                    .order('created_at', { ascending: false });
+                
+                if (!error && data) {
+                    supabaseOrders = data;
+                    console.log('Found in Supabase:', supabaseOrders.length, 'orders');
+                }
+            } catch (supabaseError) {
+                console.warn('⚠️ Supabase error:', supabaseError);
+            }
+        }
+        
+        const allOrders = [...supabaseOrders, ...localOrders];
         const uniqueOrders = [];
         const seenIds = new Set();
         
         allOrders.forEach(order => {
-            const orderId = order.id || order.supabase_id;
-            if (orderId && !seenIds.has(orderId)) {
+            const orderId = order.id;
+            if (!seenIds.has(orderId)) {
                 seenIds.add(orderId);
                 uniqueOrders.push(order);
             }
         });
         
-        // مرتب کردن
+        console.log('Total unique orders:', uniqueOrders.length);
+        
         uniqueOrders.sort((a, b) => {
             const dateA = new Date(a.created_at || a.createdAt || 0);
             const dateB = new Date(b.created_at || b.createdAt || 0);
             return dateB - dateA;
         });
         
-        console.log(`📊 Total orders to display: ${uniqueOrders.length}`);
-        
         return {
             success: true,
-            orders: uniqueOrders,
-            source: 'combined'
+            orders: uniqueOrders
         };
         
     } catch (error) {
-        console.error('❌ Exception in getAllOrders:', error);
+        console.error('❌ Error getting all orders:', error);
         
         const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
         return {
             success: true,
-            orders: localOrders,
-            source: 'localStorage_fallback'
+            orders: localOrders
         };
     }
 }
