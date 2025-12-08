@@ -28,7 +28,7 @@ class CompleteTelegram2FA {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         
         // کد با فرمت قابل خواندن: XXX-XXX
-        const formattedCode = code.substring(0, 3) + '-' + code.substring(3);
+        const formattedCode = code.substring(0, 3) + code.substring(3);
         
         return {
             raw: code,
