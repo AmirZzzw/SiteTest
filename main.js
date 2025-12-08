@@ -2182,32 +2182,21 @@ function setupTelegramModalEvents() {
             
             showNotification('در حال بررسی کد...', 'info');
             
-            // ========== اصلاح این بخش ==========
             const phone = window.pendingAdminLogin.phone;
             const verificationResult = window.telegram2FA.verifyCode(code, phone);
             
-            console.log('Verification result:', {
-                success: verificationResult.success,
-                message: verificationResult.message
-            });
+            console.log('Verification result:', verificationResult);
             
             if (verificationResult.success) {
                 showNotification('✅ کد تأیید شد! در حال ورود...', 'success');
                 
-                // ========== اینجا مشکل اصلیه ==========
-                // باید از تابع loginOrRegisterUser استفاده کنیم، نه loginUser
+                // ورود ادمین
                 const loginResult = await window.supabaseFunctions.loginOrRegisterUser(
                     phone,
                     'امیرمحمد',
                     'یوسفی',
                     window.pendingAdminLogin.password
                 );
-                
-                console.log('Admin login result:', {
-                    success: loginResult.success,
-                    error: loginResult.error,
-                    user: loginResult.user ? 'User exists' : 'No user'
-                });
                 
                 if (loginResult.success && loginResult.user) {
                     // به روزرسانی وضعیت کاربر
@@ -2233,22 +2222,14 @@ function setupTelegramModalEvents() {
                     window.pendingAdminLogin.isPending = false;
                     window.pendingAdminLogin.isVerified = true;
                     
-                    // تایمر رو پاک کن
-                    if (window.codeTimer) {
-                        clearInterval(window.codeTimer);
-                    }
-                    
                     showNotification('✅ ورود ادمین موفقیت‌آمیز بود!', 'success');
                     
                     // ریست کردن فیلد کد
                     codeInput.value = '';
                     
                 } else {
-                    // اگر خطا در ورود بود
                     console.error('Login failed:', loginResult.error);
-                    showNotification('❌ خطا در ورود ادمین: ' + (loginResult.error || 'خطای ناشناخته'), 'error');
-                    
-                    // اجازه بده دوباره تلاش کنه
+                    showNotification('❌ خطا در ورود ادمین', 'error');
                     codeInput.value = '';
                     codeInput.focus();
                 }
