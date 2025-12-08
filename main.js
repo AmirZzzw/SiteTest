@@ -614,8 +614,6 @@ async function handleLogin() {
     
     const telegramResult = await window.telegram2FA.sendCodeToTelegram(phone);
     
-    console.log('Telegram 2FA result:', telegramResult);
-    
     if (telegramResult.success) {
         // بستن مودال ورود
         closeModal('login-modal', 'login-overlay');
