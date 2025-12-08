@@ -1285,17 +1285,33 @@ async function renderAdminTickets() {
     if (!container) return;
     
     try {
+        console.log('🔄 در حال دریافت تیکت‌ها...');
+        
+        // چک دسترسی ادمین
+        const adminCheck = await checkAdminAccess();
+        if (!adminCheck.isAdmin) {
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-shield-alt" style="color: #e74c3c;"></i>
+                    <p>دسترسی ادمین لازم است</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // دریافت تیکت‌ها
         const result = await window.supabaseFunctions.getAllTickets();
+        console.log('📊 نتیجه دریافت تیکت‌ها:', result);
         
         if (result.success && result.tickets && result.tickets.length > 0) {
             let html = '';
             
             result.tickets.forEach(ticket => {
-                const user = ticket.users || {};
-                const userName = user.first_name ? 
-                    `${user.first_name} ${user.last_name || ''}`.trim() : 
-                    'کاربر';
-                const userPhone = user.phone || ticket.user_phone || '---';
+                // اطلاعات کاربر از فیلد user_phone یا از users object
+                const userPhone = ticket.user_phone || ticket.users?.phone || '---';
+                const userName = ticket.users?.first_name ? 
+                    `${ticket.users.first_name} ${ticket.users.last_name || ''}`.trim() : 
+                    userPhone;
                 
                 const status = ticket.status || 'جدید';
                 const statusClass = status === 'جدید' ? 'status-new' : 
@@ -1311,20 +1327,17 @@ async function renderAdminTickets() {
                         <div style="flex: 1;">
                             <div class="ticket-header">
                                 <h4>${ticket.subject || 'بدون موضوع'}</h4>
-                                <span class="ticket-id">#${ticket.id || '---'}</span>
+                                <span class="ticket-id">#${ticket.id || 'LOCAL'}</span>
                             </div>
                             <div class="ticket-info">
-                                <p><strong>ارسال کننده:</strong> ${userName} (${userPhone})</p>
-                                <p><strong>پیام:</strong> ${(ticket.message || '').substring(0, 200)}${(ticket.message || '').length > 200 ? '...' : ''}</p>
-                                <p><strong>تاریخ ارسال:</strong> ${ticketDate}</p>
+                                <p><strong>👤 ارسال کننده:</strong> ${userName} (${userPhone})</p>
+                                <p><strong>💬 پیام:</strong> ${(ticket.message || '').substring(0, 150)}${(ticket.message || '').length > 150 ? '...' : ''}</p>
+                                <p><strong>📅 تاریخ:</strong> ${ticketDate}</p>
                             </div>
                             <div class="ticket-meta">
                                 <span class="${statusClass}">${status}</span>
                                 <button class="btn btn-sm btn-info" onclick="openTicketDetails(${ticket.id})">
-                                    <i class="fas fa-eye"></i> مشاهده و پاسخ
-                                </button>
-                                <button class="btn btn-sm btn-warning" onclick="changeTicketStatus(${ticket.id})">
-                                    <i class="fas fa-edit"></i> تغییر وضعیت
+                                    <i class="fas fa-eye"></i> مشاهده
                                 </button>
                             </div>
                         </div>
@@ -1338,15 +1351,17 @@ async function renderAdminTickets() {
                 <div class="empty-message">
                     <i class="fas fa-comments"></i>
                     <p>هیچ تیکتی ارسال نشده است</p>
+                    ${result.warning ? `<p style="color: #f39c12;">${result.warning}</p>` : ''}
                 </div>
             `;
         }
     } catch (error) {
-        console.error('Error rendering admin tickets:', error);
+        console.error('❌ خطا در بارگذاری تیکت‌ها:', error);
         container.innerHTML = `
             <div class="empty-message">
                 <i class="fas fa-exclamation-circle"></i>
                 <p>خطا در بارگذاری تیکت‌ها</p>
+                <p style="font-size: 0.9rem; color: #aaa;">${error.message}</p>
             </div>
         `;
     }
