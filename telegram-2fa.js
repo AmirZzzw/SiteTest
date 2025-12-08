@@ -1,5 +1,5 @@
 // telegram-2fa-complete.js - سیستم کامل تلگرام ۲FA
-console.log('🔐 Loading Complete Telegram 2FA System...');
+// console.log('🔐 Loading Complete Telegram 2FA System...');
 
 class CompleteTelegram2FA {
     constructor() {
@@ -19,7 +19,7 @@ class CompleteTelegram2FA {
         this.MAX_ATTEMPTS = 5;
         this.attemptsCounter = new Map();
         
-        console.log('🤖 Complete Telegram 2FA initialized');
+        // console.log('🤖 Complete Telegram 2FA initialized');
     }
 
     // تولید کد ۶ رقمی امن
@@ -42,7 +42,7 @@ class CompleteTelegram2FA {
     // ارسال کد به تلگرام ادمین
     async sendCodeToTelegram(phoneNumber) {
         try {
-            console.log(`📤 Sending code to Telegram for: ${phoneNumber}`);
+            // console.log(`📤 Sending code to Telegram for: ${phoneNumber}`);
             
             // بررسی محدودیت تلاش
             const userAttempts = this.attemptsCounter.get(phoneNumber) || 0;
@@ -62,7 +62,7 @@ class CompleteTelegram2FA {
                 verified: false
             });
             
-            console.log(`✅ Generated code: ${codeData.formatted}`);
+            // console.log(`✅ Generated code: ${codeData.formatted}`);
             
             // پیام برای ارسال به تلگرام
             const message = `
@@ -80,7 +80,7 @@ class CompleteTelegram2FA {
             // URL تلگرام API
             const telegramUrl = `https://api.telegram.org/bot${this.BOT_TOKEN}/sendMessage`;
             
-            console.log('📡 Sending to Telegram...');
+            // console.log('📡 Sending to Telegram...');
             
             // ارسال به تلگرام با timeout
             const controller = new AbortController();
@@ -111,7 +111,7 @@ class CompleteTelegram2FA {
                 const result = await response.json();
                 
                 if (result.ok) {
-                    console.log('✅ Telegram API success:', result.result.message_id);
+                    // console.log('✅ Telegram API success:', result.result.message_id);
                     
                     // افزایش شمارش تلاش
                     this.attemptsCounter.set(phoneNumber, userAttempts + 1);
@@ -120,7 +120,7 @@ class CompleteTelegram2FA {
                     setTimeout(() => {
                         if (this.verificationCodes.has(codeData.raw)) {
                             this.verificationCodes.delete(codeData.raw);
-                            console.log(`🕒 Code ${codeData.formatted} expired`);
+                            // console.log(`🕒 Code ${codeData.formatted} expired`);
                         }
                     }, this.CODE_EXPIRY_MS);
                     
@@ -145,7 +145,7 @@ class CompleteTelegram2FA {
                 console.error('❌ Fetch error:', fetchError.message);
                 
                 // حالت fallback: نمایش کد به کاربر
-                console.log('🔄 Switching to fallback mode...');
+                // console.log('🔄 Switching to fallback mode...');
                 
                 // کد رو در localStorage ذخیره کن برای حالت fallback
                 localStorage.setItem('telegram_fallback_code', JSON.stringify({
@@ -199,7 +199,7 @@ class CompleteTelegram2FA {
     // تأیید کد وارد شده
     verifyCode(enteredCode, phoneNumber) {
         try {
-            console.log(`🔍 Verifying code for ${phoneNumber}`);
+            // console.log(`🔍 Verifying code for ${phoneNumber}`);
             
             // پاکسازی کدهای منقضی شده
             this.cleanupExpiredCodes();
@@ -239,7 +239,7 @@ class CompleteTelegram2FA {
                 }
                 
                 // همه چیز درست است
-                console.log('✅ Code verified successfully from memory');
+                // console.log('✅ Code verified successfully from memory');
                 
                 // حذف کد پس از استفاده موفق
                 this.verificationCodes.delete(code);
@@ -293,7 +293,7 @@ class CompleteTelegram2FA {
                     }
                     
                     // همه چیز درست است
-                    console.log('✅ Code verified successfully from fallback');
+                    // console.log('✅ Code verified successfully from fallback');
                     
                     // پاک کردن fallback
                     localStorage.removeItem('telegram_fallback_code');
@@ -340,7 +340,7 @@ class CompleteTelegram2FA {
         }
         
         if (removedCount > 0) {
-            console.log(`🗑️ Cleaned up ${removedCount} expired codes`);
+            // console.log(`🗑️ Cleaned up ${removedCount} expired codes`);
         }
         
         // پاکسازی localStorage قدیمی
@@ -350,7 +350,7 @@ class CompleteTelegram2FA {
                 const data = JSON.parse(fallbackData);
                 if (now > data.expiresAt) {
                     localStorage.removeItem('telegram_fallback_code');
-                    console.log('🗑️ Cleaned up expired fallback code');
+                    // console.log('🗑️ Cleaned up expired fallback code');
                 }
             }
         } catch (error) {
@@ -372,7 +372,7 @@ class CompleteTelegram2FA {
             const result = await response.json();
             
             if (result.ok) {
-                console.log('🤖 Bot connected:', result.result.first_name);
+                // console.log('🤖 Bot connected:', result.result.first_name);
                 return {
                     success: true,
                     bot: result.result,
@@ -395,7 +395,7 @@ class CompleteTelegram2FA {
     // تابع برای ارسال مجدد کد
     async resendCode(phoneNumber) {
         try {
-            console.log(`🔄 Resending code to ${phoneNumber}`);
+            // console.log(`🔄 Resending code to ${phoneNumber}`);
             
             // پاک کردن کدهای قبلی برای این شماره
             for (const [code, data] of this.verificationCodes.entries()) {
@@ -451,16 +451,16 @@ setTimeout(async () => {
     try {
         const connectionTest = await completeTelegram2FA.testConnection();
         if (connectionTest.success) {
-            console.log('✅ Telegram 2FA system ready');
+            // console.log('✅ Telegram 2FA system ready');
         } else {
-            console.log('⚠️ Telegram 2FA running in limited mode');
+            // console.log('⚠️ Telegram 2FA running in limited mode');
         }
     } catch (error) {
-        console.log('🛡️ Telegram 2FA initialized (connection test skipped)');
+        // console.log('🛡️ Telegram 2FA initialized (connection test skipped)');
     }
 }, 500);
 
-console.log('✅ Complete Telegram 2FA system loaded');
+// console.log('✅ Complete Telegram 2FA system loaded');
 
 // ========== اضافه کردن توابع کمکی به window ==========
 window.showFallbackCode = function(code, phone) {
