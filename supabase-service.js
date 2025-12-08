@@ -513,120 +513,188 @@ async function getAllProducts() {
 
 // ========== توابع سفارشات ==========
 
-async function createNewOrder(orderData) {
+// تابع همگام‌سازی سفارشات از localStorage به Supabase
+async function syncLocalOrdersToSupabase() {
     try {
-        console.log('🛒 Creating order...');
+        console.log('🔄 Starting order sync...');
         
-        // 1. ساختار داده برای Supabase
-        const orderToSave = {
-            user_phone: orderData.customerInfo?.phone || orderData.userId,
-            total: orderData.total || 0,
-            status: 'در انتظار تأیید',
-            customer_info: orderData.customerInfo || {},
-            receipt_info: {
-                fileName: orderData.receipt?.fileName,
-                fileSize: orderData.receipt?.fileSize,
-                fileType: orderData.receipt?.fileType,
-                note: orderData.receipt?.note,
-                image: orderData.receipt?.image, // تصویر رو هم ذخیره کن
-                status: 'در انتظار تأیید'
-            },
-            items: orderData.items || [],
-            created_at: new Date().toISOString()
-        };
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available for sync');
+            return { success: false, synced: 0 };
+        }
         
-        console.log('📤 Order data prepared:', orderToSave.user_phone);
+        const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const unsyncedOrders = localOrders.filter(order => !order.supabase_id);
         
-        let supabaseOrderId = null;
-        let supabaseSaved = false;
+        if (unsyncedOrders.length === 0) {
+            console.log('✅ All orders are already synced');
+            return { success: true, synced: 0 };
+        }
         
-        // 2. تلاش برای ذخیره در Supabase
-        if (supabase) {
+        console.log(`🔄 Found ${unsyncedOrders.length} unsynced orders`);
+        
+        let syncedCount = 0;
+        
+        for (const order of unsyncedOrders) {
             try {
-                console.log('🚀 Attempting to save to Supabase...');
+                // حذف فیلدهای اضافی
+                const orderToSync = {
+                    user_phone: order.user_phone,
+                    total: order.total,
+                    status: order.status,
+                    customer_info: order.customer_info,
+                    receipt_info: order.receipt_info,
+                    items: order.items,
+                    created_at: order.created_at
+                };
+                
                 const { data, error } = await supabase
                     .from('orders')
-                    .insert([orderToSave])
+                    .insert([orderToSync])
                     .select()
                     .single();
                 
                 if (error) {
-                    console.error('❌ Supabase insert error:', error);
+                    console.warn(`⚠️ Failed to sync order ${order.id}:`, error.message);
                 } else {
-                    supabaseOrderId = data.id;
-                    supabaseSaved = true;
-                    console.log('✅ Order saved to Supabase, ID:', data.id);
+                    console.log(`✅ Synced order ${order.id} to Supabase ID: ${data.id}`);
+                    
+                    // آپدیت localStorage
+                    const updatedOrders = localOrders.map(o => {
+                        if (o.id === order.id) {
+                            return { ...o, supabase_id: data.id };
+                        }
+                        return o;
+                    });
+                    
+                    localStorage.setItem('sidka_orders', JSON.stringify(updatedOrders));
+                    syncedCount++;
                 }
-            } catch (supabaseError) {
-                console.error('❌ Supabase exception:', supabaseError);
+                
+                // تأخیر بین syncها
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (orderError) {
+                console.warn(`⚠️ Error syncing order ${order.id}:`, orderError.message);
             }
-        } else {
-            console.warn('⚠️ Supabase not available');
         }
         
-        // 3. همیشه در localStorage ذخیره کن
-        const localOrder = {
-            id: Date.now(),
-            supabase_id: supabaseOrderId,
-            supabase_saved: supabaseSaved,
-            ...orderToSave
+        console.log(`🎉 Sync completed: ${syncedCount}/${unsyncedOrders.length} orders synced`);
+        return { success: true, synced: syncedCount };
+        
+    } catch (error) {
+        console.error('❌ Sync failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// اضافه کردن به window
+window.syncLocalOrdersToSupabase = syncLocalOrdersToSupabase;
+
+async function createNewOrder(orderData) {
+    try {
+        console.log('🛒 Creating order (lightweight)...');
+        
+        // کاهش حجم داده‌ها - حذف تصویر برای کاهش حجم
+        const lightOrderData = {
+            user_phone: orderData.customerInfo?.phone || orderData.userId,
+            total: orderData.total || 0,
+            status: 'در انتظار تأیید',
+            customer_info: {
+                firstName: orderData.customerInfo?.firstName || '',
+                lastName: orderData.customerInfo?.lastName || '',
+                phone: orderData.customerInfo?.phone || '',
+            },
+            receipt_info: {
+                fileName: orderData.receipt?.fileName || '',
+                note: orderData.receipt?.note || '',
+                status: 'در انتظار تأیید',
+                // تصویر رو حذف می‌کنیم تا حجم کم بشه
+            },
+            items: orderData.items.map(item => ({
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            })),
+            created_at: new Date().toISOString()
         };
         
+        console.log('📤 Order prepared for:', lightOrderData.user_phone);
+        
+        // 1. اول localStorage رو چک کن (سریع‌تر)
+        const localOrder = {
+            id: Date.now(),
+            ...lightOrderData,
+            local_created: true
+        };
+        
+        // اضافه کردن به localStorage
         const orders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        
+        // محدود کردن تعداد سفارشات در localStorage
+        if (orders.length >= 20) {
+            orders.shift(); // قدیمی‌ترین رو حذف کن
+        }
+        
         orders.push(localOrder);
         localStorage.setItem('sidka_orders', JSON.stringify(orders));
         
-        console.log('✅ Order saved to localStorage, ID:', localOrder.id);
+        console.log('✅ Order saved locally, ID:', localOrder.id);
         
-        // 4. همگام‌سازی با Supabase رو به پس‌زمینه بفرست
-        if (!supabaseSaved && supabase) {
-            setTimeout(async () => {
-                try {
-                    console.log('🔄 Attempting background sync...');
-                    const { data, error } = await supabase
-                        .from('orders')
-                        .insert([orderToSave])
-                        .select()
-                        .single();
+        // 2. تلاش برای ذخیره در Supabase (بدون عکس)
+        let supabaseResult = null;
+        if (supabase) {
+            try {
+                console.log('🚀 Trying Supabase (light)...');
+                
+                // تاخیر برای جلوگیری از ارسال همزمان
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const { data, error } = await supabase
+                    .from('orders')
+                    .insert([lightOrderData])
+                    .select()
+                    .single();
+                
+                if (error) {
+                    console.warn('⚠️ Supabase error (non-critical):', error.message);
+                } else {
+                    supabaseResult = data;
+                    console.log('✅ Supabase saved, ID:', data.id);
                     
-                    if (!error && data) {
-                        console.log('✅ Background sync successful, ID:', data.id);
-                        
-                        // آپدیت localStorage با ID جدید
-                        const updatedOrders = orders.map(order => {
-                            if (order.id === localOrder.id) {
-                                return { ...order, supabase_id: data.id, supabase_saved: true };
-                            }
-                            return order;
-                        });
-                        localStorage.setItem('sidka_orders', JSON.stringify(updatedOrders));
-                    }
-                } catch (syncError) {
-                    console.warn('⚠️ Background sync failed:', syncError);
+                    // آپدیت localStorage با ID Supabase
+                    const updatedOrders = orders.map(order => {
+                        if (order.id === localOrder.id) {
+                            return { ...order, supabase_id: data.id };
+                        }
+                        return order;
+                    });
+                    localStorage.setItem('sidka_orders', JSON.stringify(updatedOrders));
                 }
-            }, 2000);
+            } catch (supabaseError) {
+                console.warn('⚠️ Supabase exception:', supabaseError.message);
+            }
         }
         
-        // 5. خالی کردن سبد خرید
+        // 3. خالی کردن سبد خرید
         localStorage.removeItem('sidka_cart');
         
         return {
             success: true,
             order: localOrder,
-            supabaseSaved: supabaseSaved,
-            supabaseOrderId: supabaseOrderId,
-            message: 'سفارش با موفقیت ثبت شد'
+            supabaseSaved: !!supabaseResult,
+            supabaseId: supabaseResult?.id,
+            message: 'سفارش ثبت شد' + (supabaseResult ? ' و در سرور ذخیره شد' : ' (ذخیره محلی)')
         };
         
     } catch (error) {
-        console.error('❌ Error creating order:', error);
+        console.error('❌ Error in createNewOrder:', error);
         return {
             success: false,
-            error: 'خطا در ثبت سفارش'
+            error: 'خطا در ثبت سفارش: ' + error.message
         };
     }
 }
-
 // ====== تابع فشرده‌سازی برای localStorage ======
 function compressImageForLocalStorage(base64Image) {
     return new Promise((resolve) => {
