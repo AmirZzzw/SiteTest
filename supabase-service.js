@@ -832,58 +832,100 @@ async function getAllOrders() {
     try {
         console.log('📋 Getting all orders for admin...');
         
-        const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
-        console.log('Found in localStorage:', localOrders.length, 'orders');
-        
-        let supabaseOrders = [];
-        if (supabase) {
-            try {
-                const { data, error } = await supabase
-                    .from('orders')
-                    .select('*, users(phone, first_name, last_name)')
-                    .order('created_at', { ascending: false });
-                
-                if (!error && data) {
-                    supabaseOrders = data;
-                    console.log('Found in Supabase:', supabaseOrders.length, 'orders');
-                }
-            } catch (supabaseError) {
-                console.warn('⚠️ Supabase error:', supabaseError);
-            }
+        if (!supabase) {
+            console.warn('⚠️ Supabase not available');
+            const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+            return { success: true, orders: localOrders };
         }
         
-        const allOrders = [...supabaseOrders, ...localOrders];
+        // این کوئری الان باید همه سفارشات رو برگردونه برای ادمین
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                users!inner (
+                    id,
+                    phone,
+                    first_name,
+                    last_name,
+                    is_admin
+                )
+            `)
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('❌ Error getting all orders:', error);
+            
+            // اگر خطای دسترسی بود (کاربر ادمین نیست)
+            if (error.message.includes('permission denied') || error.code === '42501') {
+                console.error('🚨 کاربر دسترسی ادمین ندارد!');
+                
+                // از localStorage بگیر
+                const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+                return { 
+                    success: true, 
+                    orders: localOrders,
+                    warning: 'فقط سفارشات ذخیره شده محلی نمایش داده می‌شوند' 
+                };
+            }
+            
+            throw error;
+        }
+        
+        console.log(`✅ Retrieved ${data?.length || 0} orders from Supabase`);
+        
+        // پردازش داده‌ها
+        const processedOrders = data?.map(order => {
+            return {
+                ...order,
+                customer_info: order.customer_info || {},
+                user: order.users || {},
+                userName: order.users?.first_name ? 
+                    `${order.users.first_name} ${order.users.last_name || ''}`.trim() : 
+                    'کاربر',
+                userPhone: order.users?.phone || '---'
+            };
+        }) || [];
+        
+        // ترکیب با localStorage
+        const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
+        const allOrders = [...processedOrders, ...localOrders];
+        
+        // حذف duplicate
         const uniqueOrders = [];
         const seenIds = new Set();
         
         allOrders.forEach(order => {
-            const orderId = order.id;
-            if (!seenIds.has(orderId)) {
+            const orderId = order.id || order.supabase_id;
+            if (orderId && !seenIds.has(orderId)) {
                 seenIds.add(orderId);
                 uniqueOrders.push(order);
             }
         });
         
-        console.log('Total unique orders:', uniqueOrders.length);
-        
+        // مرتب کردن
         uniqueOrders.sort((a, b) => {
             const dateA = new Date(a.created_at || a.createdAt || 0);
             const dateB = new Date(b.created_at || b.createdAt || 0);
             return dateB - dateA;
         });
         
+        console.log(`📊 Total orders to display: ${uniqueOrders.length}`);
+        
         return {
             success: true,
-            orders: uniqueOrders
+            orders: uniqueOrders,
+            source: 'combined'
         };
         
     } catch (error) {
-        console.error('❌ Error getting all orders:', error);
+        console.error('❌ Exception in getAllOrders:', error);
         
         const localOrders = JSON.parse(localStorage.getItem('sidka_orders') || '[]');
         return {
             success: true,
-            orders: localOrders
+            orders: localOrders,
+            source: 'localStorage_fallback'
         };
     }
 }
@@ -1155,76 +1197,95 @@ async function getAllTickets() {
     try {
         console.log('📋 Getting all tickets for admin...');
         
-        // از localStorage بخون
-        const localTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
-        
-        // اگر Supabase وصل نیست
         if (!supabase) {
-            return {
-                success: true,
-                tickets: localTickets.sort((a, b) => 
-                    new Date(b.created_at) - new Date(a.created_at)
+            console.warn('⚠️ Supabase not available');
+            const localTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+            return { success: true, tickets: localTickets };
+        }
+        
+        // این کوئری باید همه تیکت‌ها رو برگردونه برای ادمین
+        const { data, error } = await supabase
+            .from('tickets')
+            .select(`
+                *,
+                users!inner (
+                    id,
+                    phone,
+                    first_name,
+                    last_name
                 )
-            };
-        }
+            `)
+            .order('created_at', { ascending: false });
         
-        // از Supabase بخون
-        try {
-            const { data, error } = await supabase
-                .from('tickets')
-                .select('*')
-                .order('created_at', { ascending: false });
+        if (error) {
+            console.error('❌ Error getting all tickets:', error);
             
-            if (error) {
-                console.warn('⚠️ Supabase error, using localStorage:', error);
-                return {
-                    success: true,
-                    tickets: localTickets
+            // اگر خطای دسترسی بود
+            if (error.message.includes('permission denied')) {
+                console.error('🚨 دسترسی ادمین لازم است!');
+                
+                // از localStorage بگیر
+                const localTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+                return { 
+                    success: true, 
+                    tickets: localTickets,
+                    warning: 'فقط تیکت‌های محلی نمایش داده می‌شوند' 
                 };
             }
             
-            if (data && data.length > 0) {
-                console.log('Found in Supabase:', data.length, 'tickets');
-                
-                // ترکیب داده‌ها
-                const allTickets = [...data, ...localTickets];
-                const uniqueTickets = [];
-                const seenIds = new Set();
-                
-                allTickets.forEach(ticket => {
-                    const ticketId = ticket.id;
-                    if (!seenIds.has(ticketId)) {
-                        seenIds.add(ticketId);
-                        uniqueTickets.push(ticket);
-                    }
-                });
-                
-                return {
-                    success: true,
-                    tickets: uniqueTickets.sort((a, b) => 
-                        new Date(b.created_at) - new Date(a.created_at)
-                    )
-                };
-            }
-            
-            return {
-                success: true,
-                tickets: localTickets
-            };
-            
-        } catch (supabaseError) {
-            console.warn('⚠️ Supabase exception:', supabaseError);
-            return {
-                success: true,
-                tickets: localTickets
-            };
+            throw error;
         }
         
-    } catch (error) {
-        console.error('❌ Error getting all tickets:', error);
+        console.log(`✅ Retrieved ${data?.length || 0} tickets from Supabase`);
+        
+        // پردازش داده‌ها
+        const processedTickets = data?.map(ticket => {
+            return {
+                ...ticket,
+                user: ticket.users || {},
+                userName: ticket.users?.first_name ? 
+                    `${ticket.users.first_name} ${ticket.users.last_name || ''}`.trim() : 
+                    'کاربر',
+                userPhone: ticket.users?.phone || ticket.user_phone || '---'
+            };
+        }) || [];
+        
+        // ترکیب با localStorage
+        const localTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        const allTickets = [...processedTickets, ...localTickets];
+        
+        // حذف duplicate و مرتب کردن
+        const uniqueTickets = [];
+        const seenIds = new Set();
+        
+        allTickets.forEach(ticket => {
+            const ticketId = ticket.id;
+            if (ticketId && !seenIds.has(ticketId)) {
+                seenIds.add(ticketId);
+                uniqueTickets.push(ticket);
+            }
+        });
+        
+        uniqueTickets.sort((a, b) => {
+            const dateA = new Date(a.created_at || 0);
+            const dateB = new Date(b.created_at || 0);
+            return dateB - dateA;
+        });
+        
         return {
             success: true,
-            tickets: []
+            tickets: uniqueTickets,
+            source: 'combined'
+        };
+        
+    } catch (error) {
+        console.error('❌ Exception in getAllTickets:', error);
+        
+        const localTickets = JSON.parse(localStorage.getItem('sidka_tickets') || '[]');
+        return {
+            success: true,
+            tickets: localTickets,
+            source: 'localStorage_fallback'
         };
     }
 }
@@ -1468,6 +1529,77 @@ async function getTicketDetails(ticketId) {
     }
 }
 // ========== توابع دیگر ==========
+
+// تابع برای بررسی اینکه آیا کاربر ادمین هست
+async function checkAdminAccess() {
+    try {
+        // اول از localStorage چک کن
+        const session = JSON.parse(localStorage.getItem('sidka_user_session') || '{}');
+        const currentUser = session.user;
+        
+        if (currentUser && (currentUser.is_admin || currentUser.phone === '09021707830')) {
+            console.log('✅ Admin access confirmed via localStorage');
+            return { isAdmin: true, user: currentUser };
+        }
+        
+        // اگر Supabase وصل هست، از دیتابیس چک کن
+        if (supabase) {
+            if (currentUser && currentUser.id) {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('is_admin')
+                    .eq('id', currentUser.id)
+                    .single();
+                
+                if (!error && data && data.is_admin) {
+                    console.log('✅ Admin access confirmed via Supabase');
+                    return { isAdmin: true, user: currentUser };
+                }
+            }
+        }
+        
+        console.log('❌ User is not admin');
+        return { isAdmin: false, user: currentUser };
+        
+    } catch (error) {
+        console.error('Error checking admin access:', error);
+        return { isAdmin: false, user: null };
+    }
+}
+
+// اصلاح تابع getAllUsers
+async function getAllUsers() {
+    try {
+        // اول چک کن ادمین هستی یا نه
+        const adminCheck = await checkAdminAccess();
+        
+        if (!adminCheck.isAdmin) {
+            console.warn('⚠️ Only admins can view all users');
+            return { 
+                success: false, 
+                error: 'دسترسی غیرمجاز. فقط ادمین‌ها می‌توانند لیست کاربران را ببینند.' 
+            };
+        }
+        
+        if (!supabase) {
+            const users = getAllUsersFromLocalStorage();
+            return { success: true, users: users };
+        }
+        
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        return { success: true, users: data || [] };
+        
+    } catch (error) {
+        console.error('Error getting all users:', error);
+        return { success: false, error: error.message };
+    }
+}
 
 async function getAllUsers() {
     try {
