@@ -1166,7 +1166,131 @@ async function renderAdminPanel() {
 
 // در main.js تابع renderAdminOrders را با این کد جایگزین کن:
 
-renderAdminOrders
+async function renderAdminOrders() {
+    const container = document.getElementById('admin-orders-list');
+    if (!container) return;
+    
+    try {
+        console.log('🔄 در حال دریافت سفارشات برای ادمین...');
+        
+        // چک دسترسی ادمین
+        const adminCheck = await checkAdminAccess();
+        if (!adminCheck.isAdmin) {
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-shield-alt" style="color: #e74c3c; font-size: 3rem;"></i>
+                    <h3 style="color: #e74c3c; margin: 15px 0;">دسترسی غیرمجاز</h3>
+                    <p>فقط ادمین‌ها می‌توانند این بخش را ببینند</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const result = await window.supabaseFunctions.getAllOrders();
+        console.log('📊 نتیجه دریافت سفارشات:', result);
+        
+        if (result.success && result.orders && result.orders.length > 0) {
+            let html = '';
+            
+            result.orders.forEach(order => {
+                // اطلاعات مشتری
+                const customer = order.customer_info || {};
+                const items = order.items || [];
+                
+                // نام و شماره مشتری
+                const userName = customer.firstName ? 
+                    `${customer.firstName} ${customer.lastName || ''}`.trim() : 
+                    order.user_phone || 'مشتری';
+                const userPhone = customer.phone || order.user_phone || '---';
+                
+                // وضعیت سفارش
+                const status = order.status || 'در انتظار تأیید';
+                const statusClass = status === 'تأیید شده' ? 'badge-success' : 
+                                  status === 'رد شده' ? 'badge-danger' : 'badge-warning';
+                
+                // ID سفارش
+                const orderId = order.id || order.supabase_id || 'LOCAL';
+                const orderSource = order.supabase_id ? 'Supabase' : 'Local';
+                
+                html += `
+                    <div class="admin-item">
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4>سفارش #${orderId}</h4>
+                                    <small style="color: #aaa; font-size: 0.8rem;">(${orderSource})</small>
+                                </div>
+                                <span class="badge ${statusClass}">
+                                    ${status}
+                                </span>
+                            </div>
+                            
+                            <div style="margin-top: 15px;">
+                                <p><strong>👤 مشتری:</strong> ${userName}</p>
+                                <p><strong>📱 شماره:</strong> ${userPhone}</p>
+                                <p><strong>💰 مبلغ:</strong> ${window.formatNumber(order.total || 0)} تومان</p>
+                                <p><strong>📅 تاریخ:</strong> ${window.formatDate(order.created_at)}</p>
+                                
+                                <div style="margin-top: 10px; background: #1e1e1e; padding: 10px; border-radius: 5px;">
+                                    <strong>🛒 محصولات:</strong>
+                                    ${items.map(item => `
+                                        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                            <span>${item.name} (${item.quantity || 1} عدد)</span>
+                                            <span>${window.formatNumber((item.price || 0) * (item.quantity || 1))} تومان</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-item-actions">
+                            ${(status === 'در انتظار تأیید' || !status) ? `
+                                <button class="btn btn-success" onclick="approveOrder('${orderId}')">
+                                    <i class="fas fa-check"></i> تأیید
+                                </button>
+                                <button class="btn btn-danger" onclick="rejectOrder('${orderId}')">
+                                    <i class="fas fa-times"></i> رد
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-info" onclick="viewReceipt('${orderId}')">
+                                <i class="fas fa-receipt"></i> رسید
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-box-open"></i>
+                    <p>هنوز سفارشی ثبت نشده است</p>
+                    ${result.warning ? `<p style="color: #f39c12; margin-top: 10px;">${result.warning}</p>` : ''}
+                    ${result.uniqueCount === 0 ? `
+                        <div style="margin-top: 20px; padding: 15px; background: #1e1e1e; border-radius: 8px;">
+                            <p style="color: #aaa; font-size: 0.9rem;">
+                                <i class="fas fa-info-circle"></i>
+                                برای تست، یک سفارش جدید ثبت کنید تا اینجا نمایش داده شود.
+                            </p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('❌ خطا در بارگذاری سفارشات:', error);
+        container.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i>
+                <p>خطا در بارگذاری سفارشات</p>
+                <p style="font-size: 0.9rem; color: #aaa;">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
 // در main.js تابع renderAdminTickets را با این کد جایگزین کن:
 
 async function renderAdminTickets() {
