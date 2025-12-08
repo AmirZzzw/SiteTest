@@ -1154,6 +1154,48 @@ async function renderAdminPanel() {
             document.getElementById('stats-new-tickets').textContent = stats.stats.newTickets;
         }
         
+        // اضافه کردن دکمه همگام‌سازی بعد از آمار
+        setTimeout(() => {
+            const adminStatsElement = document.querySelector('.admin-stats');
+            if (adminStatsElement && !document.getElementById('sync-orders-btn')) {
+                const syncButton = `
+                    <div style="margin: 20px 0; text-align: center;">
+                        <button class="btn btn-warning" id="sync-orders-btn">
+                            <i class="fas fa-sync"></i> همگام‌سازی سفارشات
+                        </button>
+                        <p style="font-size: 0.9rem; color: #aaa; margin-top: 10px;">
+                            برای sync سفارشات از دستگاه‌های دیگر
+                        </p>
+                    </div>
+                `;
+                adminStatsElement.insertAdjacentHTML('afterend', syncButton);
+                
+                // اضافه کردن event listener
+                document.getElementById('sync-orders-btn').addEventListener('click', async function() {
+                    showNotification('در حال همگام‌سازی...', 'info');
+                    
+                    // بررسی وجود تابع sync
+                    if (typeof syncLocalOrdersToSupabase !== 'function') {
+                        showNotification('تابع همگام‌سازی پیدا نشد', 'error');
+                        return;
+                    }
+                    
+                    const result = await syncLocalOrdersToSupabase();
+                    
+                    if (result.success) {
+                        showNotification(`همگام‌سازی کامل شد: ${result.synced || 0} سفارش sync شد`, 'success');
+                        // refresh لیست سفارشات
+                        setTimeout(() => {
+                            renderAdminOrders();
+                            renderAdminTickets();
+                        }, 1000);
+                    } else {
+                        showNotification('خطا در همگام‌سازی', 'error');
+                    }
+                });
+            }
+        }, 500); // تأخیر کوچک برای اطمینان از لود DOM
+        
         await renderAdminOrders();
         await renderAdminTickets();
         await renderAdminUsers();
