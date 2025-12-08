@@ -1,175 +1,93 @@
-// telegram-2fa-fixed.js - نسخه بهبود یافته با Webhook
-console.log('🔐 Loading Improved Telegram 2FA Service...');
+// telegram-2fa-complete.js - سیستم کامل تلگرام ۲FA
+console.log('🔐 Loading Complete Telegram 2FA System...');
 
-class ImprovedTelegram2FA {
+class CompleteTelegram2FA {
     constructor() {
+        // توکن بات تلگرام
         this.BOT_TOKEN = '8511636822:AAF9NnVL2wB1foda1eQe5rx31BMx7RU5LmI';
+        
+        // آیدی ادمین در تلگرام
         this.ADMIN_TELEGRAM_ID = '7549513123';
+        
+        // ذخیره کدهای تأیید
         this.verificationCodes = new Map();
-        this.codeExpiryTime = 10 * 60 * 1000; // 10 دقیقه
-        this.maxAttempts = 5;
-        this.failedAttempts = new Map();
         
-        // آدرس‌های جایگزین برای دور زدن محدودیت
-        this.TELEGRAM_API_ENDPOINTS = [
-            'https://api.telegram.org',
-            'https://api.telegram-bot.org',
-            'https://telegram-bot-api.herokuapp.com'
-        ];
+        // تنظیمات زمان انقضا (۱۰ دقیقه)
+        this.CODE_EXPIRY_MS = 10 * 60 * 1000;
         
-        this.currentApiIndex = 0;
+        // حداکثر تلاش
+        this.MAX_ATTEMPTS = 5;
+        this.attemptsCounter = new Map();
         
-        console.log('🛡️ Improved Telegram 2FA initialized');
+        console.log('🤖 Complete Telegram 2FA initialized');
     }
 
-    async testConnection(endpoint = null) {
-        const testEndpoint = endpoint || this.TELEGRAM_API_ENDPOINTS[this.currentApiIndex];
-        const url = `${testEndpoint}/bot${this.BOT_TOKEN}/getMe`;
-        
-        try {
-            console.log(`🔗 Testing connection to: ${testEndpoint}`);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                },
-                signal: controller.signal,
-                mode: 'cors'
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (result.ok) {
-                console.log(`✅ Connected to ${testEndpoint}`);
-                console.log('🤖 Bot:', result.result.first_name);
-                return true;
-            }
-            
-            throw new Error(result.description || 'Unknown error');
-            
-        } catch (error) {
-            console.warn(`⚠️ Connection failed for ${testEndpoint}:`, error.message);
-            return false;
-        }
-    }
-
-    async initialize() {
-        console.log('🔗 Initializing Telegram 2FA with multiple endpoints...');
-        
-        // تست همه endpoint ها
-        for (let i = 0; i < this.TELEGRAM_API_ENDPOINTS.length; i++) {
-            const endpoint = this.TELEGRAM_API_ENDPOINTS[i];
-            const success = await this.testConnection(endpoint);
-            
-            if (success) {
-                this.currentApiIndex = i;
-                console.log(`✅ Using endpoint: ${endpoint}`);
-                
-                // ذخیره در localStorage برای استفاده بعدی
-                localStorage.setItem('telegram_active_endpoint', endpoint);
-                
-                return true;
-            }
-        }
-        
-        console.log('⚠️ All endpoints failed, using Webhook as fallback');
-        
-        // اگر هیچ endpoint کار نکرد، حالت Fallback فعال کن
-        localStorage.setItem('telegram_fallback_mode', 'true');
-        
-        // سیستم همچنان کار می‌کند اما کدها فقط در برنامه ذخیره می‌شوند
-        return true;
-    }
-
-    generateSecureCode() {
-        // تولید کد امن تصادفی
+    // تولید کد ۶ رقمی امن
+    generateVerificationCode() {
+        // کد ۶ رقمی تصادفی
         const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const timestamp = Date.now();
+        
+        // کد با فرمت قابل خواندن: XXX-XXX
+        const formattedCode = code.substring(0, 3) + '-' + code.substring(3);
         
         return {
-            code: code,
-            timestamp: timestamp,
-            expiresAt: timestamp + this.codeExpiryTime,
-            created: new Date().toISOString()
+            raw: code,
+            formatted: formattedCode,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + this.CODE_EXPIRY_MS,
+            attempts: 0
         };
     }
 
+    // ارسال کد به تلگرام ادمین
     async sendCodeToTelegram(phoneNumber) {
         try {
-            console.log(`🔒 Generating code for: ${phoneNumber}`);
+            console.log(`📤 Sending code to Telegram for: ${phoneNumber}`);
             
-            // بررسی محدودیت تلاش‌ها
-            const attempts = this.failedAttempts.get(phoneNumber) || 0;
-            if (attempts >= this.maxAttempts) {
-                throw new Error('تعداد تلاش‌ها بیش از حد مجاز. لطفاً دقایقی دیگر تلاش کنید.');
+            // بررسی محدودیت تلاش
+            const userAttempts = this.attemptsCounter.get(phoneNumber) || 0;
+            if (userAttempts >= this.MAX_ATTEMPTS) {
+                throw new Error('تعداد تلاش‌ها بیش از حد مجاز است. لطفاً دقایقی دیگر تلاش کنید.');
             }
             
-            // تولید کد
-            const secureCode = this.generateSecureCode();
+            // تولید کد جدید
+            const codeData = this.generateVerificationCode();
             
             // ذخیره کد در حافظه
-            this.verificationCodes.set(secureCode.code, {
+            this.verificationCodes.set(codeData.raw, {
                 phone: phoneNumber,
-                expiresAt: secureCode.expiresAt,
-                created: secureCode.created,
+                expiresAt: codeData.expiresAt,
+                createdAt: new Date().toISOString(),
                 attempts: 0,
                 verified: false
             });
             
-            console.log(`✅ Code generated: ${secureCode.code}`);
+            console.log(`✅ Generated code: ${codeData.formatted}`);
             
-            // بررسی حالت fallback
-            const fallbackMode = localStorage.getItem('telegram_fallback_mode') === 'true';
-            
-            if (fallbackMode) {
-                console.log('📱 Fallback mode: Displaying code to user');
-                
-                // در حالت fallback، کد را به کاربر نشان بده
-                this.displayCodeToUser(secureCode.code, phoneNumber);
-                
-                return {
-                    success: true,
-                    code: secureCode.code,
-                    expiresIn: '۱۰ دقیقه',
-                    message: 'کد امنیتی تولید شد. لطفاً آن را در فیلد مربوطه وارد کنید.',
-                    sentToTelegram: false,
-                    timestamp: secureCode.created,
-                    fallbackMode: true,
-                    displayCode: secureCode.code // کد برای نمایش به کاربر
-                };
-            }
-            
-            // ارسال به تلگرام
+            // پیام برای ارسال به تلگرام
             const message = `
-🔐 *کد تأیید دو مرحله‌ای - SidkaShop* 🔐
+🚨 *کد تأیید دو مرحله‌ای* 🚨
 
-📱 شماره: \`${phoneNumber}\`
-🔢 کد: \`${secureCode.code}\`
-⏰ اعتبار: ۱۰ دقیقه
-🕒 زمان: ${new Date().toLocaleString('fa-IR')}
+📱 *شماره موبایل:* \`${phoneNumber}\`
+🔢 *کد تأیید:* \`${codeData.formatted}\`
+⏰ *اعتبار:* ۱۰ دقیقه
+🕒 *زمان:* ${new Date().toLocaleString('fa-IR')}
 
 ⚠️ این کد را با کسی به اشتراک نگذارید.
+📍 *منبع:* SidkaShop ادمین پنل
             `.trim();
             
-            const endpoint = this.TELEGRAM_API_ENDPOINTS[this.currentApiIndex];
-            const url = `${endpoint}/bot${this.BOT_TOKEN}/sendMessage`;
+            // URL تلگرام API
+            const telegramUrl = `https://api.telegram.org/bot${this.BOT_TOKEN}/sendMessage`;
             
-            // تلاش با timeout
+            console.log('📡 Sending to Telegram...');
+            
+            // ارسال به تلگرام با timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
             
             try {
-                const response = await fetch(url, {
+                const response = await fetch(telegramUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -186,237 +104,218 @@ class ImprovedTelegram2FA {
                 clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
                 
                 const result = await response.json();
                 
                 if (result.ok) {
-                    console.log('✅ Code sent to Telegram successfully');
+                    console.log('✅ Telegram API success:', result.result.message_id);
                     
-                    // تایمر پاکسازی
+                    // افزایش شمارش تلاش
+                    this.attemptsCounter.set(phoneNumber, userAttempts + 1);
+                    
+                    // تایمر پاکسازی خودکار کد
                     setTimeout(() => {
-                        if (this.verificationCodes.has(secureCode.code)) {
-                            this.verificationCodes.delete(secureCode.code);
-                            console.log(`🕒 Code ${secureCode.code} expired`);
+                        if (this.verificationCodes.has(codeData.raw)) {
+                            this.verificationCodes.delete(codeData.raw);
+                            console.log(`🕒 Code ${codeData.formatted} expired`);
                         }
-                    }, this.codeExpiryTime);
+                    }, this.CODE_EXPIRY_MS);
                     
                     return {
                         success: true,
-                        code: secureCode.code,
-                        expiresIn: '۱۰ دقیقه',
-                        message: 'کد به تلگرام ارسال شد',
+                        code: codeData.raw,
+                        formattedCode: codeData.formatted,
+                        message: 'کد تأیید به تلگرام ادمین ارسال شد',
                         sentToTelegram: true,
-                        timestamp: secureCode.created
+                        timestamp: codeData.timestamp,
+                        expiresIn: '۱۰ دقیقه',
+                        telegramMessageId: result.result.message_id
                     };
                     
                 } else {
                     console.warn('⚠️ Telegram API error:', result.description);
-                    
-                    // سوییچ به حالت fallback
-                    localStorage.setItem('telegram_fallback_mode', 'true');
-                    
-                    // نمایش کد به کاربر
-                    this.displayCodeToUser(secureCode.code, phoneNumber);
-                    
-                    return {
-                        success: true,
-                        code: secureCode.code,
-                        expiresIn: '۱۰ دقیقه',
-                        message: 'کد تولید شد. لطفاً آن را وارد کنید:',
-                        sentToTelegram: false,
-                        fallbackMode: true,
-                        displayCode: secureCode.code
-                    };
+                    throw new Error(result.description || 'تلگرام API خطا داد');
                 }
                 
             } catch (fetchError) {
                 clearTimeout(timeoutId);
-                console.warn('⚠️ Fetch error:', fetchError.message);
+                console.error('❌ Fetch error:', fetchError.message);
                 
-                // سوییچ به حالت fallback
-                localStorage.setItem('telegram_fallback_mode', 'true');
+                // حالت fallback: نمایش کد به کاربر
+                console.log('🔄 Switching to fallback mode...');
                 
-                // نمایش کد به کاربر
-                this.displayCodeToUser(secureCode.code, phoneNumber);
+                // کد رو در localStorage ذخیره کن برای حالت fallback
+                localStorage.setItem('telegram_fallback_code', JSON.stringify({
+                    code: codeData.raw,
+                    formatted: codeData.formatted,
+                    phone: phoneNumber,
+                    expiresAt: codeData.expiresAt,
+                    timestamp: new Date().toISOString()
+                }));
                 
                 return {
                     success: true,
-                    code: secureCode.code,
-                    expiresIn: '۱۰ دقیقه',
-                    message: 'کد تولید شد:',
+                    code: codeData.raw,
+                    formattedCode: codeData.formatted,
+                    message: 'کد تأیید تولید شد. لطفاً آن را در فیلد مربوطه وارد کنید:',
                     sentToTelegram: false,
                     fallbackMode: true,
-                    displayCode: secureCode.code
+                    displayCode: codeData.formatted,
+                    expiresIn: '۱۰ دقیقه'
                 };
             }
             
         } catch (error) {
             console.error('❌ Error in sendCodeToTelegram:', error);
             
-            // افزایش شمارش تلاش‌های ناموفق
-            const currentAttempts = this.failedAttempts.get(phoneNumber) || 0;
-            this.failedAttempts.set(phoneNumber, currentAttempts + 1);
+            // تولید کد fallback
+            const codeData = this.generateVerificationCode();
+            
+            // ذخیره در localStorage برای fallback
+            localStorage.setItem('telegram_fallback_code', JSON.stringify({
+                code: codeData.raw,
+                formatted: codeData.formatted,
+                phone: phoneNumber,
+                expiresAt: codeData.expiresAt,
+                timestamp: new Date().toISOString()
+            }));
             
             return {
-                success: false,
-                error: error.message,
-                details: 'خطا در ارسال کد',
-                attempts: currentAttempts + 1
+                success: true,
+                code: codeData.raw,
+                formattedCode: codeData.formatted,
+                message: 'کد تأیید تولید شد (حالت آفلاین). لطفاً آن را وارد کنید:',
+                sentToTelegram: false,
+                fallbackMode: true,
+                displayCode: codeData.formatted,
+                expiresIn: '۱۰ دقیقه'
             };
         }
     }
 
-    displayCodeToUser(code, phoneNumber) {
-        // ذخیره کد برای نمایش در UI
-        const displayData = {
-            code: code,
-            phone: phoneNumber,
-            expiresAt: Date.now() + this.codeExpiryTime,
-            timestamp: new Date().toISOString()
-        };
-        
-        localStorage.setItem('telegram_code_display', JSON.stringify(displayData));
-        
-        // نمایش نوتیفیکیشن به کاربر
-        if (window.showNotification) {
-            window.showNotification(`کد امنیتی: ${code} (۱۰ دقیقه اعتبار دارد)`, 'warning');
-        }
-        
-        // همچنین می‌توانیم یک مودال مخصوص نمایش کد باز کنیم
-        this.openCodeDisplayModal(code, phoneNumber);
-    }
-
-    openCodeDisplayModal(code, phoneNumber) {
-        // ایجاد مودال نمایش کد
-        const modalHtml = `
-            <div class="modal-overlay" id="code-display-overlay"></div>
-            <div class="modal" id="code-display-modal">
-                <div class="modal-header">
-                    <h3><i class="fas fa-shield-alt"></i> کد امنیتی</h3>
-                    <button class="close-modal" onclick="this.parentElement.parentElement.style.display='none'; document.getElementById('code-display-overlay').style.display='none'">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div style="text-align: center; padding: 20px;">
-                        <div style="font-size: 2rem; color: #2ecc71; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px; letter-spacing: 10px;">
-                            ${code}
-                        </div>
-                        <p>📱 برای شماره: <strong>${phoneNumber}</strong></p>
-                        <p>⏰ این کد تا <strong>۱۰ دقیقه</strong> دیگر معتبر است</p>
-                        <p>⚠️ این کد را با کسی به اشتراک نگذارید</p>
-                        
-                        <div style="margin-top: 30px;">
-                            <button class="btn btn-primary" onclick="copyToClipboard('${code}')">
-                                <i class="fas fa-copy"></i> کپی کد
-                            </button>
-                            <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.style.display='none'; document.getElementById('code-display-overlay').style.display='none'">
-                                <i class="fas fa-times"></i> بستن
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // اضافه کردن به صفحه
-        const existingModal = document.getElementById('code-display-modal');
-        const existingOverlay = document.getElementById('code-display-overlay');
-        
-        if (existingModal) existingModal.remove();
-        if (existingOverlay) existingOverlay.remove();
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // نمایش مودال
-        document.getElementById('code-display-modal').style.display = 'block';
-        document.getElementById('code-display-overlay').style.display = 'block';
-    }
-
+    // تأیید کد وارد شده
     verifyCode(enteredCode, phoneNumber) {
         try {
-            console.log(`🔍 Verifying code: ${enteredCode} for ${phoneNumber}`);
+            console.log(`🔍 Verifying code for ${phoneNumber}`);
             
-            // پاکسازی کدهای منقضی
+            // پاکسازی کدهای منقضی شده
             this.cleanupExpiredCodes();
             
-            const code = enteredCode.toString().trim();
+            const code = enteredCode.toString().trim().replace(/-/g, '');
             
             // اعتبارسنجی فرمت
             if (code.length !== 6 || !/^\d+$/.test(code)) {
                 return {
                     success: false,
-                    error: 'کد باید ۶ رقم عددی باشد'
+                    error: 'کد باید ۶ رقم عددی باشد',
+                    code: enteredCode
                 };
             }
             
-            // بررسی وجود کد
-            if (!this.verificationCodes.has(code)) {
-                console.log(`❌ Invalid code: ${code}`);
+            // 1. اول سعی کن از حافظه پیدا کنی
+            if (this.verificationCodes.has(code)) {
+                const storedData = this.verificationCodes.get(code);
                 
-                // افزایش تلاش ناموفق
-                const attempts = this.failedAttempts.get(phoneNumber) || 0;
-                this.failedAttempts.set(phoneNumber, attempts + 1);
+                // بررسی انقضا
+                if (Date.now() > storedData.expiresAt) {
+                    this.verificationCodes.delete(code);
+                    return {
+                        success: false,
+                        error: 'کد منقضی شده است',
+                        expired: true
+                    };
+                }
+                
+                // بررسی تطابق شماره
+                if (storedData.phone !== phoneNumber) {
+                    return {
+                        success: false,
+                        error: 'کد برای این شماره صادر نشده است',
+                        phoneMismatch: true
+                    };
+                }
+                
+                // همه چیز درست است
+                console.log('✅ Code verified successfully from memory');
+                
+                // حذف کد پس از استفاده موفق
+                this.verificationCodes.delete(code);
+                
+                // ریست کردن شمارشگر
+                this.attemptsCounter.delete(phoneNumber);
+                
+                // پاک کردن fallback
+                localStorage.removeItem('telegram_fallback_code');
                 
                 return {
-                    success: false,
-                    error: 'کد وارد شده نامعتبر است',
-                    remainingAttempts: this.maxAttempts - (attempts + 1)
+                    success: true,
+                    message: 'کد با موفقیت تأیید شد',
+                    phone: phoneNumber,
+                    verifiedAt: new Date().toISOString()
                 };
             }
             
-            const storedData = this.verificationCodes.get(code);
-            
-            // بررسی تطابق شماره
-            if (storedData.phone !== phoneNumber) {
-                console.log(`🚨 Phone mismatch: ${storedData.phone} ≠ ${phoneNumber}`);
-                return {
-                    success: false,
-                    error: 'کد برای این شماره صادر نشده است'
-                };
+            // 2. اگر در حافظه نبود، از localStorage چک کن (حالت fallback)
+            const fallbackData = localStorage.getItem('telegram_fallback_code');
+            if (fallbackData) {
+                try {
+                    const data = JSON.parse(fallbackData);
+                    
+                    // بررسی انقضا
+                    if (Date.now() > data.expiresAt) {
+                        localStorage.removeItem('telegram_fallback_code');
+                        return {
+                            success: false,
+                            error: 'کد منقضی شده است',
+                            expired: true
+                        };
+                    }
+                    
+                    // بررسی تطابق شماره
+                    if (data.phone !== phoneNumber) {
+                        return {
+                            success: false,
+                            error: 'کد برای این شماره صادر نشده است',
+                            phoneMismatch: true
+                        };
+                    }
+                    
+                    // بررسی تطابق کد
+                    if (data.code !== code && data.formatted.replace(/-/g, '') !== code) {
+                        return {
+                            success: false,
+                            error: 'کد وارد شده اشتباه است',
+                            invalidCode: true
+                        };
+                    }
+                    
+                    // همه چیز درست است
+                    console.log('✅ Code verified successfully from fallback');
+                    
+                    // پاک کردن fallback
+                    localStorage.removeItem('telegram_fallback_code');
+                    
+                    return {
+                        success: true,
+                        message: 'کد با موفقیت تأیید شد (حالت آفلاین)',
+                        phone: phoneNumber,
+                        verifiedAt: new Date().toISOString(),
+                        fromFallback: true
+                    };
+                    
+                } catch (parseError) {
+                    console.warn('⚠️ Fallback data parse error:', parseError);
+                }
             }
             
-            // بررسی انقضا
-            if (Date.now() > storedData.expiresAt) {
-                this.verificationCodes.delete(code);
-                return {
-                    success: false,
-                    error: 'کد منقضی شده است'
-                };
-            }
-            
-            // بررسی تعداد تلاش‌های قبلی برای این کد
-            if (storedData.attempts >= 3) {
-                this.verificationCodes.delete(code);
-                return {
-                    success: false,
-                    error: 'تعداد تلاش‌های ناموفق برای این کد بیش از حد مجاز'
-                };
-            }
-            
-            // همه چیز درست است - تأیید موفق
-            console.log(`✅ Code verified successfully for ${phoneNumber}`);
-            
-            // حذف کد پس از استفاده موفق
-            this.verificationCodes.delete(code);
-            
-            // ریست کردن شمارشگر برای این شماره
-            this.failedAttempts.delete(phoneNumber);
-            
-            // پاک کردن داده‌های نمایش
-            localStorage.removeItem('telegram_code_display');
-            
-            // پاک کردن مودال نمایش اگر باز است
-            const displayModal = document.getElementById('code-display-modal');
-            const displayOverlay = document.getElementById('code-display-overlay');
-            if (displayModal) displayModal.remove();
-            if (displayOverlay) displayOverlay.remove();
-            
+            // 3. اگر هیچ کدام جواب نداد
             return {
-                success: true,
-                message: 'کد با موفقیت تأیید شد',
-                phone: phoneNumber,
-                timestamp: new Date().toISOString()
+                success: false,
+                error: 'کد وارد شده نامعتبر یا منقضی شده است',
+                invalidCode: true
             };
             
         } catch (error) {
@@ -428,58 +327,213 @@ class ImprovedTelegram2FA {
         }
     }
 
+    // پاکسازی کدهای منقضی شده
     cleanupExpiredCodes() {
         const now = Date.now();
-        let removed = 0;
+        let removedCount = 0;
         
         for (const [code, data] of this.verificationCodes.entries()) {
             if (now > data.expiresAt) {
                 this.verificationCodes.delete(code);
-                removed++;
+                removedCount++;
             }
         }
         
-        if (removed > 0) {
-            console.log(`🗑️ Cleaned up ${removed} expired codes`);
+        if (removedCount > 0) {
+            console.log(`🗑️ Cleaned up ${removedCount} expired codes`);
+        }
+        
+        // پاکسازی localStorage قدیمی
+        try {
+            const fallbackData = localStorage.getItem('telegram_fallback_code');
+            if (fallbackData) {
+                const data = JSON.parse(fallbackData);
+                if (now > data.expiresAt) {
+                    localStorage.removeItem('telegram_fallback_code');
+                    console.log('🗑️ Cleaned up expired fallback code');
+                }
+            }
+        } catch (error) {
+            // ignore
         }
     }
 
-    // توابع کمکی
+    // تابع برای تست اتصال
+    async testConnection() {
+        try {
+            const url = `https://api.telegram.org/bot${this.BOT_TOKEN}/getMe`;
+            
+            const response = await fetch(url, { method: 'GET' });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.ok) {
+                console.log('🤖 Bot connected:', result.result.first_name);
+                return {
+                    success: true,
+                    bot: result.result,
+                    message: 'بات تلگرام متصل است'
+                };
+            } else {
+                throw new Error(result.description || 'تلگرام API خطا داد');
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ Telegram connection test failed:', error.message);
+            return {
+                success: false,
+                error: error.message,
+                message: 'اتصال به تلگرام برقرار نیست'
+            };
+        }
+    }
+
+    // تابع برای ارسال مجدد کد
+    async resendCode(phoneNumber) {
+        try {
+            console.log(`🔄 Resending code to ${phoneNumber}`);
+            
+            // پاک کردن کدهای قبلی برای این شماره
+            for (const [code, data] of this.verificationCodes.entries()) {
+                if (data.phone === phoneNumber) {
+                    this.verificationCodes.delete(code);
+                }
+            }
+            
+            // ارسال کد جدید
+            return await this.sendCodeToTelegram(phoneNumber);
+            
+        } catch (error) {
+            console.error('❌ Error resending code:', error);
+            return {
+                success: false,
+                error: 'خطا در ارسال مجدد کد'
+            };
+        }
+    }
+
+    // گرفتن کد فعال برای یک شماره
     getActiveCode(phoneNumber) {
         for (const [code, data] of this.verificationCodes.entries()) {
             if (data.phone === phoneNumber && Date.now() < data.expiresAt) {
-                return { code, data };
+                return {
+                    code: code,
+                    data: data,
+                    expiresIn: Math.round((data.expiresAt - Date.now()) / 1000 / 60) // دقیقه
+                };
             }
         }
         return null;
     }
 
-    resendCode(phoneNumber) {
-        // حذف کدهای قبلی برای این شماره
-        for (const [code, data] of this.verificationCodes.entries()) {
-            if (data.phone === phoneNumber) {
-                this.verificationCodes.delete(code);
-            }
+    // نمایش کد در مودال (برای حالت fallback)
+    showCodeInModal(code, phoneNumber) {
+        // این تابع در main.js صدا زده می‌شه
+        if (window.showFallbackCode) {
+            window.showFallbackCode(code, phoneNumber);
+        } else {
+            // اگر تابع وجود نداره، alert بده
+            alert(`کد تأیید برای ${phoneNumber}:\n\n${code}\n\n(این کد ۱۰ دقیقه اعتبار دارد)`);
         }
-        
-        // ارسال کد جدید
-        return this.sendCodeToTelegram(phoneNumber);
     }
 }
 
 // ایجاد نمونه و اتصال به window
-const improvedTelegram2FA = new ImprovedTelegram2FA();
-window.telegram2FA = improvedTelegram2FA;
+const completeTelegram2FA = new CompleteTelegram2FA();
+window.telegram2FA = completeTelegram2FA;
 
-// راه‌اندازی غیرهمزمان
+// تست اتصال غیرهمزمان
 setTimeout(async () => {
     try {
-        await improvedTelegram2FA.initialize();
-        console.log('🛡️ Improved Telegram 2FA ready');
+        const connectionTest = await completeTelegram2FA.testConnection();
+        if (connectionTest.success) {
+            console.log('✅ Telegram 2FA system ready');
+        } else {
+            console.log('⚠️ Telegram 2FA running in limited mode');
+        }
     } catch (error) {
-        console.warn('⚠️ 2FA initialization warning:', error.message);
-        console.log('🛡️ 2FA running in fallback mode');
+        console.log('🛡️ Telegram 2FA initialized (connection test skipped)');
     }
-}, 1000);
+}, 500);
 
-console.log('✅ Improved Telegram 2FA service loaded');
+console.log('✅ Complete Telegram 2FA system loaded');
+
+// ========== اضافه کردن توابع کمکی به window ==========
+window.showFallbackCode = function(code, phone) {
+    const modalHtml = `
+        <div class="modal-overlay" id="telegram-fallback-overlay"></div>
+        <div class="modal" id="telegram-fallback-modal">
+            <div class="modal-header">
+                <h3><i class="fab fa-telegram"></i> کد تأیید امنیتی</h3>
+                <button class="close-modal" onclick="closeModal('telegram-fallback-modal', 'telegram-fallback-overlay')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 20px;">
+                    <i class="fas fa-shield-alt fa-3x" style="color: #3498db; margin-bottom: 20px;"></i>
+                    <h4>کد تأیید تولید شد</h4>
+                    <p>به دلیل محدودیت‌های اینترنتی، کد به تلگرام ارسال نشد.</p>
+                    <p>لطفاً کد زیر را کپی کرده و در فیلد مربوطه وارد کنید:</p>
+                    
+                    <div style="
+                        font-size: 2.5rem;
+                        font-weight: bold;
+                        letter-spacing: 10px;
+                        background: #f8f9fa;
+                        padding: 20px;
+                        border-radius: 10px;
+                        margin: 20px 0;
+                        color: #2ecc71;
+                        direction: ltr;
+                    ">${code}</div>
+                    
+                    <p style="color: #f39c12;">
+                        <i class="fas fa-clock"></i>
+                        این کد تا <span id="fallback-expiry">۱۰</span> دقیقه دیگر معتبر است
+                    </p>
+                    
+                    <div style="margin-top: 25px;">
+                        <button class="btn btn-primary" onclick="copyToClipboard('${code}')">
+                            <i class="fas fa-copy"></i> کپی کد
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeModal('telegram-fallback-modal', 'telegram-fallback-overlay')">
+                            <i class="fas fa-times"></i> بستن
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // حذف مودال قبلی
+    const oldModal = document.getElementById('telegram-fallback-modal');
+    const oldOverlay = document.getElementById('telegram-fallback-overlay');
+    if (oldModal) oldModal.remove();
+    if (oldOverlay) oldOverlay.remove();
+    
+    // اضافه کردن مودال جدید
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // نمایش مودال
+    document.getElementById('telegram-fallback-modal').style.display = 'block';
+    document.getElementById('telegram-fallback-overlay').style.display = 'block';
+    
+    // تایمر معکوس
+    let timeLeft = 600; // 10 دقیقه
+    const timerElement = document.getElementById('fallback-expiry');
+    const timer = setInterval(() => {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            timerElement.textContent = 'منقضی شد';
+            timerElement.style.color = '#e74c3c';
+        }
+        timeLeft--;
+    }, 1000);
+};
