@@ -1175,59 +1175,85 @@ async function renderAdminOrders() {
     if (!container) return;
     
     try {
+        // چک کردن دسترسی ادمین
+        const adminCheck = await checkAdminAccess();
+        
+        if (!adminCheck.isAdmin) {
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-shield-alt" style="color: #e74c3c; font-size: 3rem;"></i>
+                    <h3 style="color: #e74c3c; margin: 15px 0;">دسترسی غیرمجاز</h3>
+                    <p>شما دسترسی ادمین ندارید.</p>
+                    <p style="font-size: 0.9rem; color: #aaa; margin-top: 10px;">
+                        فقط کاربران با دسترسی ادمین می‌توانند این بخش را ببینند.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+        
         const result = await window.supabaseFunctions.getAllOrders();
         
         if (result.success && result.orders && result.orders.length > 0) {
+            console.log(`📊 Displaying ${result.orders.length} orders in admin panel`);
+            
             let html = '';
             result.orders.forEach(order => {
                 // اطلاعات مشتری
                 const customer = order.customer_info || {};
                 const items = order.items || [];
-                const user = order.users || {};
+                const user = order.users || order.user || {};
                 
-                // محاسبه مجموع اگر total وجود نداشت
-                let totalAmount = order.total;
-                if (!totalAmount && items.length > 0) {
-                    totalAmount = items.reduce((sum, item) => 
-                        sum + (item.price || 0) * (item.quantity || 1), 0);
-                }
+                // نام کاربر
+                const userName = user.first_name ? 
+                    `${user.first_name} ${user.last_name || ''}`.trim() : 
+                    customer.firstName ? 
+                        `${customer.firstName} ${customer.lastName || ''}`.trim() : 
+                        'مهمان';
                 
-                // فرمت تاریخ
-                const orderDate = order.created_at ? 
-                    new Date(order.created_at).toLocaleDateString('fa-IR') : 
-                    '---';
+                // شماره تلفن
+                const userPhone = user.phone || customer.phone || order.user_phone || '---';
                 
                 html += `
                     <div class="admin-item">
                         <div style="flex: 1;">
-                            <h4>سفارش #${order.id}</h4>
-                            <p><strong>مشتری:</strong> ${customer.firstName || user.first_name || '---'} ${customer.lastName || user.last_name || ''}</p>
-                            <p><strong>شماره تماس:</strong> ${customer.phone || user.phone || '---'}</p>
-                            <p><strong>محصولات:</strong> 
-                                ${items.map(item => 
-                                    `${item.name || 'محصول'} (${item.quantity || 1} عدد)`
-                                ).join('، ')}
-                            </p>
-                            <p><strong>مبلغ:</strong> ${window.formatNumber ? window.formatNumber(totalAmount) : totalAmount} تومان</p>
-                            <p><strong>تاریخ سفارش:</strong> ${orderDate}</p>
-                            <p><strong>وضعیت:</strong> 
-                                <span class="status-badge status-${order.status === 'تأیید شده' ? 'success' : 
-                                    order.status === 'رد شده' ? 'danger' : 'warning'}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h4>سفارش #${order.id || order.supabase_id}</h4>
+                                <span class="badge ${order.status === 'تأیید شده' ? 'badge-success' : 
+                                    order.status === 'رد شده' ? 'badge-danger' : 'badge-warning'}">
                                     ${order.status || 'در انتظار تأیید'}
                                 </span>
-                            </p>
+                            </div>
+                            
+                            <div style="margin-top: 10px;">
+                                <p><strong>👤 مشتری:</strong> ${userName}</p>
+                                <p><strong>📱 شماره:</strong> ${userPhone}</p>
+                                <p><strong>💰 مبلغ:</strong> ${window.formatNumber(order.total || 0)} تومان</p>
+                                <p><strong>📅 تاریخ:</strong> ${window.formatDate(order.created_at)}</p>
+                                
+                                <div style="margin-top: 10px; background: #1e1e1e; padding: 10px; border-radius: 5px;">
+                                    <strong>🛒 محصولات:</strong>
+                                    ${items.map(item => `
+                                        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                            <span>${item.name} (${item.quantity || 1} عدد)</span>
+                                            <span>${window.formatNumber((item.price || 0) * (item.quantity || 1))} تومان</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
                         </div>
+                        
                         <div class="admin-item-actions">
-                            ${order.status === 'در انتظار تأیید' || !order.status ? `
-                                <button class="btn btn-success" onclick="approveOrder(${order.id})">
-                                    <i class="fas fa-check"></i> تأیید سفارش
+                            ${(!order.status || order.status === 'در انتظار تأیید') ? `
+                                <button class="btn btn-success" onclick="approveOrder('${order.id || order.supabase_id}')">
+                                    <i class="fas fa-check"></i> تأیید
                                 </button>
-                                <button class="btn btn-danger" onclick="rejectOrder(${order.id})">
-                                    <i class="fas fa-times"></i> رد سفارش
+                                <button class="btn btn-danger" onclick="rejectOrder('${order.id || order.supabase_id}')">
+                                    <i class="fas fa-times"></i> رد
                                 </button>
                             ` : ''}
-                            <button class="btn btn-info" onclick="viewReceipt(${order.id})">
-                                <i class="fas fa-receipt"></i> مشاهده رسید
+                            <button class="btn btn-info" onclick="viewReceipt('${order.id || order.supabase_id}')">
+                                <i class="fas fa-receipt"></i> رسید
                             </button>
                         </div>
                     </div>
@@ -1240,6 +1266,7 @@ async function renderAdminOrders() {
                 <div class="empty-message">
                     <i class="fas fa-box-open"></i>
                     <p>هنوز سفارشی ثبت نشده است</p>
+                    ${result.warning ? `<p style="color: #f39c12; font-size: 0.9rem;">${result.warning}</p>` : ''}
                 </div>
             `;
         }
@@ -1248,9 +1275,9 @@ async function renderAdminOrders() {
         console.error('Error rendering admin orders:', error);
         container.innerHTML = `
             <div class="empty-message">
-                <i class="fas fa-exclamation-circle"></i>
+                <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i>
                 <p>خطا در بارگذاری سفارشات</p>
-                <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+                <p style="font-size: 0.9rem; color: #aaa;">${error.message}</p>
             </div>
         `;
     }
