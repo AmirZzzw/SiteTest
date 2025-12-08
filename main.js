@@ -1146,6 +1146,7 @@ async function renderAdminPanel() {
     showNotification('در حال بارگذاری پنل ادمین...', 'info');
     
     try {
+        // دریافت آمار
         const stats = await window.supabaseFunctions.getDashboardStats();
         if (stats.success) {
             document.getElementById('stats-users-count').textContent = stats.stats.users;
@@ -1154,48 +1155,87 @@ async function renderAdminPanel() {
             document.getElementById('stats-new-tickets').textContent = stats.stats.newTickets;
         }
         
-        // اضافه کردن دکمه همگام‌سازی بعد از آمار
+        // اضافه کردن دکمه‌های مدیریت
         setTimeout(() => {
-            const adminStatsElement = document.querySelector('.admin-stats');
-            if (adminStatsElement && !document.getElementById('sync-orders-btn')) {
-                const syncButton = `
-                    <div style="margin: 20px 0; text-align: center;">
-                        <button class="btn btn-warning" id="sync-orders-btn">
-                            <i class="fas fa-sync"></i> همگام‌سازی سفارشات
-                        </button>
-                        <p style="font-size: 0.9rem; color: #aaa; margin-top: 10px;">
-                            برای sync سفارشات از دستگاه‌های دیگر
-                        </p>
+            const adminStats = document.querySelector('.admin-stats');
+            if (adminStats && !document.getElementById('sync-controls')) {
+                const syncControls = `
+                    <div id="sync-controls" style="margin: 25px 0; padding: 20px; background: var(--dark-lighter); border-radius: var(--radius);">
+                        <h4><i class="fas fa-sync"></i> مدیریت همگام‌سازی</h4>
+                        <div style="display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
+                            <button class="btn btn-warning" id="sync-fallback-btn">
+                                <i class="fas fa-cloud-upload-alt"></i> همگام‌سازی سفارشات آفلاین
+                            </button>
+                            <button class="btn btn-info" id="refresh-orders-btn">
+                                <i class="fas fa-redo"></i> بروزرسانی لیست
+                            </button>
+                            <button class="btn btn-secondary" id="clear-cache-btn">
+                                <i class="fas fa-trash"></i> پاکسازی کش
+                            </button>
+                        </div>
+                        <div id="sync-status" style="margin-top: 15px; font-size: 0.9rem; color: #aaa;"></div>
                     </div>
                 `;
-                adminStatsElement.insertAdjacentHTML('afterend', syncButton);
                 
-                // اضافه کردن event listener
-                document.getElementById('sync-orders-btn').addEventListener('click', async function() {
-                    showNotification('در حال همگام‌سازی...', 'info');
+                adminStats.insertAdjacentHTML('afterend', syncControls);
+                
+                // رویدادها
+                document.getElementById('sync-fallback-btn').addEventListener('click', async function() {
+                    this.disabled = true;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال همگام‌سازی...';
                     
-                    // بررسی وجود تابع sync
-                    if (typeof syncLocalOrdersToSupabase !== 'function') {
-                        showNotification('تابع همگام‌سازی پیدا نشد', 'error');
-                        return;
-                    }
+                    const statusDiv = document.getElementById('sync-status');
+                    statusDiv.innerHTML = '<span style="color: #f39c12;">در حال همگام‌سازی با سرور...</span>';
                     
-                    const result = await syncLocalOrdersToSupabase();
+                    const result = await syncFallbackOrders();
                     
                     if (result.success) {
-                        showNotification(`همگام‌سازی کامل شد: ${result.synced || 0} سفارش sync شد`, 'success');
-                        // refresh لیست سفارشات
+                        statusDiv.innerHTML = `<span style="color: #2ecc71;">✅ ${result.synced} سفارش همگام‌سازی شد</span>`;
+                        showNotification(`${result.synced} سفارش با موفقیت sync شد`, 'success');
+                        
+                        // بروزرسانی لیست
                         setTimeout(() => {
                             renderAdminOrders();
                             renderAdminTickets();
                         }, 1000);
                     } else {
+                        statusDiv.innerHTML = `<span style="color: #e74c3c;">❌ خطا در همگام‌سازی</span>`;
                         showNotification('خطا در همگام‌سازی', 'error');
+                    }
+                    
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> همگام‌سازی سفارشات آفلاین';
+                });
+                
+                document.getElementById('refresh-orders-btn').addEventListener('click', function() {
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال بروزرسانی...';
+                    
+                    setTimeout(async () => {
+                        await renderAdminOrders();
+                        await renderAdminTickets();
+                        await renderAdminUsers();
+                        
+                        this.innerHTML = '<i class="fas fa-redo"></i> بروزرسانی لیست';
+                        showNotification('لیست‌ها بروزرسانی شد', 'success');
+                    }, 500);
+                });
+                
+                document.getElementById('clear-cache-btn').addEventListener('click', function() {
+                    if (confirm('آیا از پاکسازی کش مطمئن هستید؟')) {
+                        localStorage.removeItem('sidka_orders_fallback');
+                        localStorage.removeItem('sidka_orders_backup');
+                        showNotification('کش پاکسازی شد', 'warning');
+                        
+                        setTimeout(() => {
+                            document.getElementById('sync-status').innerHTML = 
+                                '<span style="color: #f39c12;">کش پاکسازی شد. لیست را بروزرسانی کنید.</span>';
+                        }, 500);
                     }
                 });
             }
-        }, 500); // تأخیر کوچک برای اطمینان از لود DOM
+        }, 300);
         
+        // بارگذاری داده‌ها
         await renderAdminOrders();
         await renderAdminTickets();
         await renderAdminUsers();
