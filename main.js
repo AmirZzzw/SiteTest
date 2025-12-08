@@ -590,82 +590,80 @@ async function handleLogin() {
     
     try {
         // ========== حالت ادمین ==========
-        if (phone === '09021707830') {
-            console.log('👑 Admin login detected');
+        // در تابع handleLogin (قسمت ادمین)
+    if (phone === '09021707830') {
+    console.log('👑 Admin login detected');
+    
+    // اعتبارسنجی اولیه رمز ادمین
+    if (password !== 'SidkaShop1234') {
+        showNotification('رمز عبور ادمین اشتباه است', 'error');
+        return;
+    }
+    
+    // ذخیره اطلاعات ورود
+    window.pendingAdminLogin = {
+        phone: phone,
+        password: password,
+        isPending: true,
+        timestamp: Date.now(),
+        isVerified: false
+    };
+    
+    // ارسال کد به تلگرام
+    showNotification('در حال ارسال کد امنیتی به تلگرام...', 'info');
+    
+    const telegramResult = await window.telegram2FA.sendCodeToTelegram(phone);
+    
+    console.log('Telegram 2FA result:', telegramResult);
+    
+    if (telegramResult.success) {
+        // بستن مودال ورود
+        closeModal('login-modal', 'login-overlay');
+        
+        // نمایش مودال تایید کد
+        setTimeout(() => {
+            openModal('telegram-code-modal', 'telegram-code-overlay');
             
-            // اعتبارسنجی اولیه رمز ادمین
-            if (password !== 'SidkaShop1234') {
-                showNotification('رمز عبور ادمین اشتباه است', 'error');
-                return;
+            // تنظیم شماره تلفن
+            const phoneDisplay = document.getElementById('phone-display');
+            if (phoneDisplay) {
+                phoneDisplay.textContent = `📱 شماره: ${phone}`;
             }
             
-            // ذخیره اطلاعات ورود
-            window.pendingAdminLogin = {
-                phone: phone,
-                password: password,
-                isPending: true,
-                timestamp: Date.now(),
-                isVerified: false
-            };
-            
-            // ========== اصلاح این قسمت ==========
-            // ارسال کد به تلگرام
-            showNotification('در حال ارسال کد امنیتی...', 'info');
-            
-            const telegramResult = await window.telegram2FA.sendCodeToTelegram(phone);
-            
-            console.log('Telegram 2FA result:', {
-                success: telegramResult.success,
-                hasCode: !!telegramResult.code,
-                fallback: telegramResult.fallbackMode
-            });
-            
-            if (telegramResult.success) {
-                // بستن مودال ورود
-                closeModal('login-modal', 'login-overlay');
-                
-                // نمایش مودال تایید کد
-                setTimeout(() => {
-                    openModal('telegram-code-modal', 'telegram-code-overlay');
-                    
-                    // تنظیم شماره تلفن
-                    const phoneDisplay = document.getElementById('phone-display');
-                    if (phoneDisplay) {
-                        phoneDisplay.textContent = `📱 شماره: ${phone}`;
-                    }
-                    
-                    // تایمر معکوس
-                    startCodeTimer(phone);
-                    
-                    // فوکوس روی فیلد کد
-                    setTimeout(() => {
-                        const codeInput = document.getElementById('telegram-code');
-                        if (codeInput) {
-                            codeInput.focus();
-                            codeInput.value = '';
-                        }
-                    }, 300);
-                    
-                    // ذخیره کد برای دیباگ (فقط برای توسعه)
-                    if (telegramResult.code && telegramResult.fallbackMode) {
-                        // فقط در حالت fallback نمایش بده
-                        console.log(`⚠️ Fallback mode - Code: ${telegramResult.code}`);
-                    }
-                    
-                }, 500);
-                
-                // پاک کردن فیلدها
-                phoneInput.value = '';
-                passwordInput.value = '';
-                
-                return;
-                
-            } else {
-                showNotification('خطا در ارسال کد امنیتی', 'error');
-                window.pendingAdminLogin = null;
-                return;
+            // تنظیم تایمر
+            const expiryElement = document.getElementById('code-expiry');
+            if (expiryElement) {
+                expiryElement.textContent = `⏰ کد تا ۱۰ دقیقه دیگر معتبر است`;
             }
-        }
+            
+            // اگر حالت fallback بود، کد رو نشون بده
+            if (telegramResult.fallbackMode && telegramResult.displayCode) {
+                window.showFallbackCode(telegramResult.displayCode, phone);
+            }
+            
+            // فوکوس روی فیلد کد
+            setTimeout(() => {
+                const codeInput = document.getElementById('telegram-code');
+                if (codeInput) {
+                    codeInput.focus();
+                    codeInput.value = '';
+                }
+            }, 300);
+            
+        }, 500);
+        
+        // پاک کردن فیلدها
+        phoneInput.value = '';
+        passwordInput.value = '';
+        
+        return;
+        
+    } else {
+        showNotification('خطا در ارسال کد امنیتی', 'error');
+        window.pendingAdminLogin = null;
+        return;
+    }
+}
         
         // ========== کاربران عادی ==========
         console.log(`🔐 Regular user login: ${phone}`);
